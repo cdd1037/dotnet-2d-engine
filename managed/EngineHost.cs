@@ -15,13 +15,13 @@ public sealed unsafe class EngineHost : IDisposable
     private IEngineOwned? _ui;
     internal void AcquireUi(IEngineOwned owner) { AssertAlive(); if(_ui is not null)throw new InvalidOperationException("This engine already has a managed UI owner."); _ui=owner; }
     internal void ReleaseUi(IEngineOwned owner) { AssertThread(); if(ReferenceEquals(_ui,owner))_ui=null; }
-    internal PhysicsWorld OpenPhysics(PhysicsSettings? settings=null)
+    public PhysicsWorld OpenPhysics(PhysicsSettings? settings=null)
     {
         AssertAlive();if(_physics is not null)throw new InvalidOperationException("A physics world is already open.");
         var world=new PhysicsWorld(this,settings??PhysicsSettings.Default);_physics=world;return world;
     }
     internal void PhysicsClosed(PhysicsWorld world){if(ReferenceEquals(_physics,world))_physics=null;}
-    internal AudioSession OpenAudio(bool offline=false)
+    public AudioSession OpenAudio(bool offline=false)
     {
         AssertAlive();if(_audio is not null)throw new InvalidOperationException("An audio session is already open.");
         var session=new AudioSession(this,offline);_audio=session;return session;

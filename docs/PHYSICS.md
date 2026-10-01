@@ -110,7 +110,7 @@ body/shape IDs, not live pointers. Sensor event A is the sensor and B the visito
 Deletion-end events retain removed IDs and flag the removed side; do not treat
 those IDs as still-operable bodies. There are no reentrant managed callbacks.
 
-`PhysicsStep.Dropped > 0` explicitly reports truncated/unmapped events. **The step
+`PhysicsStepResult.Dropped > 0` explicitly reports truncated/unmapped events. **The step
 has already completed; do not retry it.** The caller must handle that diagnostic.
 The sample treats overflow as a visible error. Events are grouped by event kind;
 no chronological ordering or cross-platform ordering is promised. Low-level event
@@ -163,3 +163,24 @@ Interactive controls: E impulses the first dynamic body, T teleports it back and
 zeros velocity, Space pauses/resumes, Escape exits. The moving kinematic slab is a
 body-type example; it does not implement character riding rules. The automated
 fixture runs 180 fixed steps and reports contacts, sensors, poses and final cleanup.
+
+
+## Public package boundary
+
+`EngineHost.OpenPhysics` and the existing settings/definitions, scale, world,
+body/shape and scope operations are experimental public APIs. World/body/shape
+constructors remain internal; scopes require a live world. Raw ABI records and
+P/Invoke remain internal. Public state/step/ray results are immutable copied
+values, with boolean ray `Hit` and typed `PhysicsEventType`. Event views expose
+`RemovedA`/`RemovedB` instead of a native flags field. Opaque IDs can be compared
+with query/event results; they cannot manufacture a new owning wrapper.
+
+`PhysicsWorld.Events` borrows a reusable 1,024-entry typed array until the next
+step or close. Retain individual value copies (or explicitly copy the span) for
+longer use. A second 1,024-entry native buffer remains private for ABI transfer;
+the typed copy introduces bounded setup storage and no per-step allocation.
+Snapshots already copied by the caller survive disposal. Accessing live state
+through a closed owner still fails. Settings and LastStep also check world access.
+Public query and body-command preflight reports invalid finite/range arguments
+with managed argument exceptions before native mutation; solver/native operation
+errors retain the existing InvalidOperationException diagnostics.

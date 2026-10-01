@@ -1,0 +1,15 @@
+{
+  "kind": "gal-tilemap", "version": 1, "name": "Independent modules",
+  "width": 4, "height": 4, "tileWidth": 32, "tileHeight": 32,
+  "resources": [
+    {"key": "red", "path": "regions.bmp", "region": {"x": 0, "y": 0, "width": 1, "height": 1}},
+    {"key": "blue", "path": "regions.bmp", "region": {"x": 8, "y": 0, "width": 1, "height": 1}}
+  ],
+  "tiles": [{"id": 1, "assetKey": "red", "solid": true}],
+  "layers": [{"name": "floor", "order": 0, "cells": [
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    1, 1, 1, 1
+  ]}]
+}

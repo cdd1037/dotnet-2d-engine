@@ -50,11 +50,10 @@ is implied by this audit.
 - **Latest distribution proof:** fresh packages from `d07a6ab` pass independent
   empty/sprite/UI framework-dependent, trimmed JIT and AOT runs. Current renderer
   and diagnostic modules have positive untrimmed controls and unused-root removal
-  checks; full native payload preservation is explicit. Broader usable package
-  APIs are still a concrete remaining delivery item: animation/timing, audio,
-  physics and TileMap currently remain internal. [A bounded exposure plan](PACKAGE_API_NEXT.md)
-  can be completed autonomously with existing implementations and one combined
-  external consumer; no new runtime feature or public package publication is implied
+  checks; full native payload preservation is explicit. The following [public module boundary](PACKAGE_API_NEXT.md) exposes animation/
+  timing, audio, physics and TileMap to an independent combined consumer. Raw
+  interop, probes and planning/sourcegen internals stay hidden; this remains an
+  experimental local package API with no public package publication
 - **UI:** a targeted cloud X11 check changed both name and slider, scrolled to the
   bottom, then restored both defaults with one Reset click. A second changed draft
   after scrolling back to the top also reset with one click. This narrow sequence
@@ -77,7 +76,8 @@ is implied by this audit.
 - **Distribution:** the Linux native profile requires GLIBC_2.38 and the documented
   C++ ABI, plus host drivers and a separately licensed font. The local proof reuses
   prepared dependencies/toolchains, so it does not establish a fresh-machine setup
-  flow. Several implemented feature APIs remain internal to the package prototype
+  flow. Public module reachability now has a focused combined consumer; stable SDK/API
+  compatibility and broader distribution support remain unpromised
 - **UI choice:** RmlUi remains experimental. Comparing it with Myra, Gum and an
   engine-owned alternative is still a decision gate before permanent selection;
   it does not require implementing four UI systems
@@ -97,7 +97,7 @@ acceptance remain gated or deferred as previously recorded. Basic post-processin
 is an original renderer item; do not relabel it as deferred advanced effects.
 
 A preliminary Godot/Unity2D inventory is useful now. The requested comprehensive
-**near-completion** comparison is now reasonable alongside the remaining public package boundary:
+**near-completion** comparison is now reasonable with the public package boundary explicitly exercised:
 the core batch status is explicit and desktop acceptance gaps have named blockers.
 Read-only comparison and a UI candidate assessment can proceed autonomously;
 permanent UI selection and actual Windows/macOS/IME/hardware acceptance still need

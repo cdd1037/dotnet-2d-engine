@@ -152,3 +152,15 @@ music; T restarts looping music; left/right adjust master gain; Escape exits.
 Focus loss/nondrawable state pauses active voices and only resumes those that were
 playing before suspension. Console text documents the controls. Physical speaker
 output and hardware latency still require separate acceptance.
+
+
+## Public package boundary
+
+`EngineHost.OpenAudio`, audio groups, session, scope, clip and voice operations
+are experimental public APIs. Sessions come from the engine; clip/voice wrappers
+have internal constructors and cannot be forged from IDs. A scope requires a live
+session. `AudioSessionState` and `AudioVoiceState` are immutable copied values,
+independent of later playback/disposal. Their properties expose playback/counts/
+format and source-frame position without ABI Size/Reserved/Flags fields. Raw
+interop remains internal. Existing creation-thread, ownership, streaming-file,
+capacity and disposal contracts still apply.

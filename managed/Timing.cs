@@ -1,10 +1,10 @@
 namespace GameAuthoringLab;
 
-internal enum ClockDomain { Game, RealTime }
-internal enum PlaybackState { Running, Paused, Completed, Cancelled }
+public enum ClockDomain { Game, RealTime }
+public enum PlaybackState { Running, Paused, Completed, Cancelled }
 
 /// <summary>Caller-supplied deltas, never wall-clock timestamps. Default is a zero step.</summary>
-internal readonly record struct TimingStep
+public readonly record struct TimingStep
 {
     public const double MaximumSeconds = 86_400;
     public double RealSeconds { get; }
@@ -36,7 +36,7 @@ internal readonly record struct TimingStep
 }
 
 /// <summary>Main-thread mutable playback. Values are polled; no callbacks or implicit entity mutation.</summary>
-internal abstract class TimingOperation : IDisposable
+public abstract class TimingOperation : IDisposable
 {
     private readonly int _thread = Environment.CurrentManagedThreadId;
     public ClockDomain Domain { get; }
@@ -44,7 +44,7 @@ internal abstract class TimingOperation : IDisposable
     public bool IsDisposed { get; private set; }
     public bool CompletedThisAdvance { get; private set; }
     internal TimingScope? Owner;
-    protected TimingOperation(ClockDomain domain)
+    private protected TimingOperation(ClockDomain domain)
     {
         if (domain is not (ClockDomain.Game or ClockDomain.RealTime)) throw new ArgumentOutOfRangeException(nameof(domain));
         Domain = domain;
@@ -81,7 +81,7 @@ internal abstract class TimingOperation : IDisposable
 }
 
 /// <summary>Bounded lifetime ownership only. No global clock, scheduler, callbacks, or automatic advancement.</summary>
-internal sealed class TimingScope : IDisposable
+public sealed class TimingScope : IDisposable
 {
     public const int MaximumOperations = 256;
     private readonly int _thread = Environment.CurrentManagedThreadId;
@@ -118,7 +118,7 @@ internal sealed class TimingScope : IDisposable
 }
 
 /// <summary>Polling timer. Repeating expirations coalesce into TicksDue; never one callback per missed tick.</summary>
-internal sealed class EngineTimer : TimingOperation
+public sealed class EngineTimer : TimingOperation
 {
     private double _elapsed;
     public double DurationSeconds { get; }

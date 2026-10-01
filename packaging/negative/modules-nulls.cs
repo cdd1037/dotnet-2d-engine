@@ -1,0 +1,11 @@
+using GameAuthoringLab;
+using var engine=EngineHost.Create(headless:true);
+using var audio=engine.OpenAudio(offline:true);
+using var physics=engine.OpenPhysics();
+using var audioScope=new AudioScope(null);
+using var physicsScope=new PhysicsScope(null);
+using var animation=new FramePlayer(null);
+using var map=new TileMapInstance(engine,null,new(0,0));
+audio.CreateVoice(null);
+audio.LoadClip(null,"pcm.wav");
+TileMapAsset.LoadAsset(null,"level.tilemap.json");

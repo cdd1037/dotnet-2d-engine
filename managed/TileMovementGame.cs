@@ -66,8 +66,8 @@ internal sealed class TileMovementLevel:IDisposable
     public int GoalEntries {get;private set;}
     public int GoalExits {get;private set;}
     public uint Steps {get;private set;}
-    public PhysicsBodyState State {get{Check();return Player.State;}}
-    public bool Grounded {get{Check();var s=Player.State;var hit=_physics.RayCast(s.X,s.Y,0,HalfHeight+.08f,PlayerCategory,TerrainCategory);return hit.Hit!=0&&hit.NormalY<-.5f&&s.Vy<.1f;}}
+    public PhysicsBodyStateView State {get{Check();return Player.State;}}
+    public bool Grounded {get{Check();var s=Player.State;var hit=_physics.RayCast(s.X,s.Y,0,HalfHeight+.08f,PlayerCategory,TerrainCategory);return hit.Hit&&hit.NormalY<-.5f&&s.Vy<.1f;}}
     public TileMovementLevel(EngineHost engine,PhysicsWorld physics,LoadedTileMap source)
     {
         _physics=physics;_scope=new(physics);Map=new(engine,source,new(64,64));
@@ -91,8 +91,8 @@ internal sealed class TileMovementLevel:IDisposable
         foreach(var e in _physics.Events)
         {
             if(!((e.ShapeA==_goalShape.Id&&e.ShapeB==_playerShape.Id)||(e.ShapeB==_goalShape.Id&&e.ShapeA==_playerShape.Id)))continue;
-            if(e.Type==3){InGoal=true;GoalEntries++;}
-            else if(e.Type==4){InGoal=false;GoalExits++;}
+            if(e.Type==PhysicsEventType.SensorBegin){InGoal=true;GoalEntries++;}
+            else if(e.Type==PhysicsEventType.SensorEnd){InGoal=false;GoalExits++;}
         }
     }
     private void Check()=>ObjectDisposedException.ThrowIf(_disposed,this);

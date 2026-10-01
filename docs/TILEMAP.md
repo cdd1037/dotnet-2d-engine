@@ -109,13 +109,14 @@ var collision = placed.AttachCollision(physics, new PhysicsScale(32));
 // The host explicitly advances physics; the map never calls Step implicitly.
 var result = physics.Step();
 var hit = physics.RayCast(xMeters, yMeters, dxMeters, dyMeters);
-if (hit.Hit != 0 && collision.TryGetRectangle(hit.Shape, out var cells))
+if (hit.Hit && collision.TryGetRectangle(hit.Shape, out var cells))
 {
     // cells is the generating rectangle in grid coordinates
 }
 ```
 
-`TileCollisionPlan.Create` is a CPU-only preflight. It unions whole solid cells
+The internal `TileCollisionPlan.Create` helper is a CPU-only preflight used by
+the public instance's `AttachCollision`. It unions whole solid cells
 across all layers, including opacity-zero layers; visual flips do not change a full
 box. Deterministic greedy row-first rectangles cover the union exactly once. The
 merge is not promised to minimize rectangle count. All generated shapes share the

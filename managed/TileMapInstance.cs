@@ -1,7 +1,7 @@
 using System.Numerics;
 namespace GameAuthoringLab;
 
-internal readonly record struct TileMapPlacement(float X, float Y, float Scale = 1)
+public readonly record struct TileMapPlacement(float X, float Y, float Scale = 1)
 {
     internal void Validate(TileMap map)
     {
@@ -11,7 +11,7 @@ internal readonly record struct TileMapPlacement(float X, float Y, float Scale =
     }
 }
 /// <summary>Half-open world pixel bounds for visibility culling, not a scissor rectangle.</summary>
-internal readonly record struct TileView(double X, double Y, double Width, double Height)
+public readonly record struct TileView(double X, double Y, double Width, double Height)
 {
     internal void Validate()
     {
@@ -25,7 +25,7 @@ internal readonly record struct TileView(double X, double Y, double Width, doubl
     }
 }
 /// <summary>Immutable placement; owns texture leases and optional generated static collision.</summary>
-internal sealed class TileMapInstance : IDisposable
+public sealed class TileMapInstance : IDisposable
 {
     private readonly EngineHost _engine;
     private readonly TextureBank _bank;

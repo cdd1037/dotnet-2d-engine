@@ -29,10 +29,10 @@ internal static unsafe class PhysicsTests
         {
             using var ground=physics.CreateBody(new(PhysicsBodyType.Static,0,10));var groundShape=ground.AddShape(new(PhysicsShapeType.Box,10,.5f));
             using var ball=physics.CreateBody(new(PhysicsBodyType.Dynamic,0,0));using var circle=ball.AddShape(new(PhysicsShapeType.Circle,.5f));stale=ball.Id;
-            bool began=false;for(int i=0;i<240;i++){var step=physics.Step();Check(step.Dropped==0,"no dropped floor events");foreach(var e in physics.Events)began|=e.Type==1;}
+            bool began=false;for(int i=0;i<240;i++){var step=physics.Step();Check(step.Dropped==0,"no dropped floor events");foreach(var e in physics.Events)began|=e.Type==PhysicsEventType.ContactBegin;}
             Check(began&&ball.State.Y is >8.9f and <9.1f,"falling circle rests on static box and emits begin");
             for(int i=0;i<120;i++)physics.Step();Check(!ball.State.Awake,"resting body sleeps");
-            ball.Teleport(0,0);physics.Step();Check(physics.Events.ToArray().Any(e=>e.Type==2),"teleport emits contact end");
+            ball.Teleport(0,0);physics.Step();Check(physics.Events.ToArray().Any(e=>e.Type==PhysicsEventType.ContactEnd),"teleport emits contact end");
             groundShape.Dispose();Check(physics.State is {Shapes:1,RetiredShapes:1},"shape destruction retains event identity until step");physics.Step();Check(physics.State.RetiredShapes==0,"retired shape slot collected after copy");
             Reject<InvalidOperationException>(()=>ground.SetVelocity(1,0),"static velocity unsupported");
             Reject<InvalidOperationException>(()=>ground.ApplyImpulse(1,0),"impulse requires dynamic body");
@@ -49,11 +49,11 @@ internal static unsafe class PhysicsTests
         {
             using var sensor=physics.CreateBody(new(PhysicsBodyType.Static,4,2));using var sensorShape=sensor.AddShape(new(PhysicsShapeType.Box,1,1,Sensor:true,Density:0));
             using var visitor=physics.CreateBody(new(PhysicsBodyType.Dynamic,4,0,Vy:4));using var visitorShape=visitor.AddShape(new(PhysicsShapeType.Circle,.2f));
-            bool began=false,ended=false;for(int i=0;i<70;i++){physics.Step();foreach(var e in physics.Events){began|=e.Type==3;ended|=e.Type==4;}}
+            bool began=false,ended=false;for(int i=0;i<70;i++){physics.Step();foreach(var e in physics.Events){began|=e.Type==PhysicsEventType.SensorBegin;ended|=e.Type==PhysicsEventType.SensorEnd;}}
             Check(began&&ended&&visitor.State.Vy==4,"sensor begin/end without collision response");
             visitor.Teleport(4,2);visitor.SetVelocity(0,0);physics.Step();ulong deadShape=visitorShape.Id,deadBody=visitor.Id;var copied=physics.Events.ToArray();visitor.Dispose();
-            Check(copied.Any(e=>e.Type==3)&&physics.Events.Length==copied.Length,"managed copied events survive body mutation");
-            physics.Step();Check(physics.Events.ToArray().Any(e=>e.Type==4&&e.ShapeB==deadShape&&e.BodyB==deadBody&&(e.Flags&2)!=0),"destroyed visitor end retains retired shape/body IDs");
+            Check(copied.Any(e=>e.Type==PhysicsEventType.SensorBegin)&&physics.Events.Length==copied.Length,"managed copied events survive body mutation");
+            physics.Step();Check(physics.Events.ToArray().Any(e=>e.Type==PhysicsEventType.SensorEnd&&e.ShapeB==deadShape&&e.BodyB==deadBody&&e.RemovedB),"destroyed visitor end retains retired shape/body IDs");
         }
         using(var physics=engine.OpenPhysics())
         {
@@ -76,14 +76,14 @@ internal static unsafe class PhysicsTests
         using(var physics=engine.OpenPhysics(new(0,0,1f/60,4)))
         {
             using var body=physics.CreateBody(new(PhysicsBodyType.Static));using var first=body.AddShape(new(PhysicsShapeType.Box,1,1,Category:1));using var second=body.AddShape(new(PhysicsShapeType.Circle,.5f,OffsetX:4,Category:2));
-            var ray=physics.RayCast(-5,0,10,0);Check(ray.Hit==1&&ray.Shape==first.Id&&Math.Abs(ray.X+1)<.01f&&ray.NormalX<-.9f,"closest ray identity/point/normal");
+            var ray=physics.RayCast(-5,0,10,0);Check(ray.Hit&&ray.Shape==first.Id&&Math.Abs(ray.X+1)<.01f&&ray.NormalX<-.9f,"closest ray identity/point/normal");
             Check(physics.RayCast(-5,0,10,0,mask:2).Shape==second.Id,"ray category mask");
-            Check(physics.RayCast(0,0,1,0).Hit==0,"closest ray explicitly ignores initial overlap");
-            Check(physics.RayCast(-5,3,10,0).Hit==0,"ray miss");
+            Check(physics.RayCast(0,0,1,0).Hit==false,"closest ray explicitly ignores initial overlap");
+            Check(physics.RayCast(-5,3,10,0).Hit==false,"ray miss");
             ulong[] hits=new ulong[512];int count=physics.QueryAabb(-2,-2,5,2,hits);Check(count==2&&hits[0]==first.Id&&hits[1]==second.Id,"bounded broad-phase query sorted by engine ID");
             var query=new PhysicsAabb{Size=40,Version=1,LowerX=-2,LowerY=-2,UpperX=5,UpperY=2,Category=ulong.MaxValue,Mask=ulong.MaxValue};ulong sentinel=777;uint required=0;
             Check(PhysicsNative.Aabb(engine.NativeContext,&query,&sentinel,1,&required)!=0&&required==2&&sentinel==777,"insufficient query output leaves array intact");
-            Reject<InvalidOperationException>(()=>physics.RayCast(0,0,0,0),"zero ray");Reject<InvalidOperationException>(()=>physics.QueryAabb(2,0,1,1,hits),"inverted bounds");
+            Reject<ArgumentException>(()=>physics.RayCast(0,0,0,0),"zero ray");Reject<ArgumentException>(()=>physics.QueryAabb(2,0,1,1,hits),"inverted bounds");
             var invalid=new PhysicsBodyDef{Size=56,Version=1,Type=PhysicsBodyType.Dynamic,X=float.NaN,GravityScale=1};ulong rejected=99;Check(PhysicsNative.CreateBody(engine.NativeContext,&invalid,&rejected)!=0&&rejected==0,"native nonfinite input preflight");
             var cam=new Camera{Zoom=1};Native.Check(Native.Begin(engine.NativeContext,&cam),"physics frame guard");var step=new PhysicsStep{Size=16};Check(PhysicsNative.Step(engine.NativeContext,&step)!=0,"step rejected during draw frame");Native.Check(Native.Abort(engine.NativeContext),"physics abort");
         }

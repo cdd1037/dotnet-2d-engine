@@ -1,8 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 namespace GameAuthoringLab;
-internal enum PhysicsBodyType : uint { Static,Kinematic,Dynamic }
-internal enum PhysicsShapeType : uint { Circle,Box }
 [StructLayout(LayoutKind.Sequential)]
 internal struct PhysicsConfig {public uint Size,Version;public float GravityX,GravityY,StepSeconds;public uint Substeps,Flags,Reserved;}
 [StructLayout(LayoutKind.Sequential)]

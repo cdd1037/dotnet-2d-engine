@@ -32,7 +32,7 @@ internal static class PhysicsDemo
             while(accumulator>=fixture.StepSeconds&&steps++<8)
             {
                 var result=physics.Step();if(result.Dropped!=0)throw new InvalidOperationException($"Physics step {result.Index} completed with {result.Dropped} dropped events.");
-                foreach(var e in physics.Events){if(e.Type==1)contacts++;if(e.Type==3)sensors++;}
+                foreach(var e in physics.Events){if(e.Type==PhysicsEventType.ContactBegin)contacts++;if(e.Type==PhysicsEventType.SensorBegin)sensors++;}
                 accumulator-=fixture.StepSeconds;
             }
             if(steps>8)accumulator=0; // bounded demo catch-up policy, not a solver capability.

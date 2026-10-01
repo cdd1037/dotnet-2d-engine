@@ -100,7 +100,7 @@ internal static unsafe class TileMovementTests
             Check(level.State.X>3.34f&&level.State.X<3.5f&&level.Grounded,"holding against left wall cannot pass it");
             Check(level.GoalEntries==2&&level.GoalExits==2,"reverse crossing repeats sensor events");
             var ray=physics.RayCast(6,8,0,6,TileMovementLevel.PlayerCategory,TileMovementLevel.TerrainCategory);
-            Check(ray.Hit!=0&&level.Collision.TryGetRectangle(ray.Shape,out var rectangle)&&rectangle.Y==10,"query resolves authored floor identity");
+            Check(ray.Hit&&level.Collision.TryGetRectangle(ray.Shape,out var rectangle)&&rectangle.Y==10,"query resolves authored floor identity");
             Span<ulong> shapes=stackalloc ulong[8];int hits=physics.QueryAabb(11,10.8f,13,12,shapes,TileMovementLevel.PlayerCategory,TileMovementLevel.GoalCategory);
             Check(hits==1,"filtered broad-phase query finds goal only");
             var clock=new TileMovementClock();clock.Advance(Input(),0);var start=level.State;uint steps=level.Steps;

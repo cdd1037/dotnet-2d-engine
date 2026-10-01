@@ -1,6 +1,6 @@
 namespace GameAuthoringLab;
 
-internal readonly record struct TileRectangle(int X,int Y,int Width,int Height);
+public readonly record struct TileRectangle(int X,int Y,int Width,int Height);
 /// <summary>Pure CPU greedy union plan. Visual opacity/flips do not change an entire-cell solid box.</summary>
 internal sealed class TileCollisionPlan
 {
@@ -48,7 +48,7 @@ internal sealed class TileCollisionPlan
         return new(rectangles.ToArray(),bodies,shapes);
     }
 }
-internal sealed class TileMapCollision : IDisposable
+public sealed class TileMapCollision : IDisposable
 {
     private readonly PhysicsScope _scope;
     private readonly TileCollisionPlan _plan;

@@ -1,10 +1,10 @@
 using System.Numerics;
 namespace GameAuthoringLab;
 
-internal enum TweenEase { Linear, EaseIn, EaseOut, SmoothStep }
+public enum TweenEase { Linear, EaseIn, EaseOut, SmoothStep }
 
 /// <summary>Typed value interpolation, not a property binding. The caller applies Value explicitly.</summary>
-internal sealed class Tween<T> : TimingOperation where T : struct
+public sealed class Tween<T> : TimingOperation where T : struct
 {
     private readonly T _from, _to;
     private readonly Func<T, T, double, T> _interpolate;
@@ -30,7 +30,7 @@ internal sealed class Tween<T> : TimingOperation where T : struct
     }
 }
 
-internal static class Tween
+public static class Tween
 {
     private static float Lerp(float from, float to, double t) => (float)((1 - t) * from + t * to);
     private static void Finite(float value) { if (!float.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value), "Tween values must be finite."); }

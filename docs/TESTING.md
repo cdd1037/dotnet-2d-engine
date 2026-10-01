@@ -131,3 +131,16 @@ partitioning and recovery. Run `--target-graphics-test` with
 translucent compositing, repeated sampling/alpha tint, zero/near-zero alpha,
 clear/resize/clip behavior and final-window UI. A fresh AOT run and readback
 comparison belong at this additive ABI boundary. See [limits and costs](RENDER_TARGETS.md).
+
+
+## Public package module boundary
+
+After rebuilding the two local packages, run
+`PACKAGE_MODULE_PROOF_ROOT=/tmp/dotnet2d-modules-new bash scripts/test-package-modules.sh`.
+It copies an ordinary SDK consumer outside the source tree, then runs existing
+animation/timing, audio offline PCM, Box2D and TileMap through public APIs in JIT
+and one fresh AOT publish. Seven forged-constructor and seven unsupported-null
+compile sites must fail, while copied state views remain immutable and interop
+helpers remain inaccessible. Three fresh minimal trimmed publishes inspect unused
+module removal; this does not repeat every graphics/device matrix. See the
+[public boundary](PACKAGE_API_NEXT.md) for exact prerequisites, limits and sizes.

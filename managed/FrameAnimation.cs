@@ -1,7 +1,7 @@
 namespace GameAuthoringLab;
 
 /// <summary>Immutable fixed-rate frames identified by logical resource keys, independent of atlas placement.</summary>
-internal sealed class FrameClip
+public sealed class FrameClip
 {
     public const int MaximumFrames = 4096;
     private readonly string[] _keys;
@@ -20,7 +20,7 @@ internal sealed class FrameClip
     }
 }
 
-internal sealed class FramePlayer : TimingOperation
+public sealed class FramePlayer : TimingOperation
 {
     private double _elapsed;
     public FrameClip Clip { get; }

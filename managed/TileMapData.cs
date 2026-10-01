@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 namespace GameAuthoringLab;
 
-internal sealed class TileMapDocument
+public sealed class TileMapDocument
 {
     public required string Kind { get; init; }
     public required int Version { get; init; }
@@ -16,13 +16,13 @@ internal sealed class TileMapDocument
     public required List<TileDefinitionRecord> Tiles { get; init; }
     public required List<TileLayerRecord> Layers { get; init; }
 }
-internal sealed class TileDefinitionRecord
+public sealed class TileDefinitionRecord
 {
     public required int Id { get; init; }
     public required string AssetKey { get; init; }
     public bool Solid { get; init; }
 }
-internal sealed class TileLayerRecord
+public sealed class TileLayerRecord
 {
     public required string Name { get; init; }
     public required int Order { get; init; }
@@ -31,8 +31,8 @@ internal sealed class TileLayerRecord
     public required int[] Cells { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int[]? Flips { get; init; }
 }
-internal readonly record struct TileDefinition(string AssetKey, bool Solid);
-internal sealed class TileLayer
+public readonly record struct TileDefinition(string AssetKey, bool Solid);
+public sealed class TileLayer
 {
     private readonly int[] _cells;
     private readonly byte[] _flips;
@@ -54,7 +54,7 @@ internal sealed class TileLayer
     internal bool ChunkOccupied(int index) => _chunks[index];
 }
 /// <summary>Copied immutable orthogonal grid. Runtime chunks and native handles never enter the source document.</summary>
-internal sealed class TileMap
+public sealed class TileMap
 {
     public const int ChunkSize = 16, MaximumDimension = 256, MaximumCellSlots = 131072, MaximumLayers = 8, MaximumTiles = 256;
     private readonly TileDefinition[] _tiles;
@@ -81,20 +81,27 @@ internal sealed class TileMap
         _assetKeys = used.Order(StringComparer.Ordinal).ToArray();
     }
 }
-internal sealed record LoadedTileMap(TileMapDocument Source, TileMap Map, AssetCatalog Catalog);
-internal sealed class TileMapException(string code,string source,string path,string message,Exception? inner=null)
+public sealed class LoadedTileMap
+{
+    public TileMapDocument Source {get;}
+    public TileMap Map {get;}
+    public AssetCatalog Catalog {get;}
+    internal LoadedTileMap(TileMapDocument source,TileMap map,AssetCatalog catalog){Source=source;Map=map;Catalog=catalog;}
+}
+public sealed class TileMapException(string code,string source,string path,string message,Exception? inner=null)
     : Exception($"{source} [{code}] {path}: {message}",inner)
 {
     public string Code { get; } = code;
     public string SourcePath { get; } = source;
     public string JsonPath { get; } = path;
 }
-internal static class TileMapAsset
+public static class TileMapAsset
 {
     public const int MaximumBytes = 2*1024*1024;
     private static readonly UTF8Encoding Utf8 = new(false,true);
     public static LoadedTileMap LoadAsset(AssetRoot assets,string logicalPath)
     {
+        ArgumentNullException.ThrowIfNull(assets);
         try
         {
             string path = assets.Resolve(logicalPath); using var stream = File.OpenRead(path);
@@ -108,6 +115,7 @@ internal static class TileMapAsset
     }
     public static LoadedTileMap Load(string json,string sourcePath,AssetRoot assets)
     {
+        ArgumentNullException.ThrowIfNull(assets);ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         CheckBytes(json,sourcePath);
         TileMapDocument source;
         try { source = JsonSerializer.Deserialize(json,TileMapJsonContext.Default.TileMapDocument) ?? throw Error("TILE_JSON",sourcePath,"$","Document cannot be null."); }
@@ -124,7 +132,7 @@ internal static class TileMapAsset
     }
     public static LoadedTileMap Build(TileMapDocument source,string file,AssetRoot assets)
     {
-        ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(assets);
+        ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(assets);ArgumentException.ThrowIfNullOrWhiteSpace(file);
         if(source.Kind!="gal-tilemap" || source.Version!=1) throw Error("TILE_VERSION",file,"$.kind/version","Expected gal-tilemap version 1.");
         if(string.IsNullOrWhiteSpace(source.Name) || source.Name.Length>128) throw Error("TILE_NAME",file,"$.name","Expected 1..128 nonblank characters.");
         if(source.Width is <1 or >TileMap.MaximumDimension || source.Height is <1 or >TileMap.MaximumDimension) throw Error("TILE_LIMIT",file,"$.width/height","Grid dimensions must be in 1..256.");

@@ -811,3 +811,36 @@ suffixes (`@@GAL_1`); this was a measurement-script correction, not a missing AP
 See [full measured categories](NUGET_PROOF.md) and [remaining public APIs](PACKAGE_API_NEXT.md).
 The proof still requires the documented modern Linux baseline, driver and external
 font. It does not test real Chinese IME, hardware GPU, physical audio or other OSes.
+
+## Public optional-module package boundary (2026-10-01)
+
+Existing animation/timing, audio, physics and TileMap operations are now public
+experimental managed APIs. Native-backed constructors, interop buffers, planning
+helpers and source-generated contexts remain internal. Audio/physics results use
+immutable copied views; the bounded physics event span has explicit next-step/
+close lifetime. No C++ source, native ABI, dependency or asset format changed.
+
+- Full repository JIT remains **10,594 assertions**, with no build warnings
+- Real Box2D **284**, offline PCM **61** and movement solver **62** checks pass
+- One independent ordinary PackageReference consumer passes **156 checks** in
+  both JIT and fresh NativeAOT, including actual solver/PCM work, public sourcegen
+  tile load/write, animation clocks, ownership cleanup and copied-value lifetimes
+- Its warmed 1,000 physics steps/state reads allocate zero managed bytes
+- Compiler-negative cases reject **seven** forged owner constructions, **seven**
+  unsupported null sites, mutable state writes and raw interop/sourcegen access
+- Fresh minimal empty/sprite/UI trimmed publishes still remove unused modules;
+  the combined AOT map positively roots the intended modules and no UI bindings
+- The complete native profile is byte-identical to the preceding proof:
+  **9,546,224 bytes**. Combined AOT executable: **2,871,624 bytes**; complete output
+  including native files, caller assets and notices: **12,747,314 bytes**
+- Full managed DLL: **352,768 bytes**. Minimal sprite/UI trimmed managed DLLs
+  remain **98,816 / 74,752 bytes**, and empty retains no engine assembly
+
+The combined consumer submits three headless frames. Its graphics/device paths
+were not reclassified as displayed pixels or audible output. The earlier renderer
+matrix was not repeated; existing feature evidence remains linked separately.
+A read-only ownership/API review found no actionable defect. The final README-only
+archive correction retained the exact executed assembly. Measurements, negative
+compiler diagnostics and AOT maps are in the ignored external module-proof folder.
+See [the public contract and categories](PACKAGE_API_NEXT.md). Real IME, hardware
+GPU/audio, Windows/macOS and broader distribution acceptance remain open.

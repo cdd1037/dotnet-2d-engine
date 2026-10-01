@@ -1,0 +1,11 @@
+using GameAuthoringLab;
+using var engine=EngineHost.Create(headless:true);
+using var audio=engine.OpenAudio(offline:true);
+using var physics=engine.OpenPhysics();
+var session=new AudioSession(engine,true);
+var clip=new AudioClip(audio,1);
+var voice=new AudioVoice(audio,1);
+var world=new PhysicsWorld(engine,PhysicsSettings.Default);
+var body=new PhysicsBody(physics,1);
+var shape=new PhysicsShape(body,1);
+var map=new LoadedTileMap(null!,null!,null!);

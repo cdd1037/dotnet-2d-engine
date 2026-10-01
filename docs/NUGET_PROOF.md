@@ -38,8 +38,10 @@ World/Entity/Scene behavior, explicit resource mappings/leases, authored-scene
 loading and typed UI bindings. Clipping, diagnostics, sprite materials and RGBA8
 render targets also expose experimental public APIs; their functionality has
 separate in-repository acceptance evidence. The factory disables legacy tone
-initialization. Raw interop/probes and the current audio, physics, animation/timing
-and TileMap entry points remain internal. This proof does not make every implemented prototype module a
+initialization. The subsequent [public module boundary](PACKAGE_API_NEXT.md) also exposes existing
+audio, physics, animation/timing and TileMap APIs, with typed state/event views
+and factory-only native ownership. Raw interop/probes, source-generated contexts
+and collision-planning helpers remain internal. This proof does not make every implemented prototype module a
 stable public API. The test host has explicit friend access; independent consumers
 do not. Internal visibility is an API boundary, not a security boundary.
 
@@ -174,8 +176,10 @@ managed DLL grew **40,448 bytes**, while sprite/UI trimmed managed sizes and all
 three AOT executable sizes stayed unchanged. Those observations apply to these
 consumer roots; they are not a claim about the cost when new modules are used.
 
-See [the next public module boundary](PACKAGE_API_NEXT.md) for the remaining
-distribution work. No new runtime feature is required for that boundary.
+The figures above preserve the nine-mode `d07a6ab` milestone. The subsequent
+[public module boundary](PACKAGE_API_NEXT.md) records its combined consumer and
+new minimal trimmed graphs separately. Its measurements must not be silently
+substituted into this earlier matrix.
 
 Evidence: ignored `evidence/nuget/`, `build-packages/native-verification.json`, and
 the selected external proof directory's `measurements.json` and `logs/`.

@@ -180,9 +180,11 @@ Native profiles, assets, notices and loader dependencies are measured separately
 prebuilt native functions are not removed by managed trimming.
 
 This completes the bounded local proof, not distribution/platform acceptance.
-Some implemented module APIs remain internal; broader public surfaces need their
-own consumer tests. Clean-machine setup, Windows/macOS native packages and real
-device acceptance remain open. Public NuGet publication and a custom SDK are not
+Raw interop/probes and selected implementation helpers remain internal.
+Clean-machine setup, Windows/macOS native packages and real
+device acceptance remain open. The [public optional-module boundary](PACKAGE_API_NEXT.md)
+now makes existing animation/timing, audio, physics and TileMap usable by an
+independent JIT/AOT consumer; this remains an experimental API. Public NuGet publication and a custom SDK are not
 part of this proof. Source generation remains explicit; no blanket assembly roots
 or trim/AOT warning suppression were introduced. See the [closure audit](ROADMAP_CLOSURE.md)
 for remaining functional work and named validation limits.
