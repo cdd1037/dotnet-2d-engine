@@ -2,7 +2,8 @@
 
 Planning document created after foundation checkpoint `cf3ebe6`. These are
 proposed delivery stages, not claims of implemented support or approval to install,
-publish or deploy anything. Keep one playable vertical slice driving engine work.
+publish or deploy anything. Use small playable examples to validate general-purpose engine capabilities;
+one sample is a starting point, not the engine feature ceiling.
 
 ## 1. Turn the sample into a repeatable small game
 
@@ -67,6 +68,57 @@ validated operations as files/CLI. Blazor, engine-self-hosted and hybrid approac
 remain open. Define versioned metadata and lossless round-tripping before an
 editor adds a second authoring surface. A Godot fork is outside this project.
 
+## Engine capability track (alongside the stages above)
+
+The stages above describe integration, authoring and delivery. They do not replace
+building reusable 2D engine functionality. Phase 1 remains the currently authorized
+implementation; the following is a prioritized roadmap, not a dependency selection
+or instruction to implement everything immediately.
+
+### A. Resources, scenes, rendering and animation
+
+- General resource cache and explicit lifetime, asynchronous loading and scene
+  transitions; reusable entity compositions with stable identity
+- Sprite atlases, UV regions, cameras, clipping and stable draw order; materials,
+  standard shader authoring/build workflow, render targets and basic post-processing
+- Sprite-frame animation and tweening, with explicit update/pause/lifetime rules
+
+Existing sprites, camera, transforms, sorting and flat scene JSON are foundations,
+not evidence that the complete capabilities above exist. Exit: at least two small
+examples with different content reuse the same APIs without sample-role hardcoding;
+resource failure/reload and animation teardown remain predictable.
+
+### B. World construction, physics, input and sound
+
+- Tilemaps and level data, including tile collision generation
+- Collision queries, triggers, character movement and rigid bodies; evaluate a
+  mature 2D physics library before implementing a general solver ourselves
+- Input actions, remapping and focus/capture; touch and gamepad support later,
+  aligned with the platform schedule (not added to phase 1)
+- Real sound effects and streamed music, voice lifetime and volume groups
+- Reusable timers, save integration, debug drawing, logging and basic profiling
+
+The current AABB sample and dummy audio are not full physics/audio systems.
+Exit: a tile-based movement example and a different interaction/physics example
+exercise shared APIs, and input/audio work on an actual target device. Resource
+and update ownership must remain explicit across pause, scene changes and restart.
+
+### C. Effects and specialized capabilities
+
+Evaluate particles, 2D lights/shadows, navigation/pathfinding and skeletal animation
+against concrete game needs. Prefer suitable maintained dependencies where they
+reduce total maintenance. Do not promise complete Godot feature parity or create
+large abstract frameworks before the required semantics are understood.
+
+### Ordering and integration
+
+After the playable phase-1 loop, progress resource/scene and render/animation work
+alongside UI/data authoring. Then add tile/world/physics and input/audio capabilities,
+while improving project/export tooling. Desktop validation should accompany each
+relevant capability rather than wait until every feature exists. Advanced effects,
+mobile, Web and editor work retain their separate gates. Use multiple small examples
+to avoid designing the entire engine around one game.
+
 ## Working constraints across all stages
 
 - Scope small edits to quick compile and related CPU checks
@@ -74,4 +126,4 @@ editor adds a second authoring surface. A Godot fork is outside this project.
 - One necessary final aggregate per milestone; preserve evidence provenance
 - No remote publication, releases or new platform-support claims by implication
 - No full ECS, generic physics framework or editor expansion without a concrete
-  need demonstrated by the playable slice
+  need demonstrated by representative game examples
