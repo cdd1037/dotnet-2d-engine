@@ -1,0 +1,22 @@
+# Build products, downloaded dependencies and local tools
+/build*/
+/.deps/
+/.tools/
+**/bin/
+**/obj/
+**/.dotnet-home/
+**/.offline-source/
+
+# Generated validation evidence is local; reports and reproduction live in docs/scripts
+/evidence/
+/managed/validation/*.log
+
+# Local credentials/editor/OS state
+.env
+.env.*
+!.env.example
+*.user
+*.suo
+.vs/
+.idea/
+.DS_Store
