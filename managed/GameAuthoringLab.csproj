@@ -13,7 +13,10 @@
     <AssemblyName>GameAuthoringLab</AssemblyName>
     <RootNamespace>GameAuthoringLab</RootNamespace>
   </PropertyGroup>
+  <Import Project="../engine/RuntimeSources.props" />
   <ItemGroup>
+    <Compile Remove="@(EngineRuntimeSource)" />
+    <ProjectReference Include="../engine/Dotnet2D.Engine.csproj" />
     <Content Include="../assets/*.tilemap.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/*.physics.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/audio/*.wav;../assets/audio/*.ogg" Link="assets/audio/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

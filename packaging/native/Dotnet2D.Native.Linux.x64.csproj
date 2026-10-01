@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Dotnet2D.Native.Linux.x64</PackageId>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">0.1.0-preview.1</PackageVersion>
+    <Authors>yi cheng</Authors>
+    <Description>Linux x64 native runtime for the Dotnet2D local package proof. Requires the documented modern glibc/C++ runtime and host graphics drivers.</Description>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(NativePackageStage)' != ''">
+    <None Include="$(NativePackageStage)/*" Pack="true" PackagePath="" />
+    <None Include="$(NativePackageStage)/licenses/*" Pack="true" PackagePath="licenses" />
+    <None Include="$(NativePackageStage)/runtimes/linux-x64/native/*" Pack="true" PackagePath="runtimes/linux-x64/native" />
+  </ItemGroup>
+  <Target Name="RequireNativeStage" BeforeTargets="GenerateNuspec">
+    <Error Condition="'$(NativePackageStage)' == '' Or !Exists('$(NativePackageStage)/manifest.json')" Text="Run scripts/pack-native.sh to prepare and verify the native package inputs." />
+  </Target>
+</Project>

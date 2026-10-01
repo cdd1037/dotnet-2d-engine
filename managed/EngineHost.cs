@@ -2,30 +2,30 @@ namespace GameAuthoringLab;
 
 // Contexts must be explicitly disposed on the creating thread. A SafeHandle
 // finalizer would destroy on an arbitrary GC thread and violate this ABI.
-internal sealed unsafe class EngineHost : IDisposable
+public sealed unsafe class EngineHost : IDisposable
 {
     private nint _context;
     public bool Headless { get; }
     public uint MaximumSprites { get; }
-    private TextureCache? _textures;
-    private AudioSession? _audio;
-    private PhysicsWorld? _physics;
-    private UiSessionOwner? _ui;
-    internal void AcquireUi(UiSessionOwner owner) { AssertAlive(); if(_ui is not null)throw new InvalidOperationException("This engine already has a managed UI owner."); _ui=owner; }
-    internal void ReleaseUi(UiSessionOwner owner) { AssertThread(); if(ReferenceEquals(_ui,owner))_ui=null; }
-    public PhysicsWorld OpenPhysics(PhysicsSettings? settings=null)
+    private IEngineOwned? _textures;
+    private IEngineOwned? _audio;
+    private IEngineOwned? _physics;
+    private IEngineOwned? _ui;
+    internal void AcquireUi(IEngineOwned owner) { AssertAlive(); if(_ui is not null)throw new InvalidOperationException("This engine already has a managed UI owner."); _ui=owner; }
+    internal void ReleaseUi(IEngineOwned owner) { AssertThread(); if(ReferenceEquals(_ui,owner))_ui=null; }
+    internal PhysicsWorld OpenPhysics(PhysicsSettings? settings=null)
     {
         AssertAlive();if(_physics is not null)throw new InvalidOperationException("A physics world is already open.");
-        return _physics=new PhysicsWorld(this,settings??PhysicsSettings.Default);
+        var world=new PhysicsWorld(this,settings??PhysicsSettings.Default);_physics=world;return world;
     }
     internal void PhysicsClosed(PhysicsWorld world){if(ReferenceEquals(_physics,world))_physics=null;}
-    public AudioSession OpenAudio(bool offline=false)
+    internal AudioSession OpenAudio(bool offline=false)
     {
         AssertAlive();if(_audio is not null)throw new InvalidOperationException("An audio session is already open.");
-        return _audio=new AudioSession(this,offline);
+        var session=new AudioSession(this,offline);_audio=session;return session;
     }
     internal void AudioClosed(AudioSession session){if(ReferenceEquals(_audio,session))_audio=null;}
-    public TextureCache Textures { get { AssertAlive(); return _textures ??= new TextureCache(this); } }
+    public TextureCache Textures { get { AssertAlive(); return (TextureCache)(_textures ??= new TextureCache(this)); } }
     internal void AssertThread()
     {
         if (Environment.CurrentManagedThreadId != _ownerThread)
@@ -35,7 +35,7 @@ internal sealed unsafe class EngineHost : IDisposable
     internal nint NativeContext => Context;
     private readonly int _ownerThread = Environment.CurrentManagedThreadId;
 
-    public EngineHost(bool headless, uint maxSprites, bool legacyTone = true)
+    internal EngineHost(bool headless, uint maxSprites, bool legacyTone = true)
     {
         if (Native.AbiVersion() != 1)
             throw new InvalidOperationException("This host requires gal ABI version 1.");
@@ -46,6 +46,8 @@ internal sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.Create(&config, &context), "create");
         _context = context;
     }
+
+    public static EngineHost Create(bool headless=false,uint maxSprites=1024)=>new(headless,maxSprites,legacyTone:false);
 
     public string Backend => Native.Utf8(Native.Backend(Context));
 
@@ -66,7 +68,7 @@ internal sealed unsafe class EngineHost : IDisposable
         return input;
     }
 
-    public Input Poll()
+    internal Input Poll()
     {
         var input = new Input { Size = (uint)sizeof(Input) };
         Native.Check(Native.Poll(Context, &input), "poll");
@@ -117,20 +119,20 @@ internal sealed unsafe class EngineHost : IDisposable
         catch { Native.Abort(context); throw; }
         Native.Check(Native.End(context), "end");
     }
-    public TextureInfo GetTextureInfo(ulong handle)
+    internal TextureInfo GetTextureInfo(ulong handle)
     {
         var info = new TextureInfo { Size = (uint)sizeof(TextureInfo) };
         Native.Check(Native.GetTextureInfo(Context, handle, &info), "texture dimensions"); return info;
     }
 
-    public ulong LoadTexture(string path)
+    internal ulong LoadTexture(string path)
     {
         ulong handle = 0; Native.Check(Native.LoadTexture(Context, path, &handle), "load BMP texture"); return handle;
     }
-    public void ReleaseTexture(ulong handle) => Native.Check(Native.ReleaseTexture(Context, handle), "release texture");
+    internal void ReleaseTexture(ulong handle) => Native.Check(Native.ReleaseTexture(Context, handle), "release texture");
     public uint TextureCount { get { uint count = 0; Native.Check(Native.TextureCount(Context, &count), "texture count"); return count; } }
 
-    public bool TryPlayTone(out string error)
+    internal bool TryPlayTone(out string error)
     {
         if (Native.PlayTone(Context) == 0)
         {

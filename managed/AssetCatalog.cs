@@ -2,17 +2,14 @@ using System.Collections.ObjectModel;
 
 namespace GameAuthoringLab;
 
-/// <summary>Immutable key-to-logical-path mapping; sample names are only the default catalog.</summary>
-internal sealed class AssetCatalog
+/// <summary>Immutable caller-owned logical key mappings, copied at construction.</summary>
+public sealed class AssetCatalog
 {
-    private static readonly string[] SampleKeys = ["room-a", "room-b", "player", "cell", "status-empty", "status-held", "status-restored"];
     private readonly IReadOnlyDictionary<string, string> _paths;
     private readonly IReadOnlyDictionary<string, TextureAsset> _textures;
     public AssetRoot Assets { get; }
     public string Root => Assets.DirectoryPath;
     public IReadOnlyDictionary<string, string> Paths => _paths;
-
-    public AssetCatalog(string? root = null) : this(new AssetRoot(root), SampleKeys.ToDictionary(key => key, key => key + ".bmp", StringComparer.Ordinal)) { }
 
     public AssetCatalog(AssetRoot assets, IReadOnlyDictionary<string, string> paths)
         : this(assets, paths.ToDictionary(pair => pair.Key, pair => new TextureAsset(pair.Value), StringComparer.Ordinal)) { }
@@ -60,7 +57,7 @@ internal sealed class AssetCatalog
 /// Validation/upload failures release only candidate leases, retaining the previous usable set.
 /// Repeated Sync on an unchanged world does no file I/O and allocates no managed memory.
 /// </summary>
-internal sealed class TextureBank : IDisposable
+public sealed class TextureBank : IDisposable
 {
     public const int MaximumRetainedKeys = 4096;
     private readonly TextureCache _cache;

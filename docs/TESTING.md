@@ -83,3 +83,13 @@ revisions, queue overflow, repeated list replacement, engine-first cleanup and
 two-field composition lifetime. `GAL_BOUND_UI_CAPTURE_DIR` selects the three
 readback destinations. Real desktop CUA acceptance and synthetic queued text are
 recorded separately in [validation](validation.md).
+
+## Independent package consumers
+
+`pack-managed.sh`, `pack-native.sh` and `test-packages.sh` are an explicit optional
+local-feed tier. They require existing SDK/native/AOT dependencies and never
+download or publish packages. The proof copies ordinary SDK consumers outside the
+checkout, restores a fresh cache from a local-only feed, then verifies normal
+run/build, trimmed JIT and AOT. See [reproduction and measurements](NUGET_PROOF.md).
+Do not rerun the full package matrix for every edit; use it at a packaging/API
+boundary or when a concrete dependency/trim regression warrants it.

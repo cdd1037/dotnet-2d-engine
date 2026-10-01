@@ -7,7 +7,7 @@ internal static unsafe class MissionHost
     public static int Run(bool scenario, int frames, string savePath)
     {
         using var engine = new EngineHost(false, 4096);
-        var catalog = new AssetCatalog();
+        var catalog = SampleAssets.Catalog();
         using var bank = new TextureBank(engine, catalog);
         using var game = new MissionGame(catalog.Assets.Resolve("relay.mission.json"), catalog);
         using var ui = new GameUiSession(engine);

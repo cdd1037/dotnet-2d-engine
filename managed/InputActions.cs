@@ -5,13 +5,13 @@ namespace GameAuthoringLab;
 
 // Physical SDL3 scancodes, not translated characters. Arbitrary valid codes 1..511
 // can be bound; these named values are the controls used by the small examples.
-internal enum PhysicalKey { A=4, D=7, E=8, F=9, S=22, T=23, W=26, Enter=40, Escape=41, Tab=43, Space=44, F5=62, F9=66, Right=79, Left=80, Down=81, Up=82 }
-internal enum PointerButton { Left=1, Middle=2, Right=3 }
-[Flags] internal enum InputFlags : uint { Focused=1, Drawable=2, FocusChanged=4 }
-[Flags] internal enum InputConsumption : uint { Keyboard=1, Pointer=2, Wheel=4, Text=8 }
+public enum PhysicalKey { A=4, D=7, E=8, F=9, S=22, T=23, W=26, Enter=40, Escape=41, Tab=43, Space=44, F5=62, F9=66, Right=79, Left=80, Down=81, Up=82 }
+public enum PointerButton { Left=1, Middle=2, Right=3 }
+[Flags] public enum InputFlags : uint { Focused=1, Drawable=2, FocusChanged=4 }
+[Flags] public enum InputConsumption : uint { Keyboard=1, Pointer=2, Wheel=4, Text=8 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal unsafe struct InputSnapshot
+public unsafe struct InputSnapshot
 {
     public uint Size, Version, Quit;
     public InputFlags Flags;
@@ -37,7 +37,7 @@ internal unsafe struct InputSnapshot
 }
 
 /// <summary>Framebuffer pixels are the current renderer's camera/screen units; SDL pointers are window units.</summary>
-internal readonly record struct Viewport(int WindowWidth, int WindowHeight, int PixelWidth, int PixelHeight, bool Drawable = true)
+public readonly record struct Viewport(int WindowWidth, int WindowHeight, int PixelWidth, int PixelHeight, bool Drawable = true)
 {
     public bool IsValid => Drawable && WindowWidth is > 0 and <= 16384 && WindowHeight is > 0 and <= 16384
         && PixelWidth is > 0 and <= 16384 && PixelHeight is > 0 and <= 16384;
@@ -58,8 +58,8 @@ internal readonly record struct Viewport(int WindowWidth, int WindowHeight, int 
     { window = default; return IsValid && Valid(camera) && Result(((double)world.X - camera.X) * camera.Zoom * WindowWidth / PixelWidth, ((double)world.Y - camera.Y) * camera.Zoom * WindowHeight / PixelHeight, out window); }
 }
 
-internal readonly record struct ActionState(uint Down, uint Pressed, uint Released);
-internal readonly record struct InputBinding(uint Action, int Code, bool Pointer = false, bool AllowUiConsumed = false)
+public readonly record struct ActionState(uint Down, uint Pressed, uint Released);
+public readonly record struct InputBinding(uint Action, int Code, bool Pointer = false, bool AllowUiConsumed = false)
 {
     public static InputBinding Key(uint action, PhysicalKey key, bool allowUiConsumed = false) => new(action, (int)key, false, allowUiConsumed);
     public static InputBinding Button(uint action, PointerButton button, bool allowUiConsumed = false) => new(action, (int)button, true, allowUiConsumed);
@@ -71,7 +71,7 @@ internal readonly record struct InputBinding(uint Action, int Code, bool Pointer
 /// poll still reports pressed+released. Edges coalesce; there is no ordered event queue.
 /// Rebinding/focus loss waits for neutral controls, preventing held-key activation.
 /// </summary>
-internal sealed class InputActionMap
+public sealed class InputActionMap
 {
     private InputBinding[] _bindings;
     private bool[] _previousControls;

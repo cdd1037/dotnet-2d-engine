@@ -28,3 +28,8 @@
 # Large reproducible room art omitted from the initial GitHub import
 /assets/room-a.bmp
 /assets/room-b.bmp
+
+# Local package outputs and Python verification caches
+*.nupkg
+*.snupkg
+**/__pycache__/

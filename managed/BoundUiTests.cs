@@ -103,6 +103,7 @@ internal static unsafe class BoundUiTests
         ui.Probe(1,5,10);var beforeReload=ui.Poll();uint generation=ui.State.Generation;
         Reject<UiAuthoringException>(()=>ui.LoadAsset(assets,"ui/roster.rml"),"invalid reload");Check(ui.State.Generation==generation&&ui.IsCurrent(beforeReload),"failed reload preserves snapshot");
         ui.LoadAsset(assets,"ui/inventory.rml");Render();Check(ui.State.Generation!=generation&&!ui.IsCurrent(beforeReload),"reload invalidates action generation");
+        Check(ui.Revision==0&&ui.Status.Revision==0&&ui.Poll().Revision==0,"published reload status starts at revision zero before Apply");
         Check(ui.Apply(model)&&ui.Revision==1,"new document resets revision and reapplies same model");Render();
         for(int i=0;i<100;i++)ui.Apply(model);long before=GC.GetAllocatedBytesForCurrentThread();for(int i=0;i<1000;i++)ui.Apply(model);long allocated=GC.GetAllocatedBytesForCurrentThread()-before;
         Check(allocated==0,"unchanged warmed 1000 model batches allocate zero managed bytes");

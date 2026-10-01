@@ -39,7 +39,7 @@ internal static unsafe class UiProbe
     internal static string SourcePath=>new AssetRoot().FilePath("ui/settings.rml");
     internal static int Run(bool scenario,int frames)
     {
-        using var engine=new EngineHost(false,4096);var catalog=new AssetCatalog();using var bank=new TextureBank(engine,catalog);var game=new RoomGame();var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
+        using var engine=new EngineHost(false,4096);var catalog=SampleAssets.Catalog();using var bank=new TextureBank(engine,catalog);var game=new RoomGame();var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
         void Render(){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.Draws);}
         using var ui=new UiSession(engine);ui.LoadAsset(catalog.Assets,"ui/settings.rml");Render();var state=ui.State;
         if(state.Loaded!=1||state.Pending!=0)throw new InvalidOperationException("UI staging failed: "+UiNative.Text(state.Diagnostic,512));

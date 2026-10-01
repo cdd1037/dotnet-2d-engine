@@ -1,0 +1,8 @@
+<Project>
+  <!-- Opt-in caller assets only; standard SDK content copying handles build and publish. -->
+  <Target Name="CollectDotnet2DAssets" BeforeTargets="AssignTargetPaths" Condition="'@(EngineAsset)' != ''">
+    <ItemGroup>
+      <Content Include="@(EngineAsset)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+</Project>

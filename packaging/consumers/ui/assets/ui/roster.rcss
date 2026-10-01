@@ -1,0 +1,63 @@
+/* Different schema and static layout; identical bounded style grammar. */
+body {
+    font-family: "Noto Sans CJK SC";
+    font-size: 16dp;
+    font-weight: normal;
+    color: #edf3fc;
+    width: 100%;
+    height: 100%;
+}
+.panel {
+    position: absolute;
+    left: 40dp;
+    top: 24dp;
+    width: 470dp;
+    padding: 18dp;
+    background-color: #1d2d29;
+    border-width: 1dp;
+    border-color: #617f72;
+}
+div { display: block; }
+h1 { display: block; font-size: 24dp; margin: 0dp 0dp 6dp; }
+p { display: block; margin: 0dp; line-height: 140%; }
+.hint { color: #b7d0c2; font-size: 14dp; }
+.actions { margin-top: 10dp; margin-bottom: 12dp; }
+button {
+    display: inline-block;
+    padding: 6dp 18dp;
+    background-color: #3f6657;
+    color: #ffffff;
+    border-width: 1dp;
+    border-color: #8bb8a3;
+    border-radius: 6dp;
+}
+button:hover { background-color: #527f6d; }
+button:focus { border-color: #d9fff0; }
+button:active { background-color: #294e40; }
+button:disabled { background-color: #293c34; color: #869a90; }
+#members {
+    height: 240dp;
+    padding: 4dp;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #10241c;
+    border-width: 1dp;
+    border-color: #617f72;
+}
+.bound-row {
+    display: block;
+    width: 100%;
+    margin: 0dp 0dp 4dp;
+    padding: 6dp 8dp;
+    font-size: 14dp;
+    text-align: left;
+    word-break: break-all;
+    border-radius: 0dp;
+}
+.bound-row:selected { background-color: #496f46; border-color: #d7ecc8; }
+.bound-row:disabled { color: #869a90; background-color: #192c24; }
+#members scrollbarvertical { width: 12dp; }
+#members scrollbarvertical slidertrack { background-color: #2a4337; }
+#members scrollbarvertical sliderbar { width: 10dp; min-height: 16dp; background-color: #84ac96; }
+#members scrollbarvertical sliderarrowdec { display: none; }
+#members scrollbarvertical sliderarrowinc { display: none; }

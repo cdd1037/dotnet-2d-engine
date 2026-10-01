@@ -2,12 +2,12 @@ namespace GameAuthoringLab;
 
 // Runtime identity, not a serialization key. IDs are never reused, even by a
 // different World in this process. Zero is always invalid.
-internal readonly record struct EntityId(long Value);
+public readonly record struct EntityId(long Value);
 
 // Radians and an explicit shear term keep the model closed under affine
 // composition: rotating under nonuniform scale otherwise silently loses shape.
 // Basis = rotation * [ScaleX Shear; 0 ScaleY]. Reflections remain unsupported.
-internal readonly record struct Transform2D(float X, float Y, float ScaleX = 1, float ScaleY = 1,
+public readonly record struct Transform2D(float X, float Y, float ScaleX = 1, float ScaleY = 1,
     float Rotation = 0, float Shear = 0)
 {
     public static Transform2D Identity => new(0, 0);
@@ -86,7 +86,7 @@ internal readonly record struct Affine2D(double M11, double M12, double M21, dou
     }
 }
 
-internal readonly record struct Sprite2D(float Width, float Height, float R = 1, float G = 1, float B = 1, float A = 1,
+public readonly record struct Sprite2D(float Width, float Height, float R = 1, float G = 1, float B = 1, float A = 1,
     string? AssetKey = null, int Layer = 0, bool FlipX = false, bool FlipY = false)
 {
     internal void Validate()
@@ -100,12 +100,12 @@ internal readonly record struct Sprite2D(float Width, float Height, float R = 1,
     private static bool Unit(float value) => float.IsFinite(value) && value is >= 0 and <= 1;
 }
 
-internal interface IBehavior
+public interface IBehavior
 {
     void Update(Entity entity, float deltaSeconds);
 }
 
-internal sealed class Scene
+public sealed class Scene
 {
     internal Scene(World world, string name, Guid persistentId) { World = world; Name = name; PersistentId = persistentId; }
     internal World World { get; }
@@ -115,7 +115,7 @@ internal sealed class Scene
 }
 
 // An ordinary object with explicit properties, not a component registry/ECS.
-internal sealed class Entity
+public sealed class Entity
 {
     private Transform2D _localTransform;
     private Sprite2D? _sprite;
@@ -165,7 +165,7 @@ internal sealed class Entity
     }
 }
 
-internal sealed class World
+public sealed class World
 {
     private static long _nextId;
     private readonly List<Entity> _entities = [];

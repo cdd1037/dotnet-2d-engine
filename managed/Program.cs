@@ -53,7 +53,7 @@ internal static class Program
             if(options.UiDemo)return UiProbe.Run(options.UiScenario,options.Frames);
             if(options.ValidatePath is {} save)
             {
-                RoomGame validated=RoomGame.LoadFile(save,new AssetCatalog());
+                RoomGame validated=RoomGame.LoadFile(save,SampleAssets.Catalog());
                 Console.WriteLine($"VALID {save} room={validated.RoomIndex+1} entities={validated.World.EntityCount} player={validated.Player.PersistentId} item={validated.Item.PersistentId}");
                 return 0;
             }
@@ -124,7 +124,7 @@ internal static class Program
 
     private static int RunRoomDemo(Options options)
     {
-        var catalog=new AssetCatalog();RoomGame game=options.LoadPath is {} path?RoomGame.LoadFile(path,catalog):new RoomGame();
+        var catalog=SampleAssets.Catalog();RoomGame game=options.LoadPath is {} path?RoomGame.LoadFile(path,catalog):new RoomGame();
         using var engine=new EngineHost(options.Headless,4096);using var bank=new TextureBank(engine,catalog);
         var batch=new SpriteBatch(64){RegionResolver = bank.ResolveRegion};var camera=new Camera{Zoom=1};
         var clock=Stopwatch.StartNew();double previous=clock.Elapsed.TotalSeconds;uint previousKeys=0;int frames=0;
@@ -151,7 +151,7 @@ internal static class Program
 
     private static int RunRoomScenario(Options options)
     {
-        var catalog=new AssetCatalog();using var engine=new EngineHost(options.Headless,4096);using var bank=new TextureBank(engine,catalog);
+        var catalog=SampleAssets.Catalog();using var engine=new EngineHost(options.Headless,4096);using var bank=new TextureBank(engine,catalog);
         var batch=new SpriteBatch(64){RegionResolver = bank.ResolveRegion};var camera=new Camera{Zoom=1};
         void Render(RoomGame game){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.RegionDraws);if(!options.Headless&&engine.TextureCount!=bank.LoadedCount)throw new InvalidOperationException("Native texture registry mismatch.");}
         RoomGame restored=RoomGameTests.Exercise(new RoomGame(),catalog,Render);restored.SaveFile(options.SavePath);

@@ -54,7 +54,7 @@ internal static class ResourceTests
         try
         {
             Environment.SetEnvironmentVariable("GAL_ASSET_ROOT", assets.DirectoryPath);
-            check(new AssetCatalog().Root == assets.DirectoryPath && UiProbe.SourcePath == assets.FilePath("ui/settings.rml")
+            check(SampleAssets.Catalog().Root == assets.DirectoryPath && UiProbe.SourcePath == assets.FilePath("ui/settings.rml")
                 && GameUiSession.SourcePath == assets.FilePath("ui/game.rml"), "scene sample and UI share environment root policy");
             check(new AssetRoot(source.DirectoryPath).DirectoryPath == source.DirectoryPath, "explicit root overrides environment");
             Directory.SetCurrentDirectory(assets.DirectoryPath);

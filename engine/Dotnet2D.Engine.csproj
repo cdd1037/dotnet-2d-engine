@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks><TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsTrimmable>true</IsTrimmable><IsAotCompatible>true</IsAotCompatible>
+    <AssemblyName>Dotnet2D.Engine</AssemblyName><RootNamespace>GameAuthoringLab</RootNamespace>
+    <PackageId>Dotnet2D.Engine</PackageId><Version>0.1.0-preview.1</Version>
+    <Description>Experimental .NET 10 2D runtime. Local packaging proof; API is not stable.</Description>
+    <Authors>yi cheng</Authors><PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile><GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <Import Project="RuntimeSources.props" />
+  <ItemGroup>
+    <Compile Include="@(EngineRuntimeSource)" Link="Runtime/%(Filename)%(Extension)" />
+    <InternalsVisibleTo Include="GameAuthoringLab" />
+    <None Include="../LICENSE" Pack="true" PackagePath="LICENSE" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="Dotnet2D.Engine.targets" Pack="true" PackagePath="buildTransitive/Dotnet2D.Engine.targets" />
+  </ItemGroup>
+</Project>

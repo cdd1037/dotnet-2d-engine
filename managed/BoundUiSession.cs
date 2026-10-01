@@ -3,14 +3,15 @@ using System.Runtime.InteropServices;
 using System.Text;
 namespace GameAuthoringLab;
 
-internal enum UiBindingKind:uint { Text=1,TextInput=2,Boolean=3,Number=4,Action=5,List=6 }
-internal readonly record struct UiBindingTarget(string ElementId,UiBindingKind Kind,uint ActionId=0);
-internal readonly record struct UiListRow(ulong Id,string Text,bool Enabled=true,bool Selected=false);
-internal readonly record struct UiBindingAction(uint Generation,uint Revision,int Target,uint ActionId,UiBindingKind Kind,ulong RowId,string Text,int Number,bool Boolean)
+public readonly record struct UiBindingStatus(uint Generation,uint Revision,bool Loaded,bool Pending,uint Queued,uint Overflow,string Diagnostic);
+public enum UiBindingKind:uint { Text=1,TextInput=2,Boolean=3,Number=4,Action=5,List=6 }
+public readonly record struct UiBindingTarget(string ElementId,UiBindingKind Kind,uint ActionId=0);
+public readonly record struct UiListRow(ulong Id,string Text,bool Enabled=true,bool Selected=false);
+public readonly record struct UiBindingAction(uint Generation,uint Revision,int Target,uint ActionId,UiBindingKind Kind,ulong RowId,string Text,int Number,bool Boolean)
 { public bool IsEmpty=>ActionId==0; }
 
 /// <summary>Explicit C# projections. Built registrations are copied into each session; no reflection or native callbacks.</summary>
-internal sealed class UiBindings<T>
+public sealed class UiBindings<T>
 {
     internal sealed record Binding(UiBindingTarget Target,Func<T,string>? Text=null,Func<T,bool>? Boolean=null,
         Func<T,int>? Number=null,Func<T,IReadOnlyList<UiListRow>>? Rows=null,Func<T,bool>? Enabled=null);
@@ -43,7 +44,7 @@ internal static unsafe partial class BoundUiNative
 }
 
 /// <summary>Document-scoped bindings. Apply explicitly projects one batch; input actions are copied and polled.</summary>
-internal sealed unsafe class BoundUiSession<T>:UiSessionOwner
+public sealed unsafe class BoundUiSession<T>:UiSessionOwner
 {
     private readonly UiBindings<T>.Binding[] _bindings;
     private readonly UiBindingTarget[] _targets;
@@ -52,8 +53,9 @@ internal sealed unsafe class BoundUiSession<T>:UiSessionOwner
     private readonly BoundRow[] _rows=new BoundRow[64],_sentRows=new BoundRow[64];
     private uint _generation,_revision,_rowCount;
     private bool _applying;
-    public uint Revision {get{CheckAccess();return _revision;}}
-    public UiState State {get{var state=new UiState{Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"bound UI state");return state;}}
+    public UiBindingStatus Status {get{var state=State;return new(state.Generation,state.Generation==_generation?_revision:0,state.Loaded!=0,state.Pending!=0,state.Queued,state.Overflow,UiNative.Text(state.Diagnostic,512));}}
+    public uint Revision {get{CheckAccess();return _generation==0||State.Generation!=_generation?0:_revision;}}
+    internal UiState State {get{var state=new UiState{Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"bound UI state");return state;}}
     public IReadOnlyList<UiBindingTarget> Targets {get;}
     public BoundUiSession(EngineHost engine,UiBindings<T> bindings):this(engine,Freeze(bindings)){}
     private static UiBindings<T>.Binding[] Freeze(UiBindings<T> bindings){ArgumentNullException.ThrowIfNull(bindings);return bindings.Freeze();}

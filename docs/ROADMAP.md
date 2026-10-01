@@ -163,8 +163,10 @@ to avoid designing the entire engine around one game.
 
 ## Local NuGet packaging proof (authorized evaluation)
 
-After the audio/physics foundations and a stable small API boundary, attempt a
-local-feed proof using ordinary NuGet + MSBuild, not a custom full SDK. Separate
+The [local-feed proof](NUGET_PROOF.md) now separates the managed runtime from
+the demo/test host and validates independent empty/sprite/UI consumers in three
+runtime modes. It uses ordinary NuGet + MSBuild, not a custom full SDK. The
+remaining packaging acceptance targets are: Separate
 managed API from the aggregate tests/host and package the existing Linux RID native
 payload. An independent sample should restore from the local feed, `dotnet run`,
 and publish/run in JIT and NativeAOT modes with correct native dependencies, assets,

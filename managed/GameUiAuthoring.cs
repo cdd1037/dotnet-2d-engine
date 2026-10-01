@@ -63,7 +63,7 @@ internal static class GameUiAuthoring
             }
         }
         Require(seen.Count==Elements.Count,body,"Missing required game UI elements.");
-        UiAuthoring.ValidateGameStyle(style,cssFile);return(markup,style);
+        UiAuthoring.ValidateBoundStyle(style,cssFile,IsStyleSelector,UiAuthoring.ValidProperty);return(markup,style);
     }
     private static UiAuthoringException Error(string file,UiXmlElement? node,string cause)=>new("GAME_UI_PROFILE",file,node?.LineNumber??1,node?.LinePosition??1,node?.Attribute("id")?.Value??node?.Name.LocalName??"$",cause);
 }

@@ -1,0 +1,33 @@
+<Project>
+  <ItemGroup>
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AssetCatalog.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AssetRoot.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AuthoredScene.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/SceneRecords.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/World.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/SpriteBatch.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/TextureCache.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/TextureRegion.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BehaviorLifetime.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/EngineHost.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/EngineOwnership.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Native.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/InputActions.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/FrameAnimation.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Tween.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Timing.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AudioNative.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AudioSession.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/PhysicsNative.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/PhysicsWorld.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/TileMapCollision.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/TileMapData.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/TileMapInstance.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiAuthoring.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiNative.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiXmlModel.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiSessionOwner.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiSession.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiAuthoring.cs" />
+  </ItemGroup>
+</Project>

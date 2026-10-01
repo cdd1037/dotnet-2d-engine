@@ -2,7 +2,7 @@ namespace GameAuthoringLab;
 
 // Only explicitly registered cleanup is owned. IDisposable on a behavior is never
 // inferred. A scope is single-use and cannot accept registrations after setup.
-internal sealed class BehaviorLifetime
+public sealed class BehaviorLifetime
 {
     private readonly List<Action> _cleanup=[];
     private bool _sealed,_released;

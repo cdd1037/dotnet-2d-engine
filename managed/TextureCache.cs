@@ -5,8 +5,10 @@ namespace GameAuthoringLab;
 /// A live entry is a retained snapshot: edits/deletion are observed only after its last lease
 /// is released and a later acquire reloads. No global cache, background I/O or implicit hot reload.
 /// </summary>
-internal sealed class TextureCache(EngineHost engine)
+public sealed class TextureCache : IEngineOwned
 {
+    private readonly EngineHost engine;
+    internal TextureCache(EngineHost engine)=>this.engine=engine;
     public const int MaximumTextures = 256;
     private sealed class Entry(ulong handle, BitmapInfo info) { public ulong Handle { get; } = handle; public BitmapInfo Info { get; } = info; public int References = 1; }
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
@@ -68,6 +70,7 @@ internal sealed class TextureCache(EngineHost engine)
         _entries.Remove(path); Releases++;
     }
 
+    void IEngineOwned.EngineDestroyed()=>EngineDestroyed();
     internal void EngineDestroyed()
     {
         // Native context destruction owns its texture cleanup; outstanding leases become invalid.
@@ -76,8 +79,10 @@ internal sealed class TextureCache(EngineHost engine)
     }
 }
 
-internal sealed class TextureLease(TextureCache cache, string path, ulong handle, BitmapInfo info) : IDisposable
+public sealed class TextureLease : IDisposable
 {
+    private readonly TextureCache cache; private readonly string path; private readonly ulong handle; private readonly BitmapInfo info;
+    internal TextureLease(TextureCache cache,string path,ulong handle,BitmapInfo info){this.cache=cache;this.path=path;this.handle=handle;this.info=info;}
     private bool _disposed;
     public BitmapInfo Info { get { ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckAccess(); return info; } }
     public ulong Handle

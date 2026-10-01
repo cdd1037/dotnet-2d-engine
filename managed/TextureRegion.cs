@@ -1,9 +1,9 @@
 namespace GameAuthoringLab;
 
-internal readonly record struct BitmapInfo(string Path, int Width, int Height);
+public readonly record struct BitmapInfo(string Path, int Width, int Height);
 
 /// <summary>Integer texels, top-left origin. No rotated/trimmed packing or implicit padding.</summary>
-internal readonly record struct TextureRegion(int X, int Y, int Width, int Height)
+public readonly record struct TextureRegion(int X, int Y, int Width, int Height)
 {
     public void Validate(int textureWidth, int textureHeight)
     {
@@ -13,5 +13,5 @@ internal readonly record struct TextureRegion(int X, int Y, int Width, int Heigh
     }
 }
 
-internal sealed record TextureAsset(string Path, TextureRegion? Region = null);
-internal readonly record struct TextureBinding(ulong Handle, TextureRegion? Region = null);
+public sealed record TextureAsset(string Path, TextureRegion? Region = null);
+public readonly record struct TextureBinding(ulong Handle, TextureRegion? Region = null);

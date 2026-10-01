@@ -1,0 +1,48 @@
+{
+  "kind": "gal-authored-scene",
+  "version": 2,
+  "id": "c00963e5-df29-444b-bd2b-988b6795a001",
+  "persistentScopeId": "c00963e5-df29-444b-bd2b-988b6795a002",
+  "name": "Independent package sprite",
+  "resources": [
+    {
+      "key": "left",
+      "path": "regions.bmp",
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 8,
+        "height": 8
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a010",
+      "name": "Original",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 32,
+        "y": 32,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "left",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    }
+  ]
+}

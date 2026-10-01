@@ -25,9 +25,8 @@ if (!action.IsEmpty && ui.IsCurrent(action)) { /* update model explicitly */ }
 `--binding-demo` is a complete consumer:
 text, checkbox and range actions update its C# model, a row click removes that
 stable ID, and Refresh adds a new ID. The separate roster fixture uses different
-IDs and a different model type through the same API. These engine-facing classes
-currently follow the prototype's internal class visibility; the separate packaging
-proof will establish a reusable assembly/public surface.
+IDs and a different model type through the same API. The [local NuGet proof](NUGET_PROOF.md) now exposes these types in a separate
+runtime assembly with an explicitly experimental public surface.
 
 ## Values and bounds
 

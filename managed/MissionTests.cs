@@ -11,7 +11,7 @@ internal static class MissionTests
         void Reject(Action action, string message) { try { action(); } catch (Exception e) when (e is SceneFormatException or UiAuthoringException or IOException or InvalidOperationException) { count++; return; } throw new Exception("MISSION accepted " + message); }
         string directory = Path.Combine(Path.GetTempPath(), "gal-mission-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
-        var catalog = new AssetCatalog();
+        var catalog = SampleAssets.Catalog();
         string path = Path.Combine(directory, "relay.mission.json");
         string source = File.ReadAllText(Path.Combine(catalog.Root, "relay.mission.json"));
         File.WriteAllText(path, source);
@@ -110,7 +110,7 @@ internal static class MissionTests
             }
             string assetDirectory = Path.Combine(directory, "assets"); Directory.CreateDirectory(assetDirectory);
             foreach (string asset in Directory.GetFiles(catalog.Root, "*.bmp")) File.Copy(asset, Path.Combine(assetDirectory, Path.GetFileName(asset)));
-            using (var isolated = new MissionGame(path, new AssetCatalog(assetDirectory)))
+            using (var isolated = new MissionGame(path, SampleAssets.Catalog(assetDirectory)))
             {
                 var usable = isolated.Room;
                 File.Delete(Path.Combine(assetDirectory, "room-b.bmp"));

@@ -22,7 +22,7 @@ internal static unsafe class RoomUiProbe
     public static int Run(bool scenario,int frames)
     {
         using var engine=new EngineHost(false,4096);
-        using var bank=new TextureBank(engine,new AssetCatalog());
+        using var bank=new TextureBank(engine,SampleAssets.Catalog());
         var game=new RoomGame();var inputGate=new ModalGameInput(game);
         var batch=new SpriteBatch(64){RegionResolver = bank.ResolveRegion};var camera=new Camera{Zoom=1};
         UiSession? ui=null;uint generation=0;int checks=0;

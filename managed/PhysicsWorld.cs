@@ -39,7 +39,7 @@ internal readonly record struct PhysicsScale
     private float Convert(float value,double multiplier)
     {if(PixelsPerMeter<=0||!float.IsFinite(value)||!float.IsFinite((float)(value*multiplier)))throw new ArgumentOutOfRangeException(nameof(value));return (float)(value*multiplier);}
 }
-internal sealed unsafe class PhysicsWorld : IDisposable
+internal sealed unsafe class PhysicsWorld : IDisposable , IEngineOwned
 {
     private readonly EngineHost _engine;
     private readonly PhysicsEvent[] _events=new PhysicsEvent[1024];
@@ -70,6 +70,7 @@ internal sealed unsafe class PhysicsWorld : IDisposable
     }
     internal void ReleaseBody(ulong id){_engine.AssertThread();if(!_closed)Native.Check(PhysicsNative.ReleaseBody(Context,id),"release physics body");}
     internal void ReleaseShape(ulong id){_engine.AssertThread();if(!_closed)Native.Check(PhysicsNative.ReleaseShape(Context,id),"release physics shape");}
+    void IEngineOwned.EngineDestroyed()=>EngineDestroyed();
     internal void EngineDestroyed()=>_closed=true;
     public void Dispose(){_engine.AssertThread();if(_closed)return;Native.Check(PhysicsNative.Close(Context),"close physics world");_closed=true;_eventCount=0;_engine.PhysicsClosed(this);}
 }

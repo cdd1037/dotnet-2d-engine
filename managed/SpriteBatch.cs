@@ -2,7 +2,7 @@ namespace GameAuthoringLab;
 
 // Retains the original axis-aligned view for ABI regression tests; Draws carries
 // the complete affine basis and texture identity for real rendering.
-internal sealed class SpriteBatch
+public sealed class SpriteBatch
 {
     private Sprite[] _storage;
     private SpriteDraw[] _draws;

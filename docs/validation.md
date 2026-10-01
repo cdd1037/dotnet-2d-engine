@@ -574,3 +574,27 @@ UI/audio/physics native library is **4,041,568 bytes** in the same Release confi
 These are aggregate files, not total package sizes or independently trimmed module
 measurements. The local NuGet proof remains the place to compare consumer roots.
 Ignored logs/readbacks are under `evidence/ui-binding/`.
+
+## Local package boundary (2026-10-01)
+
+The [local NuGet proof](NUGET_PROOF.md) separates the reusable runtime from the
+aggregate demo/test host and passes independent PackageReference consumers for
+empty, authored sprite and typed UI cases. All three pass normal SDK run/build,
+trimmed self-contained JIT and NativeAOT; three UI captures are byte-identical.
+Full JIT remains 10,293 assertions, typed UI 60, offline PCM 61 and Box2D 284. The
+package proof uses no source/project reference to the checkout, no whole-assembly
+root and no trim/AOT warning suppression.
+
+Trimmed metadata and AOT maps establish actual managed module absence: empty
+drops the engine assembly, sprite retains scene/resource code without UI/audio/
+physics, and UI retains bindings without audio/physics/game rules. The full native
+profile remains identical at 9,514,720 bytes across sprite/UI consumers. The linked
+report separates application, managed engine, native, framework, assets and symbol
+bytes and records the narrower Linux/toolchain/font limits.
+
+Review corrected public cache/lease construction and generation/revision status
+between reload publication and the first model Apply. External compilation now
+rejects manufactured ownership; the independent UI consumer checks revision zero
+at that boundary. Neither native ABI nor new runtime features were added.
+No packages, binaries, fonts or generated reports enter source control; no remote
+package publication occurred.

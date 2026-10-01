@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 namespace GameAuthoringLab;
 
 /// <summary>Stable resource diagnostics; source adapters add their JSON/XML field location.</summary>
-internal sealed class AssetException(string code, string root, string logicalPath, string cause, Exception? inner = null)
+public sealed class AssetException(string code, string root, string logicalPath, string cause, Exception? inner = null)
     : IOException($"{root} [{code}] {logicalPath}: {cause}", inner)
 {
     public string Code { get; } = code;
@@ -16,7 +16,7 @@ internal sealed class AssetException(string code, string root, string logicalPat
 /// The root/its ancestors are trusted; descendant links are rejected on each physical load.
 /// This is authoring validation, not a sandbox against concurrent filesystem replacement.
 /// </summary>
-internal sealed class AssetRoot
+public sealed class AssetRoot
 {
     public string DirectoryPath { get; }
 

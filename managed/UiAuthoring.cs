@@ -5,7 +5,7 @@ using System.Xml;
 namespace GameAuthoringLab;
 
 /// <summary>A stable engine diagnostic, independent of RmlUi's best-effort log text.</summary>
-internal sealed class UiAuthoringException : Exception
+public sealed class UiAuthoringException : Exception
 {
     public string Code { get; }
     public string FilePath { get; }
@@ -400,13 +400,11 @@ internal static class UiAuthoring
     private static bool Integer(string s, int min, int max) => s.Length is > 0 and <= 5 &&
         s.All(c => c is >= '0' and <= '9') && int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n >= min && n <= max;
 
-    internal static void ValidateGameStyle(string source,string file)=>new StyleParser(source,file,true).Parse();
-
     internal static void ValidateBoundStyle(string source, string file, Func<string, bool> selectors,
         Func<string, string, string, bool> properties) => new StyleParser(source, file,
             selectorAllowed: selectors, propertyAllowed: properties).Parse();
 
-    private sealed class StyleParser(string source, string file, bool gameProfile=false,
+    private sealed class StyleParser(string source, string file,
         Func<string, bool>? selectorAllowed=null, Func<string, string, string, bool>? propertyAllowed=null)
     {
         private int _position, _line = 1, _column = 1;
@@ -419,7 +417,7 @@ internal static class UiAuthoring
                 if (++rules > 128) Fail("UI_LIMIT", "$rcss", "Maximum 128 rules exceeded.");
                 int selectorLine = _line, selectorColumn = _column;
                 string selector = ReadUntil('{', "selector").Trim();
-                if (!(selectorAllowed?.Invoke(selector) ?? (gameProfile?GameUiAuthoring.IsStyleSelector(selector):ValidSelector(selector)))) FailAt("UI_SELECTOR", selectorLine, selectorColumn, selector, "Unsupported selector.");
+                if (!(selectorAllowed?.Invoke(selector) ?? ValidSelector(selector))) FailAt("UI_SELECTOR", selectorLine, selectorColumn, selector, "Unsupported selector.");
                 Advance(); SkipTrivia();
                 var properties = new HashSet<string>(StringComparer.Ordinal);
                 while (_position < source.Length && source[_position] != '}')

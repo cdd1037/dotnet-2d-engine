@@ -2,7 +2,7 @@ namespace GameAuthoringLab;
 internal enum AudioGroup : uint { Master,Music,Sfx }
 
 /// <summary>One explicit main-thread session per engine. Offline mixing is actual PCM, not a device simulation.</summary>
-internal sealed unsafe class AudioSession : IDisposable
+internal sealed unsafe class AudioSession : IDisposable , IEngineOwned
 {
     private readonly EngineHost _engine;
     private bool _closed;
@@ -43,6 +43,7 @@ internal sealed unsafe class AudioSession : IDisposable
     }
     internal void ReleaseClip(ulong id) { _engine.AssertThread();if(!_closed)Native.Check(AudioNative.ReleaseClip(Context,id),"release audio clip"); }
     internal void ReleaseVoice(ulong id) { _engine.AssertThread();if(!_closed)Native.Check(AudioNative.ReleaseVoice(Context,id),"release audio voice"); }
+    void IEngineOwned.EngineDestroyed()=>EngineDestroyed();
     internal void EngineDestroyed()=>_closed=true;
     public void Dispose()
     {

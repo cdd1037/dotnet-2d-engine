@@ -65,7 +65,7 @@ internal static unsafe class InputTests
         Check(pointerMap.Update(pointer)==new ActionState(0,4,4),"mouse buttons can map without entity callbacks");pointer.GameButtonsPressed=pointer.GameButtonsReleased=0;Check(pointerMap.Update(pointer)==default,"consumed pointer never reaches gameplay binding");
         var noAllocation=InputActionMap.CreateSample();for(int i=0;i<128;i++)noAllocation.Update(held);long before=GC.GetAllocatedBytesForCurrentThread();for(int i=0;i<1000;i++)noAllocation.Update(held);
         Check(GC.GetAllocatedBytesForCurrentThread()==before,"warmed action mapping allocates zero bytes");
-        var catalog=new AssetCatalog();using(var mission=new MissionGame(catalog.Assets.Resolve("relay.mission.json"),catalog))
+        var catalog=SampleAssets.Catalog();using(var mission=new MissionGame(catalog.Assets.Resolve("relay.mission.json"),catalog))
         {
             mission.Start();mission.Advance(0,0,0);mission.Room.Player.LocalTransform=new Transform2D(230,280);
             mission.Advance(0,Native.Interact,RoomGame.FixedDelta/2);Check(mission.Room.Held is null,"quick interaction edge waits for fixed tick");

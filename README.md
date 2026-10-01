@@ -105,3 +105,11 @@ and `--physics-demo` show explicit meter/pixel conversion and scene cleanup.
 Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use explicit clocks and lifetime ownership. Try `--animation-demo` or run `scripts/test.sh quick animation`.
 
 The [basic TileMap](docs/TILEMAP.md) loads bounded source-generated grids, culls atlas cells and optionally generates static Box2D collision. Try `--tilemap-demo` or `--tilemap-physics-demo`.
+
+## Local package proof
+
+The [experimental NuGet proof](docs/NUGET_PROOF.md) builds a separate reusable
+managed assembly and a Linux x64 native package into a local feed. Independent
+empty, authored-sprite and typed-UI consumers pass ordinary SDK run/build, trimmed
+JIT and NativeAOT. It measures managed trimming separately from the fixed native
+payload; no public feed or stable SDK release is implied.

@@ -21,26 +21,26 @@ internal struct Config
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct Camera
+public struct Camera
 {
     public float X, Y, Zoom;
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct Sprite
+public struct Sprite
 {
     public float X, Y, Width, Height, R, G, B, A;
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct SpriteDraw
+public struct SpriteDraw
 {
     public float M11, M12, M21, M22, X, Y, Width, Height, R, G, B, A;
     public ulong Texture;
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct SpriteDrawV2
+public struct SpriteDrawV2
 {
     public uint Size, Version;
     public SpriteDraw Draw;
@@ -66,7 +66,7 @@ internal struct Input
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct Stats
+public struct Stats
 {
     public uint Size, Frames, Sprites, DrawCalls, AudioPlays;
 }

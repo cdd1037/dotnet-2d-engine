@@ -5,7 +5,7 @@ internal static class RoomGameTests
     private static int _count;
     public static int Run()
     {
-        _count=0;var catalog=new AssetCatalog();
+        _count=0;var catalog=SampleAssets.Catalog();
         foreach(string key in new[]{"room-a","room-b","player","cell","status-empty","status-held","status-restored"})Check(File.Exists(catalog.PathFor(key)),"registered BMP exists");
         var game=new RoomGame();RoomGame restored=Exercise(game,catalog);
         string saved=restored.Save();

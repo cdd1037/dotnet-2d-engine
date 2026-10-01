@@ -179,3 +179,11 @@ checkboxes, integer ranges, buttons and dynamically replaced lists. Inventory an
 roster fixtures use different IDs/models without new native profile branches.
 Unchanged model batches skip interop; invalid projections and snapshots preserve
 the live document. UI ownership and composition lifetimes remain explicit.
+
+## Local package follow-on
+
+The [NuGet proof](NUGET_PROOF.md) separates the runtime assembly from demo/test
+code and validates independent local-feed PackageReference consumers. Trimming
+removes unused managed modules; the deliberately full native profile stays intact.
+The measured outputs distinguish app code, native dependencies, assets and .NET
+runtime files. This remains a prerelease Linux x64 proof with no remote publishing.

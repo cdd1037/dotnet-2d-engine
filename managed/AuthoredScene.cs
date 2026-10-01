@@ -6,7 +6,7 @@ namespace GameAuthoringLab;
 
 // Source assets, deliberately distinct from WorldSaveDocument and game progress.
 // Array order is meaningful: equal-layer sprites retain this order.
-internal sealed class AuthoredSceneDocument
+public sealed class AuthoredSceneDocument
 {
     public required string Kind { get; init; }
     public required int Version { get; init; }
@@ -16,14 +16,14 @@ internal sealed class AuthoredSceneDocument
     public required List<AuthoredResource> Resources { get; init; }
     public required List<EntityRecord> Entities { get; init; }
 }
-internal sealed class AuthoredResource
+public sealed class AuthoredResource
 {
     public required string Key { get; init; }
     public required string Path { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RegionRecord? Region { get; init; }
 }
-internal sealed class RegionRecord
+public sealed class RegionRecord
 {
     public required int X { get; init; }
     public required int Y { get; init; }
@@ -31,7 +31,7 @@ internal sealed class RegionRecord
     public required int Height { get; init; }
     internal TextureRegion ToRegion() => new(X, Y, Width, Height);
 }
-internal sealed class AuthoredSceneException(string code, string file, string path, Guid? entityId, string cause,
+public sealed class AuthoredSceneException(string code, string file, string path, Guid? entityId, string cause,
     Exception? inner = null) : Exception($"{file} [{code}] {path}" + (entityId is {} id ? $" (entity {id})" : "") + ": " + cause, inner)
 {
     public string Code { get; } = code;
@@ -39,9 +39,9 @@ internal sealed class AuthoredSceneException(string code, string file, string pa
     public string JsonPath { get; } = path;
     public Guid? EntityId { get; } = entityId;
 }
-internal sealed record LoadedAuthoredScene(AuthoredSceneDocument Source, World World, IReadOnlyDictionary<string, string> Resources, AssetCatalog Catalog);
+public sealed record LoadedAuthoredScene(AuthoredSceneDocument Source, World World, IReadOnlyDictionary<string, string> Resources, AssetCatalog Catalog);
 
-internal static class AuthoredScene
+public static class AuthoredScene
 {
     public const string Kind = "gal-authored-scene";
     private const int MaximumBytes = 1024 * 1024;
