@@ -121,3 +121,12 @@ UI graphics build supports `--material-graphics-test`; set
 the directory. At this additive ABI/source-generation boundary, run a fresh AOT
 host with the same focused graphics checks and compare readbacks. Headless tests
 do not claim shader compilation or execution. See [contract](MATERIALS.md).
+
+## Explicit render targets
+
+`scripts/test.sh quick targets` validates headless target/pass ownership, budgets,
+partitioning and recovery. Run `--target-graphics-test` with
+`GAL_TARGET_CAPTURE_DIR`, then `scripts/validate-target-pixels.py` for actual
+translucent compositing, repeated sampling/alpha tint, zero/near-zero alpha,
+clear/resize/clip behavior and final-window UI. A fresh AOT run and readback
+comparison belong at this additive ABI boundary. See [limits and costs](RENDER_TARGETS.md).

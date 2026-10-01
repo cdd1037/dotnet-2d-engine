@@ -45,6 +45,19 @@ typedef struct { uint32_t size,version,fragment_bytes,parameter_bytes; } gal_mat
 /* Parameters are copied per draw; all must be finite. Material 0 selects the
    existing sprite pipeline and requires all parameters to be zero. */
 typedef struct { uint32_t size,version; gal_draw_v2 sprite; uint64_t material; float parameters[8]; } gal_material_draw_v1;
+/* Explicit RGBA8 render targets own a private attachment and a sampled texture.
+   The returned identity is also a borrowed texture binding; release it only with
+   gal_target_release. Dimensions are 1..4096, at most eight targets, with a 64 MiB
+   combined budget (8 bytes/pixel for the pair). Target create/release is forbidden
+   during a legacy frame. Targets start transparent; sampled colors remain straight
+   alpha after an internal resolve. Headless targets validate ownership only. */
+enum { GAL_TARGET_VERSION=1, GAL_TARGET_CAPACITY=8, GAL_RENDER_PASS_VERSION=1, GAL_RENDER_PASS_CAPACITY=16 };
+typedef struct { uint32_t size,version; int32_t width,height; } gal_target_desc;
+/* Exactly the last pass targets the window (0); earlier passes target live owned
+   targets. Ranges must partition the draw array in order. Cameras and scissors use
+   each target's pixels, or the last polled framebuffer for the window. All clear
+   channels must be finite in [0,1]. Every pass clears its attachment. */
+typedef struct { uint32_t size,version; uint64_t target; gal_camera camera; float clear[4]; uint32_t first_draw,draw_count,reserved; } gal_render_pass_v1;
 /* Additive world scissor v1, in framebuffer pixels with a top-left origin.
    Enabled extents are nonnegative; zero area clips everything. Coordinates may
    span int32 and are intersected safely with the acquired framebuffer. Disabled
@@ -96,6 +109,14 @@ GAL_API int GAL_CALL gal_submit_material_draws_v1(gal_context*,const gal_materia
 GAL_API int GAL_CALL gal_material_create_v1(gal_context*,const gal_material_desc*,const uint8_t* fragment,uint64_t* material);
 GAL_API int GAL_CALL gal_material_release(gal_context*,uint64_t material);
 GAL_API int GAL_CALL gal_material_count(gal_context*,uint32_t* count);
+GAL_API int GAL_CALL gal_target_create_v1(gal_context*,const gal_target_desc*,uint64_t* target);
+GAL_API int GAL_CALL gal_target_release(gal_context*,uint64_t target);
+/* Atomic validation precedes all rendering. Rejects an active legacy frame and
+   sampling the current attachment's target identity. Clips have the same 0/1/N
+   contract as material submissions. Counts one frame and all user draws; GPU draw
+   statistics include internal target resolves and exclude UI. A backend failure
+   may leave executed target contents changed; a validation failure never does. */
+GAL_API int GAL_CALL gal_render_frame_v1(gal_context*,const gal_render_pass_v1*,uint32_t pass_count,const gal_material_draw_v1*,uint32_t draw_count,const gal_clip_rect*,uint32_t clip_count);
 GAL_API int GAL_CALL gal_texture_get_info(gal_context*,uint64_t,gal_texture_info*);
 GAL_API int GAL_CALL gal_texture_load_bmp(gal_context*,const char* utf8_path,uint64_t* texture);
 GAL_API int GAL_CALL gal_texture_release(gal_context*,uint64_t texture);

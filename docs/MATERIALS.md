@@ -2,8 +2,9 @@
 
 Materials are a bounded, opt-in extension of the existing Linux Vulkan sprite
 renderer. The old ABI, default sprite shader, atlas coordinates, flips, camera and
-straight-alpha order remain available. This slice does not add render targets,
-lighting, a shader graph, vertex-layout customization or another backend.
+straight-alpha order remain available. The subsequent [target/pass slice](RENDER_TARGETS.md)
+adds RGBA8 destinations and basic post-processing. Lighting, shader graphs,
+vertex-layout customization and other backends are not added.
 
 ## Authoring and preparation
 

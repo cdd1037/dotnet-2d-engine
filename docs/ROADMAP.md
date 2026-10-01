@@ -18,7 +18,8 @@ and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Rendering
 now includes [texture regions/atlas UVs](TEXTURE_REGIONS.md) and managed
 [frame animation, tweening and timers](ANIMATION_TIMING.md), plus
 [world rectangular clipping](WORLD_CLIPPING.md) and bounded
-[sprite materials/offline GLSL](MATERIALS.md). Box2D and SDL_mixer
+[sprite materials/offline GLSL](MATERIALS.md), plus explicit
+[RGBA8 targets/basic post-processing](RENDER_TARGETS.md). Box2D and SDL_mixer
 evaluation/integration are authorized after version, license, footprint and platform
 validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
 The minimal [SDL_mixer audio module](AUDIO.md) now covers clips, streams, gains and

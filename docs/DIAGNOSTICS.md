@@ -71,8 +71,9 @@ implied. Callers select the measured boundary and sampling cadence.
 
 These durations include JIT, allocation, waits, capture and presentation occurring
 inside the scope. Render duration is not GPU execution time or measured latency.
-Native `Stats` remains separate: cumulative frames, submitted quads and actual
-issued world draw calls (plus the legacy tone counter). Native errors continue
+Native `Stats` remains separate: cumulative accepted frames, submitted quads and
+issued world draw calls including target resolves (plus the legacy tone counter;
+UI is excluded). Native errors continue
 through existing exception/error APIs; applications explicitly choose which ones
 to enqueue, so logging does not silently suppress or replace failures.
 

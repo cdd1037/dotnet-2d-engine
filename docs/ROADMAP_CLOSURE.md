@@ -1,6 +1,6 @@
 # Original roadmap closure audit
 
-Audit begun at the local package proof and updated after sprite materials, 2026-10-01.
+Audit begun at the local package proof and updated after explicit render targets, 2026-10-01.
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
@@ -22,8 +22,8 @@ an integration milestone, not completion of the roadmap.
 | Area | Current evidence | Smallest useful remaining work |
 | --- | --- | --- |
 | World rectangular clipping | Now implemented and validated separately from culling/UI; see [contract](WORLD_CLIPPING.md) | Hardware/DPI acceptance remains with the platform gates |
-| Materials/shader workflow | Context-owned materials, fixed sprite vertex layout, 32-byte copied fragment parameters, standard GLSL/offline builder, source manifests and stable run keys; see [contract](MATERIALS.md) | Separate explicit render-target/basic post-process slice; non-Vulkan shader tooling remains a platform gate |
-| Public render targets/basic post-processing | Diagnostic screenshot capture owns a private offscreen texture | Reusable target ownership and explicit pass use; screenshot internals do not count as this API |
+| Materials/shader workflow | Context-owned materials, fixed sprite vertex layout, 32-byte copied fragment parameters, standard GLSL/offline builder, source manifests and stable run keys; see [contract](MATERIALS.md) | Non-Vulkan shader tooling remains a platform gate |
+| Public render targets/basic post-processing | Owned paired RGBA8 targets, bounded explicit passes, transparent alpha resolve, tint/desaturation and final-window UI; see [contract](RENDER_TARGETS.md) | Current basic software Vulkan slice delivered; no HDR, arbitrary formats, render graph or advanced effect claim |
 | Debug drawing/logging/timing | Bounded line/rectangle buffer, typed log FIFO, opt-in explicit CPU frame/phase timing and native draw counters; see [contract](DIAGNOSTICS.md) | Current bounded slice is delivered; no general profiler, GPU timing or editor claim |
 | Basic tile movement acceptance | TileMap collision generation, Box2D bodies/queries and a falling-ball fixture work; RoomGame movement is sample logic | A simple tile-based character game fixture exercising the shared physics/input primitives, without inventing a new engine controller framework |
 | Reusable composition/resources | Synchronous BMP cache and flat authored scene loads are repeatable and isolated | Keep current limitations explicit; add only a demonstrated original composition need, with stable IDs and ownership. Async/hot-reload/prefab expansion is deferred |
@@ -33,8 +33,10 @@ boundary: framebuffer coordinates, window/world conversions, stable run ordering
 atomic validation, region/tilemap consumers and resized pixel checks are covered.
 The bounded diagnostics slice is also complete at its documented CPU/software
 rendering boundary. Sprite materials now extend that pipeline with bounded
-ownership and offline shader preparation. The next renderer work is explicit
-render targets and one basic post-process fixture.
+ownership and offline shader preparation. Explicit paired targets and a basic
+post-process fixture now exercise translucent composition and two-pass tint.
+The remaining original functional acceptance example is simple tile-based
+movement; the platform, IME, UI selection and distribution gates below stay open.
 
 Keep material pipelines and render targets in separate, reviewable batches rather
 than one rendering redesign. Material work should reuse standard

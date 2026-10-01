@@ -713,3 +713,47 @@ SPIR-V and captures remain generated/ignored; source and digest manifests are
 tracked. Runtime hash/profile/header checks are consistency validation of trusted
 shader programs, not semantic reflection or a sandbox. Render targets and basic
 post-processing remain the next separate original-scope batch.
+
+## Explicit targets and basic post-processing (2026-10-01)
+
+The [target/pass contract](RENDER_TARGETS.md) adds owned RGBA8 pairs and a bounded
+ordered frame plan, with a 16-byte target descriptor and 56-byte pass descriptor.
+The existing draw ABIs remain intact. All validation precedes execution; final
+window UI and legacy one-pass rendering use the same backend path.
+
+- Full JIT and fresh AOT each pass **10,567 CPU assertions**, including **41**
+  managed target checks; builds report **0 warnings/errors**
+- Native CTest **5/5**, including target/texture ownership, exact 64 MiB virtual
+  budget, eight-target cap, independent BMP quota, pass bounds/partitioning,
+  stale/context IDs, feedback rejection, mock allocation failure cleanup,
+  target-local projection/clip/run boundaries, copied parameters and legacy recovery
+- JIT and AOT each pass **7 target graphics assertions + 37 pixel assertions**;
+  all **nine readbacks are byte-identical** across modes
+- Pixels verify half-alpha red/blue overlap against direct drawing, resampling
+  through a second target with RGB/alpha tint, desaturation, alpha 1/255 and
+  near-zero/zero handling, retained contents after a rejected later pass,
+  target-local camera/scissor, translucent clear, newly initialized transparent
+  contents, explicit smaller replacement and final-window-only UI
+- Warmed frame-plan calls allocate **0 managed bytes** across **1,000 iterations**
+- Fresh AOT material **8 graphics + 31 pixel**, world scissor **9 graphics + 28
+  pixel**, and UI **60** regression checks pass through the shared backend
+- Read-only ownership/alpha/pass review found no actionable remaining defect.
+  Lead review moved default target/resolve pipeline initialization to first target
+  creation so a sprite-only host retains the prior startup path. A mock-test
+  indentation warning was corrected before final verification
+
+The transparent resolve explicitly costs two RGBA8 images and one extra GPU draw
+per offscreen pass. Their combined texel budget is **64 MiB**; pipeline and driver
+overhead are additional. Alpha zero produces transparent black, and every positive
+stored alpha is at least 1/255. The tests establish the bounded UNORM behavior,
+not HDR, linear-light correctness or precision preservation across arbitrary pass
+chains. A blend flag alone would not maintain the current straight-alpha shader
+profile for alpha tint and arbitrary fragment calculations.
+
+The stripped aggregate AOT host is **5,961,088 bytes** and the combined optional
+native library is **4,073,072 bytes** in this Release build. These individual files
+are not a repeated package footprint matrix. Canonical resolve GLSL and its
+generated text header are tracked; standalone resolve SPIR-V, builds and captures
+remain ignored. Prior sprite shader bytes are unchanged. Basic renderer slices
+are now delivered at the software Vulkan boundary; simple tile movement and the
+named platform/UI/distribution acceptance gates remain in the closure audit.

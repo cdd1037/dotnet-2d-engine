@@ -1,9 +1,10 @@
 # Remaining original renderer scope
 
 This records the bounded renderer sequence without expanding into advanced
-effects. World scissor, atlas regions, bounded diagnostics and the first material
-batch are implemented. Public render targets and a basic post-process example
-still remain in the original scope.
+effects. World scissor, atlas regions, bounded diagnostics, materials, explicit
+render targets and the basic post-process example are now implemented at the
+documented Linux software Vulkan boundary. The notes below preserve the narrow
+design; remaining acceptance gates are in [the closure audit](ROADMAP_CLOSURE.md).
 
 ## Delivered batch: materials and shader assets
 
@@ -39,7 +40,13 @@ fixture is enough to test reuse, parameters, order and failed-load retention.
 Arbitrary vertex layouts, reflection-generated setters, a node editor and rich
 material graph are unnecessary here.
 
-## Following batch: explicit render targets and one post-process
+## Delivered batch: explicit render targets and one post-process
+
+See [the implemented target/pass contract](RENDER_TARGETS.md). The public sampled
+image has straight alpha, maintained by a paired attachment and a bounded internal
+resolve. The total paired storage budget and extra draw cost are explicit. The
+fixture covers translucent overlap, resampling/alpha tint, low alpha, ownership,
+target dimensions, failed-plan retention and final-window UI.
 
 Begin with bounded 2D RGBA8 targets usable as color attachments and sampled
 textures. The public owner exposes a borrowed texture binding and dimensions;

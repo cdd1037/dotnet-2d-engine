@@ -37,6 +37,12 @@ _Static_assert(sizeof(gal_material_draw_v1)==136, "material draw");
 _Static_assert(offsetof(gal_material_draw_v1,sprite)==8, "material sprite offset");
 _Static_assert(offsetof(gal_material_draw_v1,material)==96, "material handle offset");
 _Static_assert(offsetof(gal_material_draw_v1,parameters)==104, "material parameter offset");
+_Static_assert(GAL_TARGET_VERSION==1 && GAL_TARGET_CAPACITY==8 && GAL_RENDER_PASS_VERSION==1 && GAL_RENDER_PASS_CAPACITY==16, "target/pass constants");
+_Static_assert(sizeof(gal_target_desc)==16 && offsetof(gal_target_desc,width)==8, "target descriptor");
+_Static_assert(sizeof(gal_render_pass_v1)==56, "render pass");
+_Static_assert(offsetof(gal_render_pass_v1,target)==8 && offsetof(gal_render_pass_v1,camera)==16, "render pass target/camera");
+_Static_assert(offsetof(gal_render_pass_v1,clear)==28 && offsetof(gal_render_pass_v1,first_draw)==44, "render pass clear/range");
+_Static_assert(offsetof(gal_render_pass_v1,draw_count)==48 && offsetof(gal_render_pass_v1,reserved)==52, "render pass count/reserved");
 _Static_assert(sizeof(gal_clip_rect)==32, "world scissor");
 _Static_assert(offsetof(gal_clip_rect,flags)==8, "world scissor flags offset");
 _Static_assert(offsetof(gal_clip_rect,x)==16, "world scissor x offset");
@@ -60,5 +66,12 @@ int main(void){
  gal_material_draw_v1 custom={0};custom.size=sizeof(custom);custom.version=GAL_MATERIAL_DRAW_VERSION;custom.sprite=draw;custom.material=material;custom.parameters[0]=.5f;custom.parameters[7]=-2;
  if(gal_begin(c,&camera)!=0||gal_submit_material_draws_v1(c,&custom,1,&clip,1)!=0||gal_end(c)!=0)return 5;
  if(gal_material_release(c,material)!=0||gal_material_count(c,&live)!=0||live!=0)return 6;
+ gal_target_desc target_desc={sizeof(target_desc),GAL_TARGET_VERSION,16,8};uint64_t target=0;
+ if(gal_target_create_v1(c,&target_desc,&target)!=0||!target||gal_texture_count(c,&live)!=0||live!=1)return 7;
+ gal_texture_info info={sizeof(info),0,0,0};if(gal_texture_get_info(c,target,&info)!=0||info.width!=16||info.height!=8||gal_texture_release(c,target)!=-1)return 8;
+ gal_render_pass_v1 passes[2]={{sizeof(gal_render_pass_v1),GAL_RENDER_PASS_VERSION,target,{0,0,1},{0,0,0,0},0,0,0},{sizeof(gal_render_pass_v1),GAL_RENDER_PASS_VERSION,0,{0,0,1},{0,0,0,1},0,1,0}};
+ custom.material=0;for(unsigned i=0;i<8;i++)custom.parameters[i]=0;custom.sprite.draw.texture=target;
+ if(gal_render_frame_v1(c,passes,2,&custom,1,&clip,1)!=0)return 9;
+ if(gal_target_release(c,target)!=0||gal_texture_count(c,&live)!=0||live!=0||gal_target_release(c,target)!=-1)return 10;
  return gal_destroy(c)!=0;
 }

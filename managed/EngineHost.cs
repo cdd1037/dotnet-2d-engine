@@ -9,6 +9,7 @@ public sealed unsafe class EngineHost : IDisposable
     public uint MaximumSprites { get; }
     private IEngineOwned? _textures;
     private IEngineOwned? _materials;
+    private IEngineOwned? _targets;
     private IEngineOwned? _audio;
     private IEngineOwned? _physics;
     private IEngineOwned? _ui;
@@ -28,6 +29,7 @@ public sealed unsafe class EngineHost : IDisposable
     internal void AudioClosed(AudioSession session){if(ReferenceEquals(_audio,session))_audio=null;}
     public TextureCache Textures { get { AssertAlive(); return (TextureCache)(_textures ??= new TextureCache(this)); } }
     public MaterialCache Materials { get { AssertAlive(); return (MaterialCache)(_materials ??= new MaterialCache(this)); } }
+    public RenderTargetStore RenderTargets { get { AssertAlive(); return (RenderTargetStore)(_targets ??= new RenderTargetStore(this)); } }
     internal void AssertThread()
     {
         if (Environment.CurrentManagedThreadId != _ownerThread)
@@ -142,6 +144,15 @@ public sealed unsafe class EngineHost : IDisposable
         catch{Native.Abort(context);throw;}
         Native.Check(Native.End(context),"end");
     }
+    /// <summary>Render ordered offscreen passes and one final window pass. Validation rejects the complete frame before execution.</summary>
+    public void RenderFrame(ReadOnlySpan<RenderPass> passes,ReadOnlySpan<MaterialDraw> draws,ReadOnlySpan<FramebufferClip> clips=default)
+    {
+        if(clips.Length!=0&&clips.Length!=1&&clips.Length!=draws.Length)throw new ArgumentException("Clip count must be zero, one, or match draw count.",nameof(clips));
+        foreach(var clip in clips)clip.Validate();
+        nint context=Context;
+        fixed(RenderPass* stages=passes)fixed(MaterialDraw* data=draws)fixed(FramebufferClip* scissor=clips)
+            Native.Check(TargetNative.Render(context,stages,(uint)passes.Length,data,(uint)draws.Length,scissor,(uint)clips.Length),"render pass frame");
+    }
     /// <summary>Draw order is unchanged. Zero clips disables scissor; one broadcasts; otherwise clips match the final draw order.</summary>
     public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,ReadOnlySpan<FramebufferClip> clips)
     {
@@ -198,6 +209,7 @@ public sealed unsafe class EngineHost : IDisposable
         _context = 0;
         _textures?.EngineDestroyed();
         _materials?.EngineDestroyed();_materials=null;
+        _targets?.EngineDestroyed();_targets=null;
         _audio?.EngineDestroyed();_audio=null;
         _physics?.EngineDestroyed();_physics=null;
         _ui?.EngineDestroyed();_ui=null;
