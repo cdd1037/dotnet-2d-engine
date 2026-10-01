@@ -22,7 +22,9 @@ evaluation/integration are authorized after version, license, footprint and plat
 validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
 The minimal [SDL_mixer audio module](AUDIO.md) now covers clips, streams, gains and
 explicit lifetimes. The [Box2D foundation](PHYSICS.md) now adds bounded bodies,
-shapes, events and queries with explicit units/ownership.
+shapes, events and queries with explicit units/ownership. The managed
+[basic TileMap](TILEMAP.md) adds bounded authored grids, chunk-assisted visibility
+culling and optional generated static collision.
 The advanced-effects group remains deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.

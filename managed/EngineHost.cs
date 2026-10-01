@@ -6,6 +6,7 @@ internal sealed unsafe class EngineHost : IDisposable
 {
     private nint _context;
     public bool Headless { get; }
+    public uint MaximumSprites { get; }
     private TextureCache? _textures;
     private AudioSession? _audio;
     private PhysicsWorld? _physics;
@@ -35,7 +36,7 @@ internal sealed unsafe class EngineHost : IDisposable
     {
         if (Native.AbiVersion() != 1)
             throw new InvalidOperationException("This host requires gal ABI version 1.");
-        Headless = headless;
+        Headless = headless; MaximumSprites = maxSprites;
         var config = Config.Create(headless, maxSprites);
         if (!legacyTone) config.Flags &= ~Native.Audio;
         nint context = 0;

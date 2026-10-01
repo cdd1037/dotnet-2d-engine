@@ -98,3 +98,5 @@ solver after dependency setup. The source-generated `basics.physics.json` fixtur
 and `--physics-demo` show explicit meter/pixel conversion and scene cleanup.
 
 Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use explicit clocks and lifetime ownership. Try `--animation-demo` or run `scripts/test.sh quick animation`.
+
+The [basic TileMap](docs/TILEMAP.md) loads bounded source-generated grids, culls atlas cells and optionally generates static Box2D collision. Try `--tilemap-demo` or `--tilemap-physics-demo`.

@@ -25,6 +25,10 @@ internal sealed class SpriteBatch
     internal void Reset(int capacity)
     {
         Count = 0; _legacyCompatible=true; _requiresRegions=false;
+        Reserve(capacity);
+    }
+    internal void Reserve(int capacity)
+    {
         if (_storage.Length < capacity)
         {
             int size = Math.Max(capacity, _storage.Length * 2);

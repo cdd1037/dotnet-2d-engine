@@ -158,3 +158,12 @@ churn. The sample and pixel checks cover pause, cancellation, restart and one-sh
 retention. This managed-only batch leaves native ABI and serialization roots
 unchanged; its current evidence is JIT/native contracts/software pixels and a
 displayed cloud-window check, not a fresh AOT milestone.
+
+## TileMap follow-on
+
+The managed [basic TileMap](TILEMAP.md) adds strict source-generated orthogonal
+grids, stable atlas IDs, layer order, visibility culling, fixed placement and
+optional merged static box collision. It reuses existing native drawing/physics
+ABIs and explicit scene cleanup. Frame capacity, physics capacity and unit limits
+remain separate checked contracts; richer terrain/controller/editor features
+remain outside this slice.

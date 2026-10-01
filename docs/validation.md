@@ -429,3 +429,53 @@ No fresh AOT publication was performed for this managed-only batch. The prior
 physics AOT evidence remains historical evidence for that source revision, not a
 claim that this new animation implementation has already been run under AOT.
 Generated screenshots/logs/hashes remain ignored under `evidence/animation/`.
+
+## Basic TileMap milestone (2026-10-01)
+
+The [orthogonal TileMap](TILEMAP.md) adds three managed data/runtime/collision
+files (364 lines at this milestone), a separate strict JSON source-generation
+root, a 28,355-byte source-only fixture and ordinary test/demo code. It reuses the
+existing draw/physics ABIs and `regions.bmp`; no native source or dependency changes
+were required. The small `SpriteBatch.Reserve` addition permits stable composition
+with ordinary entity sprites, checked against the recorded engine frame capacity.
+
+Final-source results:
+
+- Native headless contracts **4/4**; Release compilation **0 warnings/errors**
+- Full JIT and **fresh NativeAOT: 10,256 CPU assertions each**, including **1,181**
+  TileMap assertions and the prior animation batch's **127** assertions
+- Strict source/load/write/round-trip checks, numeric flip arrays, copied immutable
+  runtime state, palette ID reorder, UTF-8/file/dimension/cell/resource bounds and
+  precise diagnostics pass. A test exposed an omitted-opacity default being reset
+  to zero on an init-only DTO sourcegen path; the optional DTO property now retains
+  its initializer, and omitted opacity=1 is checked in JIT/AOT
+- Forty varied view rectangles compare the chunk-assisted output with a simple
+  global-row-major reference. Exact/subpixel/far/negative bounds, synthetic 2× DPI,
+  inactive viewport, map/entity layer ties and frame-budget rejection pass
+- Warmed map extraction and combined map/entity append/stable sorting allocate
+  **zero managed bytes** over 1,000 measured iterations each
+- JIT/AOT each pass **199 real Box2D assertions**. The fixture merges into **7**
+  static rectangles; ray/AABB hits map back to cell rectangles, a dynamic circle
+  settles on the floor, body/retired-shape budget failures preserve live state,
+  and repeated scene unload releases map resources while an independent body
+  survives. Retirement is reclaimed only by explicit steps
+- The five-camera fixture and 180-step physics fixture each use **one native atlas
+  upload** and end with zero live textures/bodies. **18 pixel checks** pass in each
+  mode; all **7 captures are byte-identical between JIT and AOT** with the same
+  native library. The circle's final Y is **14.60007 m** in both runs
+- The fresh AOT host also passes existing region graphics **29** and resource
+  graphics **27**. A headless TileMap scenario confirms 67 visible draws, one
+  cache placeholder and **zero GPU uploads**
+
+A displayed cloud-X11 CUA check observed resting/resetting the ball, arrow camera
+pan, wheel zoom, camera reset, focus interruption/recovery, a window resize and
+Escape exit. Terminal cleanup reported textures=0/bodies=0. These are displayed
+software-Vulkan checks, not physical-GPU, high-DPI hardware, tiny-window usability
+or cross-platform physics determinism acceptance. Minimized/invalid viewport math
+is tested synthetically; this displayed check did not test actual minimization.
+
+The freshly stripped aggregate AOT test host is **5,555,280 bytes**. It includes
+both the animation and TileMap additions since the previous publication, along
+with aggregate tests; this is not an isolated TileMap API or whole-package size.
+Native libraries are unchanged. Local evidence and hashes are in
+`evidence/tilemap/`; generated images/build outputs remain excluded from Git.
