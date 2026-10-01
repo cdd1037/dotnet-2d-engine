@@ -110,3 +110,11 @@ interactive mission uses it while preserving fixed-step, focus and neutral gates
 Fresh JIT/AOT and queued SDL/Rml checks are recorded in [validation](validation.md).
 Texture regions, world scissor and sprite-frame animation remain rendering work;
 RmlUi's existing list scissor is not a world clipping API.
+
+## SDL dependency follow-on
+
+The [isolated SDL 3.4.16 upgrade](SDL_UPGRADE.md) is verified against native,
+JIT/AOT, software-rendered and focused displayed-window checks. The older install
+and pre-upgrade native libraries remain locally available for rollback. Runtime
+version checking prevents accidental use of the retained older SDL. Image
+libraries/formats are unchanged; audio integration remains a separate next batch.

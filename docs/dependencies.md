@@ -9,6 +9,17 @@
 
 ## Approved and installed locally (2026-10-01)
 
+Current SDL pin: **3.4.16**, official stable release published 2026-09-02:
+https://github.com/libsdl-org/SDL/releases/tag/release-3.4.16 . Its isolated install
+is `.deps/sdl-3.4.16-install`; the older source/install below is retained for rollback.
+`scripts/sdl-env.sh` is the shared version/prefix default. `SDL3_PREFIX` can select
+an explicit installation that meets the CMake version requirement. The explicit
+`scripts/fetch-sdl.sh` verifies the pinned official release archive hash before
+extraction; `scripts/configure-local-sdl.sh` only builds already-materialized source.
+See [upgrade verification and limits](SDL_UPGRADE.md).
+
+Foundation dependencies retained:
+
 - SDL3 **3.2.28**, official release: https://github.com/libsdl-org/SDL/releases/tag/release-3.2.28 . Source tarball: https://www.libsdl.org/release/SDL3-3.2.28.tar.gz . Build/install locally under this project's `.deps`, not system-wide
 - Kitware CMake **3.31.6** Linux x86-64 archive, official release: https://github.com/Kitware/CMake/releases/tag/v3.31.6 . Extract under this project's `.tools`
 
@@ -32,11 +43,13 @@ The opt-in `scripts/bootstrap-ui-deps.sh` records exact download hashes for:
 - Debian FreeType development package 2.13.3+dfsg-1+deb13u1; the current
   prototype links the system FreeType library, not a vendored copy
 
-SDL3's [zlib notice](SDL3-LICENSE.txt) is retained. Upstream dependencies and
+SDL3's [zlib notice](SDL3-LICENSE.txt) is retained and refreshed to the 3.4.16
+archive's 2026 notice. Its zlib terms are unchanged. Upstream dependencies and
 build tools are not vendored in this source milestone. Before distributing a
 binary package, audit all included transitive libraries and font notices; these
-source notices are not a complete binary-distribution license bundle. A license
-for this project's own source has not yet been chosen.
+source notices are not a complete binary-distribution license bundle. Original
+project code/documentation are licensed under [MIT](../LICENSE);
+[third-party notices](../THIRD_PARTY_NOTICES.md) remain separate.
 
 Verified foundation archive SHA-256 values:
 
@@ -48,3 +61,24 @@ Verified foundation archive SHA-256 values:
 References to `evidence/` in historical reports point to local generated logs,
 not files promised in a fresh checkout. Portable source, scripts and concise
 reports are tracked; tool caches and bulky captures are intentionally excluded.
+
+The SDL 3.4.16 build required X11 extension development packages that 3.2.28
+previously omitted when unavailable. Only official Debian trixie packages were
+downloaded, verified against the signed Packages index and extracted into the
+local `.deps/sysroot`: libxcursor-dev + libxcursor1; libxi-dev + libxi6;
+libxrandr-dev + libxrandr2; libxfixes-dev + libxfixes3; libxss-dev + libxss1;
+libxtst-dev + libxtst6; and libxrender-dev + libxrender1. No system-wide
+installation occurred. Ordinary Linux build setups may already provide these.
+This local build supports X11/offscreen and Vulkan; missing Wayland/PipeWire/Pulse
+development stacks were not added or claimed as tested platform support.
+
+Current SDL source archive SHA-256, verified against the official release asset
+metadata on 2026-10-01:
+
+```text
+7322236cd12090c3eb40b9728be4d49c76f66ad17d04369584d4ecad5cf77c68  SDL3-3.4.16.tar.gz
+```
+
+SDL3_image 3.2.4 and RmlUi 6.3 remain unchanged. Built-in SDL PNG functionality
+does not replace the current image dependency or change accepted authoring formats
+in this upgrade. SDL_mixer integration is a separate subsequent batch.

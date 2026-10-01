@@ -51,6 +51,8 @@ void backend_destroy(Backend* b) {
  delete b;
 }
 Backend* backend_create(gal_config& c,std::string& e) {
+ const int runtime=SDL_GetVersion();
+ if(runtime<SDL_VERSIONNUM(3,4,16)){e="SDL 3.4.16 or newer required; loaded "+std::to_string(SDL_VERSIONNUM_MAJOR(runtime))+"."+std::to_string(SDL_VERSIONNUM_MINOR(runtime))+"."+std::to_string(SDL_VERSIONNUM_MICRO(runtime));return nullptr;}
  std::unique_ptr<Backend,decltype(&backend_destroy)> ptr(new Backend,&backend_destroy); auto*b=ptr.get(); b->textures.reserve(256);
  const SDL_InitFlags flags=SDL_INIT_VIDEO | ((c.flags&GAL_AUDIO)?SDL_INIT_AUDIO:0);
  if(!SDL_InitSubSystem(flags)) { error(e); return nullptr; } b->init_flags=flags;

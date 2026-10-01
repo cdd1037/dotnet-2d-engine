@@ -49,14 +49,14 @@ Requires .NET SDK 10.0.401 (validated runtime 10.0.12). This workspace reused `.
 
 ## Graphical build
 
-Install SDL3 3.2.28 from its official release and CMake >=3.20, then:
+Install SDL3 3.4.16 from its official release and CMake >=3.20, then:
 
 ```sh
 SDL3_PREFIX=/path/to/sdl3/install ./scripts/build-sdl.sh
 LD_LIBRARY_PATH="$PWD/build:/path/to/sdl3/install/lib" dotnet managed/bin/Release/net10.0/GameAuthoringLab.dll --frames 600
 ```
 
-The real SDL_GPU backend compiles/links and native tests pass. Mesa software Vulkan renders through an SDL offscreen surface, with GPU readback and pixel assertions for alpha/camera/resize. Displayed-window UI checks have also been exercised separately, with an intermittent first Reset after scrolling still open; physical-GPU validation is not claimed. Full build/visual validation status is recorded in [validation](docs/validation.md). Vulkan is selected explicitly and startup failure is visible; there is no automatic software/backend fallback. Windows D3D12 and Metal remain unvalidated extension work (HLSL source provided but no DXIL wired yet).
+The pinned SDL3 3.4.16 runtime and rollback details are in [the upgrade report](docs/SDL_UPGRADE.md). The real SDL_GPU backend compiles/links and native tests pass. Mesa software Vulkan renders through an SDL offscreen surface, with GPU readback and pixel assertions for alpha/camera/resize. Displayed-window UI checks have also been exercised separately, with an intermittent first Reset after scrolling still open; physical-GPU validation is not claimed. Full build/visual validation status is recorded in [validation](docs/validation.md). Vulkan is selected explicitly and startup failure is visible; there is no automatic software/backend fallback. Windows D3D12 and Metal remain unvalidated extension work (HLSL source provided but no DXIL wired yet).
 
 See [world model](managed/WORLD.md), [dependency checklist](docs/dependencies.md), [architecture](docs/architecture.md), [managed usage](managed/README.md), and [validation](docs/validation.md). Existing compiled shader blobs can be rebuilt offline on a Linux machine with libshaderc installed using `python3 scripts/compile_shaders.py`.
 

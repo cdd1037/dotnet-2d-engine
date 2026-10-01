@@ -9,14 +9,16 @@ one sample is a starting point, not the engine feature ceiling.
 
 Phase 1's playable loop is committed locally as `105eb06`. Continued incremental
 engine implementation is authorized (2026-10-01); external publication and new
-dependency selections remain separate decisions. The next resource batch adds
+dependency selections remain separate decisions. The resource batch adds
 shared root/path validation, stable key mappings and explicit context-owned BMP
 texture leases; see [resource foundation](RESOURCES.md).
 
 The input/viewport batch now adds versioned raw/routed edges, coordinate helpers
 and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Next rendering
-work remains texture regions/atlas UVs and basic animation. Box2D and SDL_mixer evaluation/integration are authorized after version, license,
-footprint and platform validation; SDL_mixer requires a separate tested SDL upgrade, and keep the advanced-effects group deferred.
+work remains texture regions/atlas UVs and basic animation. Box2D and SDL_mixer
+evaluation/integration are authorized after version, license, footprint and platform
+validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
+The advanced-effects group remains deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.
 

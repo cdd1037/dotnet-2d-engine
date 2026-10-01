@@ -13,7 +13,10 @@ class Camera(C.Structure): _fields_=[('x',C.c_float),('y',C.c_float),('zoom',C.c
 class Sprite(C.Structure): _fields_=[(x,C.c_float) for x in ('x','y','w','h','r','g','b','a')]
 class Input(C.Structure): _fields_=[('size',C.c_uint),('quit',C.c_uint),('keys',C.c_uint),('wheel',C.c_float),('mx',C.c_float),('my',C.c_float),('width',C.c_int),('height',C.c_int)]
 class Stats(C.Structure): _fields_=[(x,C.c_uint) for x in ('size','frames','sprites','draws','audio')]
-lib=C.CDLL(str(root/'build/libgal.so'));sdl=C.CDLL(str(root/'.deps/sdl-install/lib/libSDL3.so'))
+lib=C.CDLL(str(root/'build/libgal.so'));sdl=C.CDLL('libSDL3.so.0')
+# Resolve the same selected SONAME as libgal, never load the retained old runtime by absolute path.
+sdl.SDL_GetVersion.restype=C.c_int
+assert sdl.SDL_GetVersion()>=3004016
 for name,args in {'gal_create':[C.POINTER(Config),C.POINTER(C.c_void_p)],'gal_destroy':[C.c_void_p],'gal_begin':[C.c_void_p,C.POINTER(Camera)],'gal_submit':[C.c_void_p,C.POINTER(Sprite),C.c_uint],'gal_end':[C.c_void_p],'gal_poll':[C.c_void_p,C.POINTER(Input)],'gal_get_stats':[C.c_void_p,C.POINTER(Stats)],'gal_play_tone':[C.c_void_p]}.items():
  f=getattr(lib,name);f.argtypes=args;f.restype=C.c_int
 lib.gal_last_error.restype=C.c_char_p

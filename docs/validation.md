@@ -205,3 +205,45 @@ window forward and did not produce a verified resized mission view; no displayed
 resize/minimize acceptance is claimed. The test process was stopped from its
 terminal and the returned shell prompt was verified. Deterministic resize and
 minimize/restore coverage above remains distinct from that incomplete desktop check.
+
+## Isolated SDL 3.4.16 upgrade (2026-10-01)
+
+SDL 3.4.16's official source archive digest, zlib notice, new local build/prefix
+and retained 3.2.28 rollback paths are recorded in [upgrade details](SDL_UPGRADE.md).
+The selected runtime reports `SDL-release-3.4.16-0-gfa2c02bb6`; wrong library search
+paths selecting 3.2.28 now fail explicitly before window creation. The new X11
+extension prerequisites were verified against signed official Debian metadata and
+extracted locally, with no system install. SDL3_image/RmlUi and accepted image
+formats remain unchanged.
+
+Final checks against the upgraded ordinary native builds:
+
+- Native CTest **4/4**; strict native build succeeds
+- JIT and the identity-verified existing NativeAOT binary each pass **8,894**
+  complete CPU assertions, input graphics **28**, resource graphics **27**, game UI
+  **28**, mission **49**, settings UI **23**, combined room/UI **16**
+- Existing alpha/order/camera/384x288 resize pixel assertions and dummy tone pass
+- Selected settings and mission captures are identical between JIT/AOT and the
+  prior SDL 3.2.28 input milestone
+- Managed sources, JIT output and the **4,990,752-byte** AOT host match the fresh
+  input-boundary publish; no managed republish or size-ablation was needed
+
+The graphics Python helper initially opened retained SDL 3.2.28 by absolute path
+alongside the upgraded engine's SDL, so its resize lookup saw a separate empty
+window list. This was corrected to use the selected SDL SONAME and assert the
+minimum version. The final pixel test then passed. Native input/resource/UI
+scenarios had already passed against the correct 3.4.16 runtime.
+
+Displayed cloud-X11 CUA verification on 3.4.16: title → Start → held D movement →
+short E pickup (CELL LINKED visible) → Escape pause → Resume → fresh Escape pause.
+The process was then stopped and the terminal prompt verified. Immediate same-batch
+resume/pause is intentionally discarded at the first screen boundary; a fresh
+Escape works. Window-manager resize controls were not successfully exercised
+through this CUA surface, so displayed resize/minimize, physical high-DPI devices,
+GPU/audio hardware and real IME remain unverified. Deterministic SDL resize and
+synthetic minimize/restore tests pass separately.
+
+Local evidence: `evidence/sdl-3.4.16/`. Release SDL shared-library size is
+**4,003,064 bytes** versus **3,566,664** previously, including newly enabled X11
+extensions; this is not a controlled version-only or whole-distribution size claim.
+No dependency archives, compiled libraries, fonts or raw evidence are committed.
