@@ -40,6 +40,24 @@ internal struct SpriteDraw
 }
 
 [StructLayout(LayoutKind.Sequential)]
+internal struct SpriteDrawV2
+{
+    public uint Size, Version;
+    public SpriteDraw Draw;
+    public int SourceX, SourceY, SourceWidth, SourceHeight;
+    public uint Flags, Reserved;
+    public static unsafe SpriteDrawV2 Create(SpriteDraw draw, TextureRegion? region = null, bool flipX = false, bool flipY = false) => new()
+    {
+        Size = (uint)sizeof(SpriteDrawV2), Version = 2, Draw = draw,
+        SourceX = region?.X ?? 0, SourceY = region?.Y ?? 0,
+        SourceWidth = region?.Width ?? 0, SourceHeight = region?.Height ?? 0,
+        Flags = (flipX ? 1u : 0) | (flipY ? 2u : 0)
+    };
+}
+[StructLayout(LayoutKind.Sequential)]
+internal struct TextureInfo { public uint Size; public int Width, Height; public uint Reserved; }
+
+[StructLayout(LayoutKind.Sequential)]
 internal struct Input
 {
     public uint Size, Quit, Keys;
@@ -98,6 +116,14 @@ internal static unsafe partial class Native
     [LibraryImport(Library, EntryPoint = "gal_submit_draws")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial int SubmitDraws(nint context, SpriteDraw* draws, uint count);
+
+    [LibraryImport(Library, EntryPoint = "gal_submit_draws_v2")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SubmitDrawsV2(nint context, SpriteDrawV2* draws, uint count);
+
+    [LibraryImport(Library, EntryPoint = "gal_texture_get_info")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int GetTextureInfo(nint context, ulong texture, TextureInfo* info);
 
     [LibraryImport(Library, EntryPoint = "gal_texture_load_bmp", StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

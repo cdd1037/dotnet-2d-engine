@@ -30,7 +30,27 @@ int main(){
  gal_draw affine{0,1,-1,0,50,20,10,20,1,1,1,1,texture};
  R(gal_begin(c,&cam)==0);R(gal_submit_draws(c,&affine,1)==0);R(gal_texture_release(c,texture)==-1);R(gal_end(c)==0);
  R(captured.size()==6&&std::abs(captured[0].x)<1e-5f&&std::abs(captured[0].y-.6f)<1e-5f&&std::abs(captured[2].x+.4f)<1e-5f);
- R(gal_texture_release(c,texture)==0);R(gal_texture_release(c,texture)==-1);R(gal_texture_count(c,&live)==0&&live==0);
+ gal_texture_info info{sizeof(info),-1,-1,0};R(gal_texture_get_info(c,texture,&info)==0&&info.width==8&&info.height==4);
+ info.reserved=1;R(gal_texture_get_info(c,texture,&info)==-1);info.reserved=0;R(gal_texture_get_info(c,0,&info)==-1);
+ gal_draw_v2 region{sizeof(region),GAL_DRAW_VERSION,affine,0,0,4,4,0,0};
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws_v2(c,&region,1)==0);region.source_x=4;region.flags=GAL_FLIP_X|GAL_FLIP_Y;R(gal_submit_draws_v2(c,&region,1)==0);R(gal_end(c)==0);
+ R(captured.size()==12&&captured[0].u==.0625f&&captured[0].v==.125f&&captured[1].u==.4375f&&captured[2].v==.875f);
+ R(captured[6].u==.9375f&&captured[6].v==.875f&&captured[7].u==.5625f&&captured[8].v==.125f);
+ for(int invalid=0;invalid<10;invalid++){
+  gal_draw_v2 candidates[2]={region,region};auto&bad=candidates[1];
+  switch(invalid){case 0:bad.size--;break;case 1:bad.version++;break;case 2:bad.reserved=1;break;case 3:bad.flags=4;break;case 4:bad.source_x=-1;break;case 5:bad.source_w=0;break;case 6:bad.source_h=5;break;case 7:bad.source_x=INT32_MAX;break;case 8:bad.draw.texture=0;break;case 9:bad.draw.r=2;break;}
+  R(gal_begin(c,&cam)==0);R(gal_submit_draws(c,&affine,1)==0);R(gal_submit_draws_v2(c,candidates,2)==-1);R(gal_end(c)==0);R(captured.size()==6); // no partial append after invalid second draw.
+ }
+ region.source_x=7;region.source_y=3;region.source_w=region.source_h=1;region.flags=0;
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_end(c)==0);R(captured[0].u==captured[1].u&&captured[0].v==captured[2].v);
+ region.source_x=region.source_y=region.source_w=region.source_h=0;
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_end(c)==0);R(captured[0].u==0&&captured[1].u==1);
+ R(gal_submit_draws_v2(c,&region,1)==-1);
+ region.source_w=4;region.source_h=4;
+ R(gal_get_stats(c,&stats)==0);uint32_t previous_draws=stats.draw_calls;
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws(c,&affine,1)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_end(c)==0);
+ R(captured.size()==12&&captured[0].u==0&&captured[6].u==.0625f);R(gal_get_stats(c,&stats)==0&&stats.draw_calls==previous_draws+1);
+ R(gal_texture_release(c,texture)==0);R(gal_texture_release(c,texture)==-1);R(gal_texture_count(c,&live)==0&&live==0);R(gal_texture_get_info(c,texture,&info)==-1);
  R(gal_begin(c,&cam)==0);R(gal_submit_draws(c,&affine,1)==-1);R(gal_abort(c)==0);
  gal_input_v2 versioned{};versioned.size=sizeof(versioned);versioned.version=GAL_INPUT_VERSION;versioned.quit=77;
  for(int mode=1;mode<=2;mode++){poll_mode=mode;R(gal_poll_v2(c,&versioned)==-1&&versioned.quit==77);}
@@ -42,5 +62,5 @@ int main(){
  std::puts("PASS injected create/poll/draw/tone failures, state recovery, geometry, overflow, abort stats, skipped draw stats, wrong-thread destroy");
 }
 
-bool backend_texture_load(Backend*,const char*,uint64_t,std::string&){return true;}
+bool backend_texture_load(Backend*,const char*,uint64_t,int32_t&w,int32_t&h,std::string&){w=8;h=4;return true;}
 void backend_texture_release(Backend*,uint64_t){}

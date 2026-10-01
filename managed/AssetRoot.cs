@@ -78,7 +78,9 @@ internal sealed class AssetRoot
         { throw Error("ASSET_FILE", logicalPath, e.Message, e); }
     }
 
-    public string ValidateBitmap(string logicalPath)
+    public string ValidateBitmap(string logicalPath) => ReadBitmapInfo(logicalPath).Path;
+
+    public BitmapInfo ReadBitmapInfo(string logicalPath)
     {
         ValidateLogicalPath(logicalPath);
         if (!logicalPath.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
@@ -93,7 +95,7 @@ internal sealed class AssetRoot
             int height = BinaryPrimitives.ReadInt32LittleEndian(header[22..]);
             if (header[0] != 'B' || header[1] != 'M' || width is < 1 or > 4096 || height is < 1 or > 4096)
                 throw Error("ASSET_BMP", logicalPath, "Expected a 54-byte BMP header and dimensions 1..4096; native upload validates decoding.");
-            return file;
+            return new BitmapInfo(file, width, height);
         }
         catch (AssetException) { throw; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

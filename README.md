@@ -71,3 +71,10 @@ Explicit attachment ownership and efficient stable sorting: [semantics and valid
 ## Small authored-scene slice
 
 Flat authored JSON now has a separate validate/load/run path with stable GUIDs, explicit BMP resource mappings and file/JSON-path/entity diagnostics. The two-instance example preserves equal-layer array ordering. This does not generalize the two-room gameplay save or implement prefab inheritance. See `docs/AUTHORED_SCENES.md`.
+
+### Texture regions
+
+The additive [texture-region contract](docs/TEXTURE_REGIONS.md) supports shared
+atlas cells, independent asset IDs and sprite flips. `assets/regions.scene.json`
+is the small authored v2 fixture. Run `scripts/test.sh quick regions` for its
+CPU/resource/schema checks; the linked guide covers GPU readback checks.

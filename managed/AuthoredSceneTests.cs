@@ -47,7 +47,7 @@ internal static class AuthoredSceneTests
                 }
             }
             Reject(d => d["kind"] = "runtime-save", "SCENE_KIND", "$.kind");
-            Reject(d => d["version"] = 2, "SCENE_VERSION", "$.version");
+            Reject(d => d["version"] = 3, "SCENE_VERSION", "$.version");
             Reject(d => d["extra"] = true, "SCENE_JSON", "$.extra");
             Reject(d => d["entities"]![0]!["note"] = "unknown", "SCENE_JSON", "$.entities[0].note");
             Reject(d => d["id"] = Guid.Empty.ToString(), "SCENE_ID", "$.id");

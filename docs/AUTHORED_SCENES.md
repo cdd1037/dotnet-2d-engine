@@ -1,4 +1,8 @@
-# Flat authored scenes, version 1
+# Flat authored scenes, versions 1 and 2
+
+Version 1 remains supported unchanged. Version 2 adds optional texture-region
+metadata and sprite flips; see [texture regions and migration contract](TEXTURE_REGIONS.md).
+The original v1 design and examples below remain applicable.
 
 This is a small authoring slice, separate from the two-room runtime save. JSON remains canonical. `assets/compositions.scene.json` contains two expanded root/child compositions with stable GUIDs and one reusable resource key. There is no new DSL, prefab inheritance, editor, binary format or dependency.
 

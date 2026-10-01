@@ -208,7 +208,7 @@ bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,
 }
 bool backend_tone(Backend*b,std::string&e){if(!b->audio){e="audio disabled";return false;}int queued=SDL_GetAudioStreamQueued(b->audio);if(queued<0)return error(e);if(queued>48000*4){e="audio queue limit";return false;}return SDL_PutAudioStreamData(b->audio,b->tone.data(),int(b->tone.size()*sizeof(float)))||error(e);}
 
-bool backend_texture_load(Backend*b,const char*path,uint64_t id,std::string&e){
+bool backend_texture_load(Backend*b,const char*path,uint64_t id,int32_t&width,int32_t&height,std::string&e){
  // Bound the allocation before SDL decodes user-authored image metadata.
  {
   std::unique_ptr<SDL_IOStream,decltype(&SDL_CloseIO)> input(SDL_IOFromFile(path,"rb"),SDL_CloseIO);if(!input)return error(e);
@@ -234,7 +234,7 @@ bool backend_texture_load(Backend*b,const char*path,uint64_t id,std::string&e){
  SDL_UnmapGPUTransferBuffer(b->device,transfer);
  auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd){SDL_ReleaseGPUTransferBuffer(b->device,transfer);backend_texture_release(b,id);return error(e);}
  auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTextureTransferInfo source{};source.transfer_buffer=transfer;source.pixels_per_row=info.width;source.rows_per_layer=info.height;SDL_GPUTextureRegion dest{};dest.texture=texture;dest.w=info.width;dest.h=info.height;dest.d=1;SDL_UploadToGPUTexture(copy,&source,&dest,false);SDL_EndGPUCopyPass(copy);
- bool submitted=SDL_SubmitGPUCommandBuffer(cmd);SDL_ReleaseGPUTransferBuffer(b->device,transfer);if(!submitted){backend_texture_release(b,id);return error(e);}return true;
+ bool submitted=SDL_SubmitGPUCommandBuffer(cmd);SDL_ReleaseGPUTransferBuffer(b->device,transfer);if(!submitted){backend_texture_release(b,id);return error(e);}width=surface->w;height=surface->h;return true;
 }
 void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->textures.begin();it!=b->textures.end();++it)if(it->first==id){SDL_ReleaseGPUTexture(b->device,it->second);b->textures.erase(it);return;}}
 

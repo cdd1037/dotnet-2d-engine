@@ -8,7 +8,7 @@ namespace GameAuthoringLab;
 internal sealed class TextureCache(EngineHost engine)
 {
     public const int MaximumTextures = 256;
-    private sealed class Entry(ulong handle) { public ulong Handle { get; } = handle; public int References = 1; }
+    private sealed class Entry(ulong handle, BitmapInfo info) { public ulong Handle { get; } = handle; public BitmapInfo Info { get; } = info; public int References = 1; }
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private bool _destroyed;
     public int Count { get { CheckAccess(); return _entries.Count; } }
@@ -21,10 +21,10 @@ internal sealed class TextureCache(EngineHost engine)
         ObjectDisposedException.ThrowIf(_destroyed, this);
     }
 
-    internal void Validate(AssetRoot assets, string logicalPath)
+    internal BitmapInfo Validate(AssetRoot assets, string logicalPath)
     {
         CheckAccess();
-        if (!_entries.ContainsKey(assets.FilePath(logicalPath))) assets.ValidateBitmap(logicalPath);
+        return _entries.TryGetValue(assets.FilePath(logicalPath), out var entry) ? entry.Info : assets.ReadBitmapInfo(logicalPath);
     }
 
     public TextureLease Acquire(AssetRoot assets, string logicalPath)
@@ -34,21 +34,22 @@ internal sealed class TextureCache(EngineHost engine)
         if (_entries.TryGetValue(path, out var existing))
         {
             if (existing.References == int.MaxValue) throw new InvalidOperationException("Texture lease count exhausted.");
-            var retained = new TextureLease(this, path, existing.Handle);
+            var retained = new TextureLease(this, path, existing.Handle, existing.Info);
             existing.References++;
             return retained;
         }
         if (_entries.Count >= MaximumTextures)
             throw new AssetException("ASSET_CAPACITY", assets.DirectoryPath, logicalPath, $"At most {MaximumTextures} distinct textures per engine cache.");
-        assets.ValidateBitmap(logicalPath);
+        var info = assets.ReadBitmapInfo(logicalPath);
         ulong handle;
         try { handle = engine.Headless ? 0 : engine.LoadTexture(path); }
         catch (InvalidOperationException e)
         { throw new AssetException("ASSET_UPLOAD", assets.DirectoryPath, logicalPath, e.Message, e); }
         try
         {
-            var lease = new TextureLease(this, path, handle);
-            _entries.Add(path, new Entry(handle));
+            if (!engine.Headless) { var decoded = engine.GetTextureInfo(handle); info = new(path, decoded.Width, decoded.Height); }
+            var lease = new TextureLease(this, path, handle, info);
+            _entries.Add(path, new Entry(handle, info));
             Loads++;
             return lease;
         }
@@ -75,9 +76,10 @@ internal sealed class TextureCache(EngineHost engine)
     }
 }
 
-internal sealed class TextureLease(TextureCache cache, string path, ulong handle) : IDisposable
+internal sealed class TextureLease(TextureCache cache, string path, ulong handle, BitmapInfo info) : IDisposable
 {
     private bool _disposed;
+    public BitmapInfo Info { get { ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckAccess(); return info; } }
     public ulong Handle
     {
         get { ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckAccess(); return handle; }

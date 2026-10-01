@@ -15,7 +15,8 @@ texture leases; see [resource foundation](RESOURCES.md).
 
 The input/viewport batch now adds versioned raw/routed edges, coordinate helpers
 and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Next rendering
-work remains texture regions/atlas UVs and basic animation. Box2D and SDL_mixer
+work now includes [texture regions/atlas UVs](TEXTURE_REGIONS.md); basic animation
+and world clipping remain follow-ons. Box2D and SDL_mixer
 evaluation/integration are authorized after version, license, footprint and platform
 validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
 The advanced-effects group remains deferred.

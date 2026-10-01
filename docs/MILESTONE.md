@@ -98,8 +98,8 @@ validation and a context-owned synchronous BMP cache with explicit per-world
 leases. Stable authored keys remain independent of file mappings. Failed candidate
 loads keep the prior usable resource set; repeated synchronization remains
 allocation-free. Final focused/full-JIT verification is recorded in
-[validation](validation.md). Asynchronous loading, atlas UVs and general asset
-packaging remain separate capability batches.
+[validation](validation.md). Asynchronous loading and general asset packaging remain separate capability
+batches; atlas UVs are covered by the later region follow-on below.
 
 ## Input and viewport follow-on
 
@@ -108,7 +108,7 @@ window coordinates from framebuffer pixels, preserves event-derived short taps,
 routes UI-owned inputs and supports copied/remappable managed bindings. The
 interactive mission uses it while preserving fixed-step, focus and neutral gates.
 Fresh JIT/AOT and queued SDL/Rml checks are recorded in [validation](validation.md).
-Texture regions, world scissor and sprite-frame animation remain rendering work;
+World scissor and sprite-frame animation remain rendering work;
 RmlUi's existing list scissor is not a world clipping API.
 
 ## SDL dependency follow-on
@@ -118,3 +118,14 @@ JIT/AOT, software-rendered and focused displayed-window checks. The older instal
 and pre-upgrade native libraries remain locally available for rollback. Runtime
 version checking prevents accidental use of the retained older SDL. Image
 libraries/formats are unchanged; audio integration remains a separate next batch.
+
+## Texture-region follow-on
+
+The [additive region draw contract](TEXTURE_REGIONS.md) now supports validated
+shared-texture cells, per-sprite X/Y flips and strict authored v2 metadata. Resource
+IDs remain independent of atlas locations and snapshots carry no texture handles
+or packed coordinates. Stable ordering and existing full-texture pixels are
+preserved. Native, fresh JIT/AOT and software pixels pass as recorded in
+[validation](validation.md). The approved minimal SDL_mixer integration can proceed
+on the verified SDL 3.4.16 baseline. World clipping and sprite-frame animation stay
+as focused rendering follow-ons.

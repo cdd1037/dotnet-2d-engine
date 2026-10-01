@@ -20,6 +20,16 @@ internal sealed class AuthoredResource
 {
     public required string Key { get; init; }
     public required string Path { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RegionRecord? Region { get; init; }
+}
+internal sealed class RegionRecord
+{
+    public required int X { get; init; }
+    public required int Y { get; init; }
+    public required int Width { get; init; }
+    public required int Height { get; init; }
+    internal TextureRegion ToRegion() => new(X, Y, Width, Height);
 }
 internal sealed class AuthoredSceneException(string code, string file, string path, Guid? entityId, string cause,
     Exception? inner = null) : Exception($"{file} [{code}] {path}" + (entityId is {} id ? $" (entity {id})" : "") + ": " + cause, inner)
@@ -98,7 +108,7 @@ internal static class AuthoredScene
     private static LoadedAuthoredScene Build(AuthoredSceneDocument doc, string file, AssetRoot? assets)
     {
         if (doc.Kind != Kind) throw Error("SCENE_KIND", file, "$.kind", null, $"Expected {Kind}; runtime saves are separate documents.");
-        if (doc.Version != 1) throw Error("SCENE_VERSION", file, "$.version", null, "Only authored scene version 1 is supported.");
+        if (doc.Version is not (1 or 2)) throw Error("SCENE_VERSION", file, "$.version", null, "Only authored scene versions 1 and 2 are supported.");
         if (string.IsNullOrWhiteSpace(doc.Name)) throw Error("SCENE_NAME", file, "$.name", null, "Scene name cannot be empty.");
         if (doc.Resources is null || doc.Resources.Count > 128) throw Error("SCENE_LIMIT", file, "$.resources", null, "At most 128 resources are supported.");
         if (doc.Entities is null || doc.Entities.Count > 4096) throw Error("SCENE_LIMIT", file, "$.entities", null, "At most 4096 entities are supported.");
@@ -111,20 +121,24 @@ internal static class AuthoredScene
         string sourceLogical;
         try { sourceLogical = assets.LogicalPathFor(file); }
         catch (AssetException e) { throw Error("SCENE_RESOURCE", file, "$", null, e.Message, e); }
-        var logicalPaths = new Dictionary<string, string>(StringComparer.Ordinal);
+        var logicalPaths = new Dictionary<string, TextureAsset>(StringComparer.Ordinal);
         for (int i = 0; i < doc.Resources.Count; i++)
         {
             var resource = doc.Resources[i]; string prefix = $"$.resources[{i}]";
             if (resource is null) throw Error("SCENE_RESOURCE", file, prefix, null, "Resource cannot be null.");
             if (string.IsNullOrWhiteSpace(resource.Key) || !paths.TryAdd(resource.Key, ""))
                 throw Error("SCENE_RESOURCE", file, prefix + ".key", null, "Resource key must be nonempty and unique (case sensitive).");
+            if (doc.Version == 1 && resource.Region is not null) throw Error("SCENE_VERSION", file, prefix + ".region", null, "Texture regions require authored version 2.");
             try
             {
                 // Version 1 remains relative to its scene. The root supplies one namespace,
                 // not a second meaning for an existing resource field.
                 string logical = assets.Sibling(sourceLogical, resource.Path);
-                paths[resource.Key] = assets.ValidateBitmap(logical);
-                logicalPaths.Add(resource.Key, logical);
+                var info = assets.ReadBitmapInfo(logical);
+                paths[resource.Key] = info.Path;
+                try { resource.Region?.ToRegion().Validate(info.Width, info.Height); }
+                catch (ArgumentOutOfRangeException e) { throw Error("SCENE_RESOURCE", file, prefix + ".region", null, e.Message, e); }
+                logicalPaths.Add(resource.Key, new TextureAsset(logical, resource.Region?.ToRegion()));
             }
             catch (AssetException e)
             { throw Error("SCENE_RESOURCE", file, prefix + ".path", null, e.Message, e); }
@@ -142,6 +156,8 @@ internal static class AuthoredScene
             catch (ArgumentOutOfRangeException e) { throw Error("SCENE_TRANSFORM", file, p + ".transform", entity.Id, e.Message, e); }
             try { entity.Sprite?.ToSprite().Validate(); }
             catch (ArgumentOutOfRangeException e) { throw Error("SCENE_SPRITE", file, p + ".sprite", entity.Id, e.Message, e); }
+            if (doc.Version == 1 && entity.Sprite is {} oldSprite && (oldSprite.FlipX || oldSprite.FlipY))
+                throw Error("SCENE_VERSION", file, p + ".sprite", entity.Id, "Sprite flips require authored version 2.");
             if (entity.Sprite?.AssetKey is {} key && !paths.ContainsKey(key))
                 throw Error("SCENE_RESOURCE", file, p + ".sprite.assetKey", entity.Id, $"Unregistered resource key '{key}'.");
         }

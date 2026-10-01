@@ -7,5 +7,5 @@ bool backend_poll_v2(Backend*,gal_input_v2&,std::string&) { return false; }
 bool backend_draw(Backend*,const Vertex*,uint32_t,const DrawRun*,uint32_t,uint32_t&,std::string&) { return false; }
 bool backend_tone(Backend*,std::string&) { return false; }
 
-bool backend_texture_load(Backend*,const char*,uint64_t,std::string&){return false;}
+bool backend_texture_load(Backend*,const char*,uint64_t,int32_t&,int32_t&,std::string&){return false;}
 void backend_texture_release(Backend*,uint64_t){}

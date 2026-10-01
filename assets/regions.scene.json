@@ -1,0 +1,267 @@
+{
+  "kind": "gal-authored-scene",
+  "version": 2,
+  "id": "c00963e5-df29-444b-bd2b-988b6795a001",
+  "persistentScopeId": "c00963e5-df29-444b-bd2b-988b6795a002",
+  "name": "Texture region contract",
+  "resources": [
+    {
+      "key": "left",
+      "path": "regions.bmp",
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 8,
+        "height": 8
+      }
+    },
+    {
+      "key": "right",
+      "path": "regions.bmp",
+      "region": {
+        "x": 8,
+        "y": 0,
+        "width": 8,
+        "height": 8
+      }
+    },
+    {
+      "key": "red",
+      "path": "regions.bmp",
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "key": "blue",
+      "path": "regions.bmp",
+      "region": {
+        "x": 8,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a010",
+      "name": "Original",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 32,
+        "y": 32,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "left",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a011",
+      "name": "Adjacent",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 192,
+        "y": 32,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "right",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a012",
+      "name": "Flip X",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 352,
+        "y": 32,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "left",
+        "layer": 0,
+        "flipX": true,
+        "flipY": false
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a013",
+      "name": "Flip Y",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 512,
+        "y": 32,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "left",
+        "layer": 0,
+        "flipX": false,
+        "flipY": true
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a014",
+      "name": "Rotate",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 192,
+        "y": 208,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 1.57079632679,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "left",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a015",
+      "name": "Tint",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 256,
+        "y": 208,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 0.5,
+        "g": 0.5,
+        "b": 0.5,
+        "a": 1,
+        "assetKey": "right",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a016",
+      "name": "Red underneath",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 448,
+        "y": 208,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.5,
+        "assetKey": "red",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    },
+    {
+      "id": "c00963e5-df29-444b-bd2b-988b6795a017",
+      "name": "Blue on top",
+      "sceneId": "c00963e5-df29-444b-bd2b-988b6795a001",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 480,
+        "y": 240,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 128,
+        "height": 128,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.5,
+        "assetKey": "blue",
+        "layer": 0,
+        "flipX": false,
+        "flipY": false
+      }
+    }
+  ]
+}

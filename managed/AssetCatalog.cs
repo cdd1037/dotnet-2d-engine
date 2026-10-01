@@ -7,6 +7,7 @@ internal sealed class AssetCatalog
 {
     private static readonly string[] SampleKeys = ["room-a", "room-b", "player", "cell", "status-empty", "status-held", "status-restored"];
     private readonly IReadOnlyDictionary<string, string> _paths;
+    private readonly IReadOnlyDictionary<string, TextureAsset> _textures;
     public AssetRoot Assets { get; }
     public string Root => Assets.DirectoryPath;
     public IReadOnlyDictionary<string, string> Paths => _paths;
@@ -14,18 +15,25 @@ internal sealed class AssetCatalog
     public AssetCatalog(string? root = null) : this(new AssetRoot(root), SampleKeys.ToDictionary(key => key, key => key + ".bmp", StringComparer.Ordinal)) { }
 
     public AssetCatalog(AssetRoot assets, IReadOnlyDictionary<string, string> paths)
+        : this(assets, paths.ToDictionary(pair => pair.Key, pair => new TextureAsset(pair.Value), StringComparer.Ordinal)) { }
+
+    public AssetCatalog(AssetRoot assets, IReadOnlyDictionary<string, TextureAsset> textures)
     {
         ArgumentNullException.ThrowIfNull(assets);
-        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentNullException.ThrowIfNull(textures);
         Assets = assets;
         var copy = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var pair in paths)
+        var regions = new Dictionary<string, TextureAsset>(StringComparer.Ordinal);
+        foreach (var pair in textures)
         {
-            if (string.IsNullOrWhiteSpace(pair.Key)) throw new ArgumentException("Resource key must be nonempty.", nameof(paths));
-            assets.ValidateLogicalPath(pair.Value);
-            copy.Add(pair.Key, pair.Value);
+            if (string.IsNullOrWhiteSpace(pair.Key)) throw new ArgumentException("Resource key must be nonempty.", nameof(textures));
+            ArgumentNullException.ThrowIfNull(pair.Value);
+            assets.ValidateLogicalPath(pair.Value.Path);
+            if (pair.Value.Region is {} region) region.Validate(4096, 4096);
+            copy.Add(pair.Key, pair.Value.Path); regions.Add(pair.Key, pair.Value);
         }
         _paths = new ReadOnlyDictionary<string, string>(copy);
+        _textures = new ReadOnlyDictionary<string, TextureAsset>(regions);
     }
 
     public bool Exists(string key)
@@ -37,6 +45,13 @@ internal sealed class AssetCatalog
 
     public string LogicalPathFor(string key) => _paths.TryGetValue(key, out string? path) ? path
         : throw new AssetException("ASSET_KEY", Root, key, "Unregistered resource key.");
+    public TextureAsset TextureFor(string key) => _textures.TryGetValue(key, out var texture) ? texture
+        : throw new AssetException("ASSET_KEY", Root, key, "Unregistered resource key.");
+    internal void ValidateRegion(string key, BitmapInfo info)
+    {
+        try { TextureFor(key).Region?.Validate(info.Width, info.Height); }
+        catch (ArgumentOutOfRangeException e) { throw new AssetException("ASSET_REGION", Root, key, e.Message, e); }
+    }
     public string PathFor(string key) => Assets.ValidateBitmap(LogicalPathFor(key));
 }
 
@@ -65,6 +80,8 @@ internal sealed class TextureBank : IDisposable
         return _loaded.TryGetValue(key, out var lease) ? lease.Handle : throw new InvalidOperationException($"Texture not synchronized: {key}");
     }
 
+    public TextureBinding ResolveRegion(string key) => new(Resolve(key), _catalog.TextureFor(key).Region);
+
     public void Sync(World world)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -73,13 +90,17 @@ internal sealed class TextureBank : IDisposable
         for (int i = 0; i < entities.Count; i++)
             if (entities[i].IsAlive && entities[i].Sprite?.AssetKey is {} key) _needed.Add(key);
         foreach (string key in _needed)
-            if (!_loaded.ContainsKey(key)) _cache.Validate(_catalog.Assets, _catalog.LogicalPathFor(key));
+            if (!_loaded.ContainsKey(key)) _catalog.ValidateRegion(key, _cache.Validate(_catalog.Assets, _catalog.LogicalPathFor(key)));
         _pending.Clear();
         try
         {
             foreach (string key in _needed)
                 if (!_loaded.ContainsKey(key))
-                    _pending.Add(new(key, _cache.Acquire(_catalog.Assets, _catalog.LogicalPathFor(key))));
+                {
+                    var lease = _cache.Acquire(_catalog.Assets, _catalog.LogicalPathFor(key));
+                    _pending.Add(new(key, lease));
+                    _catalog.ValidateRegion(key, lease.Info);
+                }
         }
         catch
         {

@@ -58,7 +58,7 @@ internal static class ScenePersistence
                 Sprite = entity.Sprite is { } sprite ? SpriteRecord.From(sprite) : null
             });
         }
-        var document = new WorldSaveDocument { Version = FormatVersion, Scenes = scenes, Entities = entities, State = state };
+        var document = new WorldSaveDocument { Version = entities.Any(e => e.Sprite is { FlipX: true } or { FlipY: true }) ? 2 : FormatVersion, Scenes = scenes, Entities = entities, State = state };
         // Validate the same explicit schema and references before saving it.
         ValidateDocument(document, assetExists: null);
         string json = JsonSerializer.Serialize(document, SceneJsonContext.Default.WorldSaveDocument);
@@ -117,7 +117,7 @@ internal static class ScenePersistence
 
     private static void ValidateDocument(WorldSaveDocument document, Func<string, bool>? assetExists)
     {
-        if (document.Version != FormatVersion) throw new SceneFormatException($"Unsupported save version {document.Version}.");
+        if (document.Version is not (1 or 2)) throw new SceneFormatException($"Unsupported save version {document.Version}.");
         if (document.Scenes is null || document.Entities is null || document.Scenes.Count is < 1 or > MaximumScenes
             || document.Entities.Count > MaximumEntities) throw new SceneFormatException("Invalid scene/entity collection or count.");
         var allIds = new HashSet<Guid>();
@@ -151,6 +151,8 @@ internal static class ScenePersistence
                 entity.Sprite?.ToSprite().Validate();
             }
             catch (ArgumentOutOfRangeException error) { throw new SceneFormatException($"Invalid transform/sprite data for entity '{entity.Name}' ({entity.Id}): {error.Message}", error); }
+            if (document.Version == 1 && entity.Sprite is { } oldSprite && (oldSprite.FlipX || oldSprite.FlipY))
+                throw new SceneFormatException("Sprite flips require save version 2.");
             if (entity.Sprite?.AssetKey is { } key && checkedAssets.Add(key) && assetExists is not null && !assetExists(key))
                 throw new SceneFormatException($"Missing sprite asset '{key}'.");
             entities.Add(entity.Id, entity);
@@ -290,9 +292,13 @@ internal sealed class SpriteRecord
     public required float A { get; init; }
     public required string? AssetKey { get; init; }
     public required int Layer { get; init; }
-    internal Sprite2D ToSprite() => new(Width, Height, R, G, B, A, AssetKey, Layer);
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool FlipX { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool FlipY { get; init; }
+    internal Sprite2D ToSprite() => new(Width, Height, R, G, B, A, AssetKey, Layer, FlipX, FlipY);
     internal static SpriteRecord From(Sprite2D value) => new()
-    { Width = value.Width, Height = value.Height, R = value.R, G = value.G, B = value.B, A = value.A, AssetKey = value.AssetKey, Layer = value.Layer };
+    { Width = value.Width, Height = value.Height, R = value.R, G = value.G, B = value.B, A = value.A, AssetKey = value.AssetKey, Layer = value.Layer, FlipX = value.FlipX, FlipY = value.FlipY };
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true,

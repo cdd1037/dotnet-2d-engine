@@ -25,6 +25,13 @@ typedef struct { float x,y,zoom; } gal_camera;
 typedef struct { float x,y,w,h,r,g,b,a; } gal_sprite;
 /* Affine: x_world=m11*x+m21*y+tx; y_world=m12*x+m22*y+ty. Texture0 is builtin. */
 typedef struct { float m11,m12,m21,m22,tx,ty,w,h,r,g,b,a; uint64_t texture; } gal_draw;
+/* Additive draw v2. All-zero source rect selects legacy full texture UVs.
+   Otherwise positive integer texel rectangle must fit its texture. Region endpoints
+   sample texel centers with linear filtering, preventing adjacent atlas bleed.
+   Flips change sampling only, never geometry/pivot/order. Unknown bits rejected. */
+enum { GAL_DRAW_VERSION=2, GAL_FLIP_X=1, GAL_FLIP_Y=2 };
+typedef struct { uint32_t size,version; gal_draw draw; int32_t source_x,source_y,source_w,source_h; uint32_t flags,reserved; } gal_draw_v2;
+typedef struct { uint32_t size; int32_t width,height; uint32_t reserved; } gal_texture_info;
 typedef struct { uint32_t size,quit,keys; float wheel,mouse_x,mouse_y; int32_t width,height; } gal_input;
 enum { GAL_LEFT=1,GAL_RIGHT=2,GAL_UP=4,GAL_DOWN=8,GAL_SPACE=16,GAL_ESCAPE=32,GAL_INTERACT=64,GAL_DROP=128,GAL_TRANSITION=256,GAL_SAVE=512,GAL_LOAD=1024,GAL_FOCUS_LOST=2048 };
 /* Additive input contract v2. Poll exactly one version per tick: both consume events.
@@ -57,6 +64,8 @@ GAL_API int GAL_CALL gal_poll_v2(gal_context*,gal_input_v2*);
 GAL_API int GAL_CALL gal_begin(gal_context*,const gal_camera*);
 GAL_API int GAL_CALL gal_submit(gal_context*,const gal_sprite*,uint32_t);
 GAL_API int GAL_CALL gal_submit_draws(gal_context*,const gal_draw*,uint32_t);
+GAL_API int GAL_CALL gal_submit_draws_v2(gal_context*,const gal_draw_v2*,uint32_t);
+GAL_API int GAL_CALL gal_texture_get_info(gal_context*,uint64_t,gal_texture_info*);
 GAL_API int GAL_CALL gal_texture_load_bmp(gal_context*,const char* utf8_path,uint64_t* texture);
 GAL_API int GAL_CALL gal_texture_release(gal_context*,uint64_t texture);
 GAL_API int GAL_CALL gal_texture_count(gal_context*,uint32_t* count);

@@ -87,7 +87,7 @@ internal readonly record struct Affine2D(double M11, double M12, double M21, dou
 }
 
 internal readonly record struct Sprite2D(float Width, float Height, float R = 1, float G = 1, float B = 1, float A = 1,
-    string? AssetKey = null, int Layer = 0)
+    string? AssetKey = null, int Layer = 0, bool FlipX = false, bool FlipY = false)
 {
     internal void Validate()
     {

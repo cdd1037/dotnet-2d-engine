@@ -3,7 +3,9 @@
 This slice provides a synchronous filesystem-backed resource root and an explicit
 BMP texture lifetime. It is shared by the authored-scene sample, two-room/RELAY
 hosts and the settings/game UI source preflight. No native ABI, JSON schema,
-source-generation strategy or bounded XmlReader profile changed.
+source-generation strategy or bounded XmlReader profile changed in the original resource slice.
+The subsequent [texture-region slice](TEXTURE_REGIONS.md) extends catalog metadata,
+texture dimensions and the authored/draw contracts while retaining these lifetimes.
 
 ## Identity and paths
 
@@ -109,5 +111,6 @@ rollback to the previous usable texture set, subsequent draw and zero final nati
 textures. It is a focused lifetime/integration check, not a pixel-quality, physical
 GPU, latency or cross-platform acceptance test.
 
-Async loading, general asset formats, package files, hot reload, atlas regions,
+[Texture regions](TEXTURE_REGIONS.md) now map multiple IDs to one resident texture.
+Async loading, general asset formats, package files, hot reload, automatic atlas packing,
 GPU eviction and a global resource database remain separate work.

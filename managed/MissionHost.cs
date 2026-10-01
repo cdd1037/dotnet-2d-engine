@@ -11,9 +11,9 @@ internal static unsafe class MissionHost
         using var bank = new TextureBank(engine, catalog);
         using var game = new MissionGame(catalog.Assets.Resolve("relay.mission.json"), catalog);
         using var ui = new GameUiSession(engine);
-        var batch = new SpriteBatch(64) { TextureResolver = bank.Resolve };
+        var batch = new SpriteBatch(64) { RegionResolver = bank.ResolveRegion };
         var camera = new Camera { Zoom = 1 };
-        var draws = new SpriteDraw[128];
+        var draws = new SpriteDrawV2[128];
         int checks = 0;
         uint generation = 0;
         bool canLoad = File.Exists(savePath);
@@ -22,7 +22,7 @@ internal static unsafe class MissionHost
         void Render()
         {
             bank.Sync(game.Room.World); game.Room.World.ExtractSprites(batch);
-            batch.Draws.CopyTo(draws); int count = batch.Count;
+            batch.RegionDraws.CopyTo(draws); int count = batch.Count;
             if (game.Room.RoomIndex == game.Definition.DeliveryRoom)
             {
                 float x = game.Definition.DeliveryX, y = game.Definition.DeliveryY;
@@ -175,6 +175,6 @@ internal static unsafe class MissionHost
         }
         return 0;
     }
-    private static SpriteDraw Disc(float x, float y, float size, float r, float g, float b, float a) => new()
-    { M11 = 1, M22 = 1, X = x, Y = y, Width = size, Height = size, R = r, G = g, B = b, A = a };
+    private static SpriteDrawV2 Disc(float x, float y, float size, float r, float g, float b, float a) => SpriteDrawV2.Create(new SpriteDraw()
+    { M11 = 1, M22 = 1, X = x, Y = y, Width = size, Height = size, R = r, G = g, B = b, A = a });
 }

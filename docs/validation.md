@@ -247,3 +247,36 @@ Local evidence: `evidence/sdl-3.4.16/`. Release SDL shared-library size is
 **4,003,064 bytes** versus **3,566,664** previously, including newly enabled X11
 extensions; this is not a controlled version-only or whole-distribution size claim.
 No dependency archives, compiled libraries, fonts or raw evidence are committed.
+
+## Texture-region milestone — 2026-10-01
+
+Final source adds the backward-compatible v2 draw entry point, decoded texture
+size queries, catalog regions, sprite flips and strict authored/save version rules.
+The [contract and fixture guide](TEXTURE_REGIONS.md) describes sampling and limits.
+
+- Native CTest **4/4**, including C11 `88`-byte draw/`16`-byte info layouts,
+  malformed source bounds/flags/version rejection, mixed old/new draw batching,
+  stale dimensions and no partial append when a later draw is invalid
+- Full JIT and **freshly republished NativeAOT: 8,922 assertions each**, including
+  **28** new region CPU checks; warmed extraction/sync/submit remains zero allocation
+- JIT and AOT each: region graphics **29**, input graphics **28**, resource graphics
+  **27**, mission **49**, combined room/UI **16**; authored atlas scene renders 3 frames
+- Region pixel validator: **29** checks covering neighboring-cell edges, X/Y flips,
+  rotation, tint, stable alpha order, a one-texel source and camera projection after
+  actual offscreen surface resize; rendered fixture was also visually inspected
+- Region JIT/AOT readbacks are identical. All six mission captures match JIT/AOT
+  and the prior SDL 3.4.16 milestone. Existing legacy textured-alpha/order/camera,
+  384×288 resize, texture lifetime and dummy-tone checks remain passing
+
+The original 16×8 BMP fixture is **438 bytes**. Four logical resource IDs share one
+upload, and eight ordered fixture sprites form one texture draw run. The stripped
+Linux x64 AOT test host is **5,048,800 bytes** (aggregate runtime plus tests, excluding
+native libraries/assets/fonts); this is not a whole-distribution size claim.
+The publish uses the same existing .NET 10.0.12 packs/Clang setup and in-process
+ILLink workaround recorded at the input milestone, without downloads.
+
+Evidence and source/output hashes are local under `evidence/regions/`. Graphics
+use offscreen SDL 3.4.16 with Mesa software Vulkan. No new physical GPU, high-DPI,
+displayed resize, audio hardware or platform acceptance is claimed. World clipping,
+frame animation, atlas packing and pixel-perfect/mipmapped filtering remain outside
+this batch. Image codecs and UI preflight restrictions are unchanged.

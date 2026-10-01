@@ -90,6 +90,20 @@ internal sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.End(context), "end");
     }
 
+    public void Draw(in Camera camera, ReadOnlySpan<SpriteDrawV2> draws)
+    {
+        var value = camera; nint context = Context;
+        Native.Check(Native.Begin(context, &value), "begin");
+        try { fixed (SpriteDrawV2* buffer = draws) Native.Check(Native.SubmitDrawsV2(context, buffer, (uint)draws.Length), "submit region draws"); }
+        catch { Native.Abort(context); throw; }
+        Native.Check(Native.End(context), "end");
+    }
+    public TextureInfo GetTextureInfo(ulong handle)
+    {
+        var info = new TextureInfo { Size = (uint)sizeof(TextureInfo) };
+        Native.Check(Native.GetTextureInfo(Context, handle, &info), "texture dimensions"); return info;
+    }
+
     public ulong LoadTexture(string path)
     {
         ulong handle = 0; Native.Check(Native.LoadTexture(Context, path, &handle), "load BMP texture"); return handle;

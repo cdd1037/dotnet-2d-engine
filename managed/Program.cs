@@ -20,6 +20,8 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(args.Contains("--region-self-test",StringComparer.Ordinal)){RegionTests.Run();return 0;}
+            if(args.Contains("--region-graphics-test",StringComparer.Ordinal)){RegionTests.Run(true);return 0;}
             if(args.Contains("--input-self-test",StringComparer.Ordinal)){InputTests.Run();return 0;}
             if(args.Contains("--input-graphics-test",StringComparer.Ordinal)){InputTests.RunGraphics();return 0;}
             if(options.ResourceSelfTest){ResourceTests.Run();return 0;}
@@ -107,7 +109,7 @@ internal static class Program
     {
         var catalog=new AssetCatalog();RoomGame game=options.LoadPath is {} path?RoomGame.LoadFile(path,catalog):new RoomGame();
         using var engine=new EngineHost(options.Headless,4096);using var bank=new TextureBank(engine,catalog);
-        var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
+        var batch=new SpriteBatch(64){RegionResolver = bank.ResolveRegion};var camera=new Camera{Zoom=1};
         var clock=Stopwatch.StartNew();double previous=clock.Elapsed.TotalSeconds;uint previousKeys=0;int frames=0;
         Console.WriteLine($"TWO ROOM | backend={engine.Backend} | room={game.RoomIndex+1} | WASD/arrows move, E pickup, F drop, T door, F5 save, F9 load");
         while(options.Frames==0||frames<options.Frames)
@@ -123,7 +125,7 @@ internal static class Program
             int pickups=game.PickupCount;game.Advance(input.Keys,dt);
             if(game.PickupCount>pickups&&!options.Headless)engine.TryPlayTone(out _);
             if(input.Wheel!=0){var wheel=input;wheel.Keys=0;MoveCamera(ref camera,wheel,0);}
-            previousKeys=input.Keys;bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.Draws);frames++;
+            previousKeys=input.Keys;bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.RegionDraws);frames++;
             if(!options.Headless)Thread.Sleep(1);
         }
         Stats stats=engine.GetStats();bank.Dispose();if(engine.TextureCount!=0)throw new InvalidOperationException("Texture cleanup failed.");
@@ -133,8 +135,8 @@ internal static class Program
     private static int RunRoomScenario(Options options)
     {
         var catalog=new AssetCatalog();using var engine=new EngineHost(options.Headless,4096);using var bank=new TextureBank(engine,catalog);
-        var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
-        void Render(RoomGame game){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.Draws);if(!options.Headless&&engine.TextureCount!=bank.LoadedCount)throw new InvalidOperationException("Native texture registry mismatch.");}
+        var batch=new SpriteBatch(64){RegionResolver = bank.ResolveRegion};var camera=new Camera{Zoom=1};
+        void Render(RoomGame game){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.RegionDraws);if(!options.Headless&&engine.TextureCount!=bank.LoadedCount)throw new InvalidOperationException("Native texture registry mismatch.");}
         RoomGame restored=RoomGameTests.Exercise(new RoomGame(),catalog,Render);restored.SaveFile(options.SavePath);
         RoomGame fresh=RoomGame.LoadFile(options.SavePath,catalog);Render(fresh);
         Stats stats=engine.GetStats();int loads=bank.Loads,releases=bank.Releases;bank.Dispose();if(engine.TextureCount!=0)throw new InvalidOperationException("Resource cleanup failed.");
@@ -180,6 +182,7 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: GameAuthoringLab [--room-demo | --scenario] [--headless] [--frames N] [--save-file PATH] [--load-file PATH] | --validate-save PATH | --self-test | --help");
+        Console.WriteLine("Regions: --region-self-test (CPU) | --region-graphics-test (SDL texture regions/capture)");
         Console.WriteLine("Input: --input-self-test (CPU) | --input-graphics-test (queued SDL/Rml input)");
         Console.WriteLine("Resources: --resource-self-test (CPU only) | --resource-graphics-test (real texture upload/release)");
         Console.WriteLine("Playable mission: --game-demo | --game-scenario [--save-file PATH] | --game-self-test (CPU only)");
@@ -207,7 +210,7 @@ internal static class Program
                     case "--ui-demo":uiDemo=true;break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
-                    case "--input-self-test": case "--input-graphics-test": break;
+                    case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;
                     case "--game-ui-self-test": break;

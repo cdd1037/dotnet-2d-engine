@@ -24,10 +24,10 @@ internal static unsafe class RoomUiProbe
         using var engine=new EngineHost(false,4096);
         using var bank=new TextureBank(engine,new AssetCatalog());
         var game=new RoomGame();var inputGate=new ModalGameInput(game);
-        var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
+        var batch=new SpriteBatch(64){RegionResolver = bank.ResolveRegion};var camera=new Camera{Zoom=1};
         UiSession? ui=null;uint generation=0;int checks=0;
         void Check(bool ok,string label){if(!ok)throw new InvalidOperationException("ROOM UI: "+label);checks++;}
-        void Render(){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.Draws);}
+        void Render(){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.RegionDraws);}
         void Open()
         {
             var candidate=new UiSession(engine);
