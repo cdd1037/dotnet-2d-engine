@@ -5,9 +5,9 @@ cd "$(dirname "$0")/.."
 tier="${1:-quick}"
 focus="${2:-core}"
 case "$tier" in
- quick|jit) case "$focus" in core|scene|ui|game|resources|input|regions|audio|physics|animation|tilemap|bindings) ;; *) echo 'Focus must be core, scene, ui, game, resources, input, regions, audio, physics, animation, tilemap or bindings' >&2; exit 2;; esac;;
+ quick|jit) case "$focus" in core|scene|ui|game|resources|input|regions|audio|physics|animation|tilemap|bindings|clipping) ;; *) echo 'Focus must be core, scene, ui, game, resources, input, regions, audio, physics, animation, tilemap, bindings or clipping' >&2; exit 2;; esac;;
  aot|graphics|ui) ;;
- *) echo 'Usage: scripts/test.sh [quick [core|scene|ui|game|resources|input|regions|audio|physics|animation|tilemap|bindings]|jit|aot|graphics|ui]' >&2; exit 2;;
+ *) echo 'Usage: scripts/test.sh [quick [core|scene|ui|game|resources|input|regions|audio|physics|animation|tilemap|bindings|clipping]|jit|aot|graphics|ui]' >&2; exit 2;;
 esac
 start=$SECONDS
 trap 'code=$?; echo "TEST tier=$tier focus=$focus exit=$code elapsed=$((SECONDS-start))s" >&2' EXIT
@@ -43,6 +43,7 @@ case "$tier" in
     animation) "${app[@]}" --animation-self-test;;
     tilemap) "${app[@]}" --tilemap-self-test;;
     bindings) "${app[@]}" --binding-self-test;;
+    clipping) "${app[@]}" --clip-self-test;;
    esac
   fi
   ;;

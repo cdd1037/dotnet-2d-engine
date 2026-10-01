@@ -93,3 +93,11 @@ checkout, restores a fresh cache from a local-only feed, then verifies normal
 run/build, trimmed JIT and AOT. See [reproduction and measurements](NUGET_PROOF.md).
 Do not rerun the full package matrix for every edit; use it at a packaging/API
 boundary or when a concrete dependency/trim regression warrants it.
+
+## World clipping
+
+Use `scripts/test.sh quick clipping` for the focused managed/native CPU boundary.
+The optional UI graphics build runs `--clip-graphics-test`, followed by
+`scripts/validate-clipping-pixels.py` against `GAL_CLIP_CAPTURE_DIR`. The test records
+actual atlas/alpha/edge/tilemap/UI/resize pixels; the headless tier does not. A fresh
+AOT host can run those same flags at the additive ABI boundary.

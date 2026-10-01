@@ -113,3 +113,7 @@ managed assembly and a Linux x64 native package into a local feed. Independent
 empty, authored-sprite and typed-UI consumers pass ordinary SDK run/build, trimmed
 JIT and NativeAOT. It measures managed trimming separately from the fixed native
 payload; no public feed or stable SDK release is implied.
+
+[World rectangular clipping](docs/WORLD_CLIPPING.md) preserves ordered region
+draws inside explicit framebuffer scissors. Try `--tilemap-clip-demo` or the focused
+`scripts/test.sh quick clipping` tier.

@@ -7,6 +7,7 @@
 #define REQUIRE(x) do { if(!(x)) { std::cerr<<"FAIL line "<<__LINE__<<": "<<#x<<" error="<<gal_last_error()<<'\n'; return 1; } } while(0)
 int main(){
  static_assert(sizeof(gal_config)==24 && sizeof(gal_sprite)==32 && sizeof(gal_input)==32 && sizeof(gal_stats)==20,"ABI sizes");
+ static_assert(sizeof(gal_draw_v2)==88&&sizeof(gal_clip_rect)==32,"additive draw and clip ABI sizes");
  gal_config config{sizeof(config),1,640,480,64,GAL_HEADLESS};
  REQUIRE(gal_abi_version()==1);
  REQUIRE(gal_create(nullptr,nullptr)==-1);
@@ -27,6 +28,12 @@ int main(){
   REQUIRE(gal_submit(c,&sprite,1)==0);REQUIRE(gal_end(c)==0);
   REQUIRE(gal_get_stats(c,&stats)==0);REQUIRE(stats.frames==1 && stats.sprites==1 && stats.draw_calls==0);
   REQUIRE(gal_abort(c)==-1);REQUIRE(gal_begin(c,&camera)==0);REQUIRE(gal_submit(c,&sprite,1)==0);REQUIRE(gal_abort(c)==0);REQUIRE(gal_get_stats(c,&stats)==0);REQUIRE(stats.frames==1);
+  gal_draw_v2 draw{sizeof(draw),GAL_DRAW_VERSION,{1,0,0,1,0,0,10,10,1,1,1,1,0},0,0,0,0,0,0};
+  gal_clip_rect clip{sizeof(clip),GAL_CLIP_VERSION,GAL_CLIP_ENABLED,0,INT32_MIN,INT32_MAX,INT32_MAX,0};
+  REQUIRE(gal_submit_draws_clipped_v1(c,&draw,1,&clip,1)==-1);REQUIRE(gal_begin(c,&camera)==0);
+  REQUIRE(gal_submit_draws_clipped_v1(c,&draw,1,&clip,1)==0);REQUIRE(gal_submit_draws_clipped_v1(c,nullptr,0,nullptr,0)==0);
+  clip.reserved=1;REQUIRE(gal_submit_draws_clipped_v1(c,nullptr,0,&clip,1)==-1);REQUIRE(gal_end(c)==0);
+  REQUIRE(gal_get_stats(c,&stats)==0);REQUIRE(stats.frames==2&&stats.sprites==2&&stats.draw_calls==0);
   REQUIRE(gal_play_tone(c)==-1);REQUIRE(gal_destroy(c)==0);REQUIRE(gal_destroy(c)==-1);
  }
  std::cout<<"PASS native ABI/state/thread/lifecycle contracts (100 recreate cycles)\n";

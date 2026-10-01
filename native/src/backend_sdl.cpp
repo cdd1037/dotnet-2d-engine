@@ -1,6 +1,7 @@
 #include "backend.h"
 #include "shaders_spv.h"
 #include "input_state.h"
+#include "clip_rect.h"
 #include <SDL3/SDL.h>
 #include <cmath>
 #include <algorithm>
@@ -193,7 +194,21 @@ bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,
  }
  if(count){auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTransferBufferLocation src{};src.transfer_buffer=b->transfer;SDL_GPUBufferRegion dst{};dst.buffer=b->vertices;dst.size=count*sizeof(Vertex);SDL_UploadToGPUBuffer(copy,&src,&dst,true);SDL_EndGPUCopyPass(copy);}
  SDL_GPUColorTargetInfo color{};color.texture=capture?b->capture_texture:target;color.clear_color={0.035f,0.045f,0.08f,1};color.load_op=SDL_GPU_LOADOP_CLEAR;color.store_op=SDL_GPU_STOREOP_STORE;
- auto*pass=SDL_BeginGPURenderPass(cmd,&color,1,nullptr);if(count){SDL_BindGPUGraphicsPipeline(pass,b->pipeline);SDL_GPUBufferBinding binding{};binding.buffer=b->vertices;SDL_BindGPUVertexBuffers(pass,0,&binding,1);for(uint32_t i=0;i<run_count;i++){SDL_GPUTexture*texture=b->texture;if(runs[i].texture){for(auto&item:b->textures)if(item.first==runs[i].texture){texture=item.second;break;}}SDL_GPUTextureSamplerBinding sampler{texture,b->sampler};SDL_BindGPUFragmentSamplers(pass,0,&sampler,1);SDL_DrawGPUPrimitives(pass,runs[i].count,1,runs[i].first,0);}}SDL_EndGPURenderPass(pass);
+ uint32_t submitted_runs=0;
+ auto*pass=SDL_BeginGPURenderPass(cmd,&color,1,nullptr);
+ if(count){
+  SDL_BindGPUGraphicsPipeline(pass,b->pipeline);SDL_GPUBufferBinding binding{};binding.buffer=b->vertices;SDL_BindGPUVertexBuffers(pass,0,&binding,1);
+  for(uint32_t i=0;i<run_count;i++){
+   const auto scissor=intersect_clip(runs[i].clip,int32_t(w),int32_t(h));
+   if(!scissor.width||!scissor.height)continue;
+   // Set every run explicitly so old/new submissions never inherit a prior clip.
+   const SDL_Rect rect{scissor.x,scissor.y,scissor.width,scissor.height};SDL_SetGPUScissor(pass,&rect);
+   SDL_GPUTexture*texture=b->texture;if(runs[i].texture){for(auto&item:b->textures)if(item.first==runs[i].texture){texture=item.second;break;}}
+   SDL_GPUTextureSamplerBinding sampler{texture,b->sampler};SDL_BindGPUFragmentSamplers(pass,0,&sampler,1);
+   SDL_DrawGPUPrimitives(pass,runs[i].count,1,runs[i].first,0);++submitted_runs;
+  }
+ }
+ SDL_EndGPURenderPass(pass);
 #ifdef GAL_ENABLE_RMLUI
  if(b->ui&&!ui_render(b->ui,cmd,color.texture,int(w),int(h),e)){SDL_SubmitGPUCommandBuffer(cmd);return false;}
 #endif
@@ -209,7 +224,7 @@ bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,
   SDL_Surface*surface=SDL_CreateSurfaceFrom(int(w),int(h),pixel_format,pixels,int(w*4));
   bool saved=surface&&SDL_SaveBMP(surface,b->capture_path.c_str());if(!saved)error(e);if(surface)SDL_DestroySurface(surface);SDL_UnmapGPUTransferBuffer(b->device,b->readback);if(!saved)return false;b->captured=true;
  }else if(!SDL_SubmitGPUCommandBuffer(cmd))return error(e);
- drawn=count?run_count:0;return true;
+ drawn=submitted_runs;return true;
 }
 bool backend_tone(Backend*b,std::string&e){if(!b->audio){e="audio disabled";return false;}int queued=SDL_GetAudioStreamQueued(b->audio);if(queued<0)return error(e);if(queued>48000*4){e="audio queue limit";return false;}return SDL_PutAudioStreamData(b->audio,b->tone.data(),int(b->tone.size()*sizeof(float)))||error(e);}
 

@@ -119,6 +119,23 @@ public sealed unsafe class EngineHost : IDisposable
         catch { Native.Abort(context); throw; }
         Native.Check(Native.End(context), "end");
     }
+    /// <summary>Draw order is unchanged. Zero clips disables scissor; one broadcasts; otherwise clips match the final draw order.</summary>
+    public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,ReadOnlySpan<FramebufferClip> clips)
+    {
+        if(clips.Length!=0&&clips.Length!=1&&clips.Length!=draws.Length)throw new ArgumentException("Clip count must be zero, one, or match draw count.",nameof(clips));
+        foreach(var clip in clips)clip.Validate();
+        var value=camera;nint context=Context;Native.Check(Native.Begin(context,&value),"begin");
+        try{fixed(SpriteDrawV2* data=draws)fixed(FramebufferClip* scissor=clips)Native.Check(ClippingNative.Submit(context,data,(uint)draws.Length,scissor,(uint)clips.Length),"submit clipped region draws");}
+        catch{Native.Abort(context);throw;}
+        Native.Check(Native.End(context),"end");
+    }
+    public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,in FramebufferClip clip)
+    {
+        clip.Validate();var value=camera;nint context=Context;Native.Check(Native.Begin(context,&value),"begin");
+        try{fixed(SpriteDrawV2* data=draws)fixed(FramebufferClip* scissor=&clip)Native.Check(ClippingNative.Submit(context,data,(uint)draws.Length,scissor,1),"submit clipped region draws");}
+        catch{Native.Abort(context);throw;}
+        Native.Check(Native.End(context),"end");
+    }
     internal TextureInfo GetTextureInfo(ulong handle)
     {
         var info = new TextureInfo { Size = (uint)sizeof(TextureInfo) };

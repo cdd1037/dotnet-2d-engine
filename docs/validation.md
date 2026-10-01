@@ -614,3 +614,30 @@ reactivate later-deferred async/hot-reload/prefab or expanded Godot feature scop
 World rectangular clipping is the next compact renderer batch; the full requested
 Godot/Unity comparison remains a near-completion step rather than a claim that the
 local package proof completes the roadmap.
+
+## World scissor boundary (2026-10-01)
+
+The [world clipping contract](WORLD_CLIPPING.md) adds a 32-byte size/version-tagged
+rectangle and one submit entry point while preserving prior draw ABIs. Native
+validation is atomic, painter order is retained across clip/texture runs, legacy
+calls restore unclipped state and framebuffer intersections use 64-bit endpoints.
+
+- Full JIT and fresh AOT: **10,328 CPU assertions each**, including 35 clip checks
+- Native CTest **5/5**, including new C11 layout/export and mock-run cases
+- JIT/AOT each: **9 graphics assertions + 28 pixel assertions**; all **10 readbacks
+  are byte-identical** across modes
+- Pixel coverage: half-open edges, alpha painter order, rotation/flip/atlas sampling,
+  uniform/per-draw clipping, empty/offscreen regions, legacy reset, TileMap partial
+  tiles, unaffected UI and actual offscreen-window resize
+- Warmed clipped submissions allocate **0 managed bytes across 1,000 calls**
+- Existing JIT region 29/input 28/UI 60 checks pass; AOT UI 60 and clipped TileMap
+  scenario also pass. The extracted runtime/demo project boundary compiles with
+  the SDK's separate per-project artifact layout for this fresh AOT publication
+
+A displayed cloud X11 TileMap check verified camera pan, wheel zoom, resize with
+fixed framebuffer margins and clean exit. No physical GPU/high-DPI claim follows.
+The aggregate stripped AOT test host is **5,771,312 bytes**; combined optional
+UI/audio/physics native library is **4,041,824 bytes** in this Release build. These
+are aggregate files, not a repeated package-size matrix. Evidence is ignored under
+`evidence/clipping/`. Remaining renderer/diagnostic/platform work is recorded in
+the updated [closure audit](ROADMAP_CLOSURE.md).

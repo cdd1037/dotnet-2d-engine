@@ -3,7 +3,7 @@
 #include "gal_ui.h"
 #include <string>
 struct Vertex { float x,y,u,v,r,g,b,a; };
-struct DrawRun { uint64_t texture; uint32_t first,count; };
+struct DrawRun { uint64_t texture; uint32_t first,count; gal_clip_rect clip; };
 struct Backend;
 Backend* backend_create(gal_config&,std::string&);
 void backend_destroy(Backend*);

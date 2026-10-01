@@ -28,10 +28,22 @@ _Static_assert(sizeof(gal_draw)==56, "affine draw");
 _Static_assert(sizeof(gal_draw_v2)==88, "region draw");
 _Static_assert(offsetof(gal_draw_v2,draw)==8, "region affine offset");
 _Static_assert(offsetof(gal_draw_v2,source_x)==64, "region source offset");
+_Static_assert(sizeof(gal_clip_rect)==32, "world scissor");
+_Static_assert(offsetof(gal_clip_rect,flags)==8, "world scissor flags offset");
+_Static_assert(offsetof(gal_clip_rect,x)==16, "world scissor x offset");
+_Static_assert(offsetof(gal_clip_rect,width)==24, "world scissor width offset");
+_Static_assert(offsetof(gal_clip_rect,height)==28, "world scissor height offset");
 _Static_assert(sizeof(gal_texture_info)==16, "texture dimensions");
 _Static_assert(sizeof(gal_input)==32, "input");
 _Static_assert(sizeof(gal_input_v2)==472, "input v2");
 _Static_assert(offsetof(gal_input_v2,keys_down)==80, "input key offset");
 _Static_assert(offsetof(gal_input_v2,consumed)==464, "input consumption offset");
 _Static_assert(sizeof(gal_stats)==20, "stats");
-int main(void){gal_config cfg={sizeof(gal_config),1,64,64,1,GAL_HEADLESS};gal_context* c=0;if(gal_create(&cfg,&c)!=0)return 1;gal_input_v2 input={0};input.size=sizeof(input);input.version=GAL_INPUT_VERSION;if(gal_poll_v2(c,&input)!=0||input.pixel_width!=64)return 2;return gal_destroy(c)!=0;}
+int main(void){
+ gal_config cfg={sizeof(gal_config),1,64,64,1,GAL_HEADLESS};gal_context* c=0;if(gal_create(&cfg,&c)!=0)return 1;
+ gal_input_v2 input={0};input.size=sizeof(input);input.version=GAL_INPUT_VERSION;if(gal_poll_v2(c,&input)!=0||input.pixel_width!=64)return 2;
+ gal_camera camera={0,0,1};gal_clip_rect clip={sizeof(gal_clip_rect),GAL_CLIP_VERSION,GAL_CLIP_ENABLED,0,-1,-1,10,10};
+ gal_draw_v2 draw={0};draw.size=sizeof(draw);draw.version=GAL_DRAW_VERSION;draw.draw.m11=draw.draw.m22=1;draw.draw.w=draw.draw.h=10;draw.draw.r=draw.draw.g=draw.draw.b=draw.draw.a=1;
+ if(gal_begin(c,&camera)!=0||gal_submit_draws_clipped_v1(c,&draw,1,&clip,1)!=0||gal_end(c)!=0)return 3;
+ return gal_destroy(c)!=0;
+}

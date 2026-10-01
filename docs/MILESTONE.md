@@ -192,3 +192,10 @@ code and validates independent local-feed PackageReference consumers. Trimming
 removes unused managed modules; the deliberately full native profile stays intact.
 The measured outputs distinguish app code, native dependencies, assets and .NET
 runtime files. This remains a prerelease Linux x64 proof with no remote publishing.
+
+## World clipping follow-on
+
+[World scissor rectangles](WORLD_CLIPPING.md) now provide explicit framebuffer
+clipping for region draws, including per-draw or broadcast state and safe coordinate
+helpers. Pixel tests distinguish world clipping from tile culling and UI scissor;
+legacy entry points remain unclipped and ordering stays stable.

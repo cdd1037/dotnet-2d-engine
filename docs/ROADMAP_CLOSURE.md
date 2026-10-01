@@ -1,6 +1,6 @@
 # Original roadmap closure audit
 
-Audit of the implemented source through the local package proof, 2026-10-01.
+Audit begun at the local package proof and updated after world clipping, 2026-10-01.
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
@@ -21,19 +21,19 @@ an integration milestone, not completion of the roadmap.
 
 | Area | Current evidence | Smallest useful remaining work |
 | --- | --- | --- |
-| World rectangular clipping | TileMap visibility culling and RmlUi's own scissor exist; `gal.h` has no world clip contract and `DrawRun` keys only by texture | Explicit framebuffer clip rectangles, stable draw order across clip changes, bounds/resize/empty behavior and two consumers |
+| World rectangular clipping | Now implemented and validated separately from culling/UI; see [contract](WORLD_CLIPPING.md) | Hardware/DPI acceptance remains with the platform gates |
 | Materials/shader workflow | One fixed Vulkan/SPIR-V sprite pipeline; built-in GLSL is compiled by `compile_shaders.py`; HLSL is an unwired future path | A bounded material contract using existing standard GLSL and existing tooling, then a separate measured render-target/basic post-process slice |
 | Public render targets/basic post-processing | Diagnostic screenshot capture owns a private offscreen texture | Reusable target ownership and explicit pass use; screenshot internals do not count as this API |
 | Debug drawing/logging/timing | Error strings, module state, cumulative frame/draw/sprite/tone counters and test Stopwatches | Small debug lines/rectangles, structured diagnostics and opt-in CPU frame-stage timing; counts alone are not a profiler |
 | Basic tile movement acceptance | TileMap collision generation, Box2D bodies/queries and a falling-ball fixture work; RoomGame movement is sample logic | A simple tile-based character game fixture exercising the shared physics/input primitives, without inventing a new engine controller framework |
 | Reusable composition/resources | Synchronous BMP cache and flat authored scene loads are repeatable and isolated | Keep current limitations explicit; add only a demonstrated original composition need, with stable IDs and ownership. Async/hot-reload/prefab expansion is deferred |
 
-The next compact batch is **world scissor/clipping**. It should define framebuffer
-coordinates separately from world/camera conversion, preserve transparent ordering,
-validate an entire submitted batch before mutation, and test region sprites plus a
-tilemap/second consumer at resized viewports. No new dependency is required.
+The world scissor batch is now complete at its documented software-validation
+boundary: framebuffer coordinates, window/world conversions, stable run ordering,
+atomic validation, region/tilemap consumers and resized pixel checks are covered.
+The next functional batch can be the bounded diagnostics slice below.
 
-A separate diagnostics batch can follow. Do not combine clipping, timing, material
+A separate diagnostics batch should stay focused. Do not combine clipping, timing, material
 pipelines and render targets into one redesign. Material work should reuse standard
 GLSL and the existing compiler path; no new language or large SDK/compiler install
 is implied by this audit.

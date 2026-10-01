@@ -31,6 +31,13 @@ typedef struct { float m11,m12,m21,m22,tx,ty,w,h,r,g,b,a; uint64_t texture; } ga
    Flips change sampling only, never geometry/pivot/order. Unknown bits rejected. */
 enum { GAL_DRAW_VERSION=2, GAL_FLIP_X=1, GAL_FLIP_Y=2 };
 typedef struct { uint32_t size,version; gal_draw draw; int32_t source_x,source_y,source_w,source_h; uint32_t flags,reserved; } gal_draw_v2;
+/* Additive world scissor v1, in framebuffer pixels with a top-left origin.
+   Enabled extents are nonnegative; zero area clips everything. Coordinates may
+   span int32 and are intersected safely with the acquired framebuffer. Disabled
+   rectangles require all four coordinates/extents to be zero. Unknown bits and
+   nonzero reserved are rejected. Scissors do not affect the clear or UI pass. */
+enum { GAL_CLIP_VERSION=1, GAL_CLIP_ENABLED=1 };
+typedef struct { uint32_t size,version,flags,reserved; int32_t x,y,width,height; } gal_clip_rect;
 typedef struct { uint32_t size; int32_t width,height; uint32_t reserved; } gal_texture_info;
 typedef struct { uint32_t size,quit,keys; float wheel,mouse_x,mouse_y; int32_t width,height; } gal_input;
 enum { GAL_LEFT=1,GAL_RIGHT=2,GAL_UP=4,GAL_DOWN=8,GAL_SPACE=16,GAL_ESCAPE=32,GAL_INTERACT=64,GAL_DROP=128,GAL_TRANSITION=256,GAL_SAVE=512,GAL_LOAD=1024,GAL_FOCUS_LOST=2048 };
@@ -65,6 +72,10 @@ GAL_API int GAL_CALL gal_begin(gal_context*,const gal_camera*);
 GAL_API int GAL_CALL gal_submit(gal_context*,const gal_sprite*,uint32_t);
 GAL_API int GAL_CALL gal_submit_draws(gal_context*,const gal_draw*,uint32_t);
 GAL_API int GAL_CALL gal_submit_draws_v2(gal_context*,const gal_draw_v2*,uint32_t);
+/* clip_count 0: unclipped; 1: broadcast; otherwise must equal draw_count.
+   Validate supplied clips even for zero draws. Every batch is atomic on failure.
+   Legacy submit calls always use an unclipped scissor, including in mixed frames. */
+GAL_API int GAL_CALL gal_submit_draws_clipped_v1(gal_context*,const gal_draw_v2*,uint32_t draw_count,const gal_clip_rect*,uint32_t clip_count);
 GAL_API int GAL_CALL gal_texture_get_info(gal_context*,uint64_t,gal_texture_info*);
 GAL_API int GAL_CALL gal_texture_load_bmp(gal_context*,const char* utf8_path,uint64_t* texture);
 GAL_API int GAL_CALL gal_texture_release(gal_context*,uint64_t texture);

@@ -2,7 +2,7 @@ using System.Diagnostics;
 namespace GameAuthoringLab;
 internal static class TileMapDemo
 {
-    public static int Run(bool headless,int frames,bool scenario,bool withPhysics)
+    public static int Run(bool headless,int frames,bool scenario,bool withPhysics,bool clipped=false)
     {
         if(scenario && frames==0) frames=withPhysics?180:5;
         var source=TileMapAsset.LoadAsset(new AssetRoot(),"basics.tilemap.json");
@@ -16,7 +16,7 @@ internal static class TileMapDemo
         var actions=new InputActionMap(InputBinding.Key(1,PhysicalKey.Left),InputBinding.Key(2,PhysicalKey.Right),InputBinding.Key(4,PhysicalKey.Up),InputBinding.Key(8,PhysicalKey.Down),InputBinding.Key(16,PhysicalKey.T),InputBinding.Key(32,PhysicalKey.E),InputBinding.Key(64,PhysicalKey.Escape));
         string? captures=Environment.GetEnvironmentVariable("GAL_TILEMAP_CAPTURE_DIR"); if(!headless && captures is not null)Directory.CreateDirectory(captures);
         var clock=Stopwatch.StartNew(); double previous=clock.Elapsed.TotalSeconds,accumulator=0; int rendered=0,steps=0;
-        Console.WriteLine($"TILEMAP | {source.Map.Width}x{source.Map.Height} | 16x16 culling chunks | physics={withPhysics} rectangles={(collision is null?0:collision.Rectangles.Length)}");
+        Console.WriteLine($"TILEMAP | {source.Map.Width}x{source.Map.Height} | 16x16 culling chunks | physics={withPhysics} clipped={clipped} rectangles={(collision is null?0:collision.Rectangles.Length)}");
         Console.WriteLine("Arrows: camera | wheel: zoom | T: reset camera | E: reset optional ball | Escape: exit");
         while(frames==0||rendered<frames)
         {
@@ -46,7 +46,8 @@ internal static class TileMapDemo
             {
                 if(!headless&&captures is not null&&(withPhysics?rendered is 0 or 179:rendered<5))
                     Native.Check(UiNative.Capture(engine.NativeContext,Path.GetFullPath(Path.Combine(captures,$"frame-{rendered:D3}.bmp"))),"tilemap capture");
-                engine.Draw(camera,batch.RegionDraws);rendered++;
+                if(clipped)engine.Draw(camera,batch.RegionDraws,new FramebufferClip(64,64,Math.Max(0,input.PixelWidth-128),Math.Max(0,input.PixelHeight-128)));
+                else engine.Draw(camera,batch.RegionDraws);rendered++;
             }
             if(!scenario&&!headless)Thread.Sleep(1);
         }

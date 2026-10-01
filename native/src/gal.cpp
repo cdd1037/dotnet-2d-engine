@@ -27,6 +27,14 @@ static thread_local char error[512]{};
 static int fail(const char* msg) noexcept { std::snprintf(error,sizeof(error),"%s",msg); return -1; }
 static bool valid(gal_context* c) { return c && c==live && c->owner==std::this_thread::get_id(); }
 static bool finite(float v) { return std::isfinite(v); }
+static constexpr gal_clip_rect unclipped{sizeof(gal_clip_rect),GAL_CLIP_VERSION,0,0,0,0,0,0};
+static bool same_clip(const gal_clip_rect&a,const gal_clip_rect&b) {
+ return a.flags==b.flags&&a.x==b.x&&a.y==b.y&&a.width==b.width&&a.height==b.height;
+}
+static void append_run(gal_context*c,uint64_t texture,uint32_t first,uint32_t count,const gal_clip_rect&clip) {
+ if(!c->runs.empty()&&c->runs.back().texture==texture&&same_clip(c->runs.back().clip,clip))c->runs.back().count+=count;
+ else c->runs.push_back({texture,first,count,clip});
+}
 #define ENTRY Guard lock; error[0]=0
 #define CHECK if(!valid(c)) return fail("invalid context or wrong thread")
 extern "C" {
@@ -83,7 +91,7 @@ int GAL_CALL gal_submit(gal_context* c,const gal_sprite* sprites,uint32_t count)
   Vertex a{x,y,0,0,s.r,s.g,s.b,s.a}, b{x+w,y,1,0,s.r,s.g,s.b,s.a}, d{x,y-h,0,1,s.r,s.g,s.b,s.a}, e{x+w,y-h,1,1,s.r,s.g,s.b,s.a};
   for(auto v:{a,b,d,b,e,d}) c->vertices.push_back(v);
  }
- if(count){ if(!c->runs.empty()&&c->runs.back().texture==0)c->runs.back().count+=count*6;else c->runs.push_back({0,c->pending*6,count*6}); }
+ if(count)append_run(c,0,c->pending*6,count*6,unclipped);
  c->pending+=count; return 0;
 }
 int GAL_CALL gal_texture_load_bmp(gal_context* c,const char* path,uint64_t* out) {
@@ -112,11 +120,11 @@ static bool valid_draw(gal_context*c,const gal_draw&d){
  for(int corner=0;corner<4;corner++){double px=(corner&1)?d.w:0,py=(corner&2)?d.h:0;double x=((double(d.m11)*px+double(d.m21)*py+d.tx-c->camera.x)*c->camera.zoom)*2/c->config.width-1;double y=1-((double(d.m12)*px+double(d.m22)*py+d.ty-c->camera.y)*c->camera.zoom)*2/c->config.height;if(!finite(float(x))||!finite(float(y))){fail("affine draw overflow");return false;}}
  return true;
 }
-static void append_draw(gal_context*c,const gal_draw&d,float u0,float v0,float u1,float v1){
+static void append_draw(gal_context*c,const gal_draw&d,float u0,float v0,float u1,float v1,const gal_clip_rect&clip=unclipped){
  uint32_t first=uint32_t(c->vertices.size());Vertex corners[4];
  for(int j=0;j<4;j++){double px=(j&1)?d.w:0,py=(j&2)?d.h:0;float x=float(((double(d.m11)*px+double(d.m21)*py+d.tx-c->camera.x)*c->camera.zoom)*2/c->config.width-1);float y=float(1-((double(d.m12)*px+double(d.m22)*py+d.ty-c->camera.y)*c->camera.zoom)*2/c->config.height);corners[j]={x,y,(j&1)?u1:u0,(j&2)?v1:v0,d.r,d.g,d.b,d.a};}
  for(int j:{0,1,2,1,3,2})c->vertices.push_back(corners[j]);
- if(!c->runs.empty()&&c->runs.back().texture==d.texture)c->runs.back().count+=6;else c->runs.push_back({d.texture,first,6});
+ append_run(c,d.texture,first,6,clip);
 }
 int GAL_CALL gal_submit_draws(gal_context*c,const gal_draw*draws,uint32_t count){
  ENTRY;CHECK;if(!c->frame)return fail("begin required");
@@ -125,9 +133,15 @@ int GAL_CALL gal_submit_draws(gal_context*c,const gal_draw*draws,uint32_t count)
  for(uint32_t i=0;i<count;i++)append_draw(c,draws[i],0,0,1,1);
  c->pending+=count;return 0;
 }
-int GAL_CALL gal_submit_draws_v2(gal_context*c,const gal_draw_v2*draws,uint32_t count){
- ENTRY;CHECK;if(!c->frame)return fail("begin required");
+static int submit_draws_clipped(gal_context*c,const gal_draw_v2*draws,uint32_t count,const gal_clip_rect*clips,uint32_t clip_count){
+ if(!c->frame)return fail("begin required");
  if(count>c->config.max_sprites-c->pending||(count&&!draws))return fail("invalid draws or batch capacity exceeded");
+ if((clip_count&&!clips)||(clip_count>1&&clip_count!=count))return fail("invalid clip array or count");
+ for(uint32_t i=0;i<clip_count;i++){
+  const auto&clip=clips[i];
+  if(clip.size!=sizeof(clip)||clip.version!=GAL_CLIP_VERSION||clip.reserved||(clip.flags&~uint32_t(GAL_CLIP_ENABLED)))return fail("invalid clip size/version/flags/reserved");
+  if(clip.width<0||clip.height<0||(!(clip.flags&GAL_CLIP_ENABLED)&&(clip.x||clip.y||clip.width||clip.height)))return fail("invalid clip rectangle");
+ }
  for(uint32_t i=0;i<count;i++){
   const auto&d=draws[i];if(d.size!=sizeof(d)||d.version!=GAL_DRAW_VERSION||d.reserved||(d.flags&~3u))return fail("invalid draw v2 size/version/flags/reserved");
   if(!valid_draw(c,d.draw))return -1;
@@ -141,9 +155,15 @@ int GAL_CALL gal_submit_draws_v2(gal_context*c,const gal_draw_v2*draws,uint32_t 
   if(d.source_w){auto it=std::find(c->textures.begin(),c->textures.end(),d.draw.texture);u0=(d.source_x+.5f)/it->width;v0=(d.source_y+.5f)/it->height;u1=(d.source_x+d.source_w-.5f)/it->width;v1=(d.source_y+d.source_h-.5f)/it->height;}
   if(d.flags&GAL_FLIP_X)std::swap(u0,u1);
   if(d.flags&GAL_FLIP_Y)std::swap(v0,v1);
-  append_draw(c,d.draw,u0,v0,u1,v1);
+  append_draw(c,d.draw,u0,v0,u1,v1,clip_count?clips[clip_count==1?0:i]:unclipped);
  }
  c->pending+=count;return 0;
+}
+int GAL_CALL gal_submit_draws_v2(gal_context*c,const gal_draw_v2*draws,uint32_t count){
+ ENTRY;CHECK;return submit_draws_clipped(c,draws,count,nullptr,0);
+}
+int GAL_CALL gal_submit_draws_clipped_v1(gal_context*c,const gal_draw_v2*draws,uint32_t count,const gal_clip_rect*clips,uint32_t clip_count){
+ ENTRY;CHECK;return submit_draws_clipped(c,draws,count,clips,clip_count);
 }
 int GAL_CALL gal_end(gal_context* c) {
  ENTRY; CHECK; if(!c->frame) return fail("begin required"); c->frame=false;
