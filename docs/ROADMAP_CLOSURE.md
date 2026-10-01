@@ -1,6 +1,6 @@
 # Original roadmap closure audit
 
-Audit begun at the local package proof and updated after explicit render targets, 2026-10-01.
+Audit begun at the local package proof and updated after tile movement acceptance, 2026-10-01.
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
@@ -25,7 +25,7 @@ an integration milestone, not completion of the roadmap.
 | Materials/shader workflow | Context-owned materials, fixed sprite vertex layout, 32-byte copied fragment parameters, standard GLSL/offline builder, source manifests and stable run keys; see [contract](MATERIALS.md) | Non-Vulkan shader tooling remains a platform gate |
 | Public render targets/basic post-processing | Owned paired RGBA8 targets, bounded explicit passes, transparent alpha resolve, tint/desaturation and final-window UI; see [contract](RENDER_TARGETS.md) | Current basic software Vulkan slice delivered; no HDR, arbitrary formats, render graph or advanced effect claim |
 | Debug drawing/logging/timing | Bounded line/rectangle buffer, typed log FIFO, opt-in explicit CPU frame/phase timing and native draw counters; see [contract](DIAGNOSTICS.md) | Current bounded slice is delivered; no general profiler, GPU timing or editor claim |
-| Basic tile movement acceptance | TileMap collision generation, Box2D bodies/queries and a falling-ball fixture work; RoomGame movement is sample logic | A simple tile-based character game fixture exercising the shared physics/input primitives, without inventing a new engine controller framework |
+| Basic tile movement acceptance | [A controllable game fixture](TILE_MOVEMENT.md) now exercises flat-floor standing, both walls, jump/landing, triggers/queries, fixed-step input boundaries and repeatable restart; scripted and displayed cloud X11 checks pass | Current bounded example delivered; richer character helpers remain deferred |
 | Reusable composition/resources | Synchronous BMP cache and flat authored scene loads are repeatable and isolated | Keep current limitations explicit; add only a demonstrated original composition need, with stable IDs and ownership. Async/hot-reload/prefab expansion is deferred |
 
 The world scissor batch is now complete at its documented software-validation
@@ -35,8 +35,10 @@ The bounded diagnostics slice is also complete at its documented CPU/software
 rendering boundary. Sprite materials now extend that pipeline with bounded
 ownership and offline shader preparation. Explicit paired targets and a basic
 post-process fixture now exercise translucent composition and two-pass tint.
-The remaining original functional acceptance example is simple tile-based
-movement; the platform, IME, UI selection and distribution gates below stay open.
+The simple tile-based movement acceptance example is now delivered. This audit
+identifies no further missing feature in the agreed basic Linux capability slice;
+the platform, IME, UI selection and distribution gates below stay open. This is
+not a declaration that the whole cross-platform roadmap is complete.
 
 Keep material pipelines and render targets in separate, reviewable batches rather
 than one rendering redesign. Material work should reuse standard
@@ -44,6 +46,13 @@ GLSL and the existing compiler path; no new language or large SDK/compiler insta
 is implied by this audit.
 
 ## Acceptance and portability gates
+
+- **Latest distribution proof:** the published measurements in `NUGET_PROOF.md`
+  still describe the earlier runtime split/notice-copy batch. The later clipping,
+  diagnostics, materials and targets require a separate fresh local package
+  build and independent empty/sprite/UI JIT, trimmed and AOT matrix. This can be
+  completed autonomously with the existing toolchain; no new runtime features or
+  remote package publication are needed
 
 - **UI:** a targeted cloud X11 check changed both name and slider, scrolled to the
   bottom, then restored both defaults with one Reset click. A second changed draft
@@ -87,9 +96,12 @@ acceptance remain gated or deferred as previously recorded. Basic post-processin
 is an original renderer item; do not relabel it as deferred advanced effects.
 
 A preliminary Godot/Unity2D inventory is useful now. The requested comprehensive
-**near-completion** comparison should follow explicit delivered/deferred status
-for the remaining core batches and concrete results or named blockers for desktop
-acceptance. It must not turn newly discovered engine gaps into automatic scope.
+**near-completion** comparison is now reasonable after the latest package proof:
+the core batch status is explicit and desktop acceptance gaps have named blockers.
+Read-only comparison and a UI candidate assessment can proceed autonomously;
+permanent UI selection and actual Windows/macOS/IME/hardware acceptance still need
+their respective decision or environment. The comparison must not turn newly
+discovered engine gaps into automatic scope.
 
 ## Evidence pointers
 

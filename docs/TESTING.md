@@ -13,6 +13,7 @@ Every entry point prints elapsed wall time and its exit status.
 | Resource paths/cache edit | `scripts/test.sh quick resources` | Default plus focused CPU resource identity/lifetime/diagnostic checks |
 | Playable mission edit | `scripts/test.sh quick game` | Default plus focused CPU mission lifecycle/save checks |
 | Animation/tween/timer edit | `scripts/test.sh quick animation` | Default plus timing, lifetime, atlas residency and warmed-allocation checks |
+| Tile movement sample edit | `scripts/test.sh quick movement` | Input/clock boundaries; follow with `--movement-physics-test` on the Box2D build and the [rendered scenario](TILE_MOVEMENT.md) when movement changes |
 | TileMap data/culling edit | `scripts/test.sh quick tilemap` | Default plus strict sourcegen data, chunk order/culling, lifetime, CPU collision plans and warmed allocations |
 | Feature batch | `scripts/test.sh jit` | Native contracts, compile, complete JIT self-test |
 | Interop/trimming/serialization/publish change | `AOT_APP=/absolute/path/to/fresh/app scripts/test.sh aot` | Native contracts and full self-test of the explicitly selected NativeAOT binary |

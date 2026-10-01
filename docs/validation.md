@@ -757,3 +757,27 @@ generated text header are tracked; standalone resolve SPIR-V, builds and capture
 remain ignored. Prior sprite shader bytes are unchanged. Basic renderer slices
 are now delivered at the software Vulkan boundary; simple tile movement and the
 named platform/UI/distribution acceptance gates remain in the closure audit.
+
+
+## Tile movement acceptance (2026-10-01)
+
+The [sample-only tile movement fixture](TILE_MOVEMENT.md) closes the original
+flat-floor character example using the existing input, TileMap and Box2D APIs.
+There is no runtime API/ABI change or new serialization context.
+
+- Full JIT: **10,594 assertions**, including **27** clock/input checks; strict
+  native mock/backend/C11/input/text-geometry checks remain passing
+- Real Box2D movement: **62 assertions**, including both walls, jump/landing,
+  sensor enter/exit, filtered queries and 12 complete resource-safe restarts
+- Software Vulkan: **600 rendered frames**, eight pose/state checkpoints and
+  five captures with **30 pixel checks**; final bodies/shapes/retired/textures zero
+- Displayed cloud X11: actual held movement crosses the goal, jump is visible and
+  lands, pause ignores a held movement key, right-wall collision holds, focus loss
+  preserves an airborne pose across more than 30 seconds, focus return/restart
+  recovers floor standing, and Escape closes the game
+
+The existing external font and software Vulkan driver were reused. No new AOT
+publish was run for this game-only batch; the preceding target ABI milestone
+remains the last engine AOT evidence. This does not establish hardware GPU,
+Windows/macOS, real IME or physical audio acceptance. Package measurements are
+stale relative to recent runtime features and need a separate final local proof.

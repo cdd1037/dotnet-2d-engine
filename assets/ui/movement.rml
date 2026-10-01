@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml><head><title>Tile movement acceptance</title><link type="text/rcss" href="movement.rcss" /></head>
+<body><h1>Tile movement</h1><p id="status">Starting</p><p class="controls">A / D or arrows: move | Space: jump | E: pause | T: restart | Escape: quit</p><p class="hint">Yellow player | green goal sensor | solid blue walls and red floor</p></body></rml>

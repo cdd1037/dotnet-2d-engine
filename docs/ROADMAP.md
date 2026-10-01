@@ -134,7 +134,9 @@ resource failure/reload and animation teardown remain predictable.
 
 The earlier AABB/legacy-tone samples remain separate from the now implemented
 bounded Box2D and SDL_mixer foundations. Those modules do not themselves satisfy
-the movement-example and actual-device acceptance below.
+the actual-device acceptance below. The [tile movement fixture](TILE_MOVEMENT.md) now
+passes scripted solver/rendering and displayed cloud X11 controls, including fixed-step
+input boundaries, wall/floor collision, triggers and restart.
 Exit: a tile-based movement example and a different interaction/physics example
 exercise shared APIs, and input/audio work on an actual target device. Resource
 and update ownership must remain explicit across pause, scene changes and restart.
