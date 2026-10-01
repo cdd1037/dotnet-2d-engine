@@ -31,6 +31,20 @@ typedef struct { float m11,m12,m21,m22,tx,ty,w,h,r,g,b,a; uint64_t texture; } ga
    Flips change sampling only, never geometry/pivot/order. Unknown bits rejected. */
 enum { GAL_DRAW_VERSION=2, GAL_FLIP_X=1, GAL_FLIP_Y=2 };
 typedef struct { uint32_t size,version; gal_draw draw; int32_t source_x,source_y,source_w,source_h; uint32_t flags,reserved; } gal_draw_v2;
+/* Trusted, offline-prepared SPIR-V 1.0 fragment shaders only. The caller verifies
+   the fixed sprite interface: main entry point, vec2 UV at location 0, vec4 color
+   at location 1, straight-alpha vec4 output at location 0, one sampler at set 2
+   binding 0, and one 32-byte std140 uniform buffer at set 3 binding 0. This API
+   validates the bounded header, not shader semantics or resource reflection.
+   Material creation/release must occur outside a frame. At most 64 are live;
+   handles belong to their creating context and are invalid after release/destroy.
+   Fragment code is borrowed only during create. Failed create returns handle 0.
+   Headless contexts validate the header and ownership without compiling it. */
+enum { GAL_MATERIAL_VERSION=1, GAL_MATERIAL_DRAW_VERSION=1, GAL_MATERIAL_PARAMETER_BYTES=32, GAL_MATERIAL_CAPACITY=64 };
+typedef struct { uint32_t size,version,fragment_bytes,parameter_bytes; } gal_material_desc;
+/* Parameters are copied per draw; all must be finite. Material 0 selects the
+   existing sprite pipeline and requires all parameters to be zero. */
+typedef struct { uint32_t size,version; gal_draw_v2 sprite; uint64_t material; float parameters[8]; } gal_material_draw_v1;
 /* Additive world scissor v1, in framebuffer pixels with a top-left origin.
    Enabled extents are nonnegative; zero area clips everything. Coordinates may
    span int32 and are intersected safely with the acquired framebuffer. Disabled
@@ -76,6 +90,12 @@ GAL_API int GAL_CALL gal_submit_draws_v2(gal_context*,const gal_draw_v2*,uint32_
    Validate supplied clips even for zero draws. Every batch is atomic on failure.
    Legacy submit calls always use an unclipped scissor, including in mixed frames. */
 GAL_API int GAL_CALL gal_submit_draws_clipped_v1(gal_context*,const gal_draw_v2*,uint32_t draw_count,const gal_clip_rect*,uint32_t clip_count);
+/* Same atomic batch/clip contract as gal_submit_draws_clipped_v1. Existing submit
+   entry points always restore the default material and zero parameters. */
+GAL_API int GAL_CALL gal_submit_material_draws_v1(gal_context*,const gal_material_draw_v1*,uint32_t draw_count,const gal_clip_rect*,uint32_t clip_count);
+GAL_API int GAL_CALL gal_material_create_v1(gal_context*,const gal_material_desc*,const uint8_t* fragment,uint64_t* material);
+GAL_API int GAL_CALL gal_material_release(gal_context*,uint64_t material);
+GAL_API int GAL_CALL gal_material_count(gal_context*,uint32_t* count);
 GAL_API int GAL_CALL gal_texture_get_info(gal_context*,uint64_t,gal_texture_info*);
 GAL_API int GAL_CALL gal_texture_load_bmp(gal_context*,const char* utf8_path,uint64_t* texture);
 GAL_API int GAL_CALL gal_texture_release(gal_context*,uint64_t texture);

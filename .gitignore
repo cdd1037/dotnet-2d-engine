@@ -33,3 +33,6 @@
 *.nupkg
 *.snupkg
 **/__pycache__/
+
+# Offline material shader assets are reproducible from canonical GLSL
+/assets/materials/*.spv

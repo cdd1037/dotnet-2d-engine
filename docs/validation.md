@@ -678,3 +678,38 @@ establish universal UI/input reliability or actual Chinese IME operation.
 CPU duration output includes JIT/capture/presentation within the selected scopes;
 it is not a performance benchmark, GPU timing or end-to-end latency measurement.
 The next original renderer items are described in [the bounded design](RENDERER_NEXT.md).
+
+## Sprite material boundary (2026-10-01)
+
+The [material contract](MATERIALS.md) adds a 16-byte creation descriptor and
+136-byte versioned draw, leaving earlier layouts and entry points unchanged.
+The fixed sprite vertex path uses one sampler and 32 copied fragment parameter
+bytes. Native context ownership is bounded to 64 pipelines with stale-handle,
+thread/frame, all-or-nothing submission and failure cleanup checks.
+
+- Full JIT and fresh AOT each pass **10,526 CPU assertions**, including **41**
+  managed material/source/cache checks; builds report **0 warnings/errors**
+- Native CTest **5/5**, with added C11 layouts/exports, raw validation/lifetime and
+  injected-backend rollback/run-key/copied-parameter/default-restoration cases
+- JIT and AOT each pass **8 graphics assertions + 31 pixel assertions**; all
+  **five readbacks are byte-identical** across modes. Actual pixels cover default,
+  tint, desaturation, parameter changes, alpha order, material scissor, copied
+  constants after submit, legacy pipeline restoration and reacquisition
+- Existing UI native **60** checks pass in both modes. JIT world-scissor regression
+  **9 graphics + 28 pixel** checks pass through the factored default pipeline
+- Warmed material submission allocates **0 managed bytes** across **1,000 calls**
+- **Eight** offline builder tests cover deterministic/relocated source output,
+  ordinary GLSL macro/conditional preprocessing, compiler diagnostics, fixed
+  includes, source/compiled bounds and pre-publication failure retention
+- Review found and corrected missing compiled-size enforcement and missing output
+  copy for extra authored shaders. A third temporary named material's manifest and
+  SPIR-V copied byte-exact through an ordinary build; temporary probe files were
+  cleaned up. No further lifecycle/ABI/binding finding remained
+
+The stripped aggregate AOT host is **5,919,616 bytes** and the combined optional
+native UI/audio/physics library is **4,055,512 bytes** in this Release build.
+These are individual build artifacts, not a new distribution-size matrix. Shader
+SPIR-V and captures remain generated/ignored; source and digest manifests are
+tracked. Runtime hash/profile/header checks are consistency validation of trusted
+shader programs, not semantic reflection or a sandbox. Render targets and basic
+post-processing remain the next separate original-scope batch.

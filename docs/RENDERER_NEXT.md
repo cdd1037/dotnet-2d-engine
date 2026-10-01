@@ -1,11 +1,18 @@
 # Remaining original renderer scope
 
-This is a proposed sequence, not a delivered API or an expansion into advanced
-effects. World scissor, atlas regions and bounded diagnostics are implemented.
-Materials, reusable shader build inputs, public render targets and a basic
-post-process example still remain in the original scope.
+This records the bounded renderer sequence without expanding into advanced
+effects. World scissor, atlas regions, bounded diagnostics and the first material
+batch are implemented. Public render targets and a basic post-process example
+still remain in the original scope.
 
-## Next compact batch: materials and shader assets
+## Delivered batch: materials and shader assets
+
+The design below is now implemented at the documented Linux software Vulkan
+boundary. See [actual material contract and limits](MATERIALS.md): fixed vertex
+layout, one sampler, two copied fragment vectors, 64 owned pipelines, explicit
+source preparation and manifest/hash consistency checks. It does not provide
+SPIR-V reflection or a sandbox. The retained design notes describe this slice;
+they are not a second material implementation request.
 
 Keep `shaders/sprite.vert` / `.frag` as the canonical standard GLSL baseline.
 `scripts/compile_shaders.py` already uses the installed libshaderc offline and

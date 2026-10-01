@@ -17,12 +17,12 @@ struct Backend {
  UiRml* ui=nullptr;
 #endif
  SDL_Window* window=nullptr; SDL_GPUDevice* device=nullptr;
- SDL_GPUShader* vertex_shader=nullptr; SDL_GPUShader* fragment_shader=nullptr;
  SDL_GPUGraphicsPipeline* pipeline=nullptr; SDL_GPUBuffer* vertices=nullptr;
  SDL_GPUTransferBuffer* transfer=nullptr; SDL_GPUTexture* texture=nullptr; SDL_GPUSampler* sampler=nullptr;
  SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false; bool drawable=true; bool minimized=false; int projection_width=0,projection_height=0; InputState input;
  std::vector<float> tone;
  std::vector<std::pair<uint64_t,SDL_GPUTexture*>> textures;
+ std::vector<std::pair<uint64_t,SDL_GPUGraphicsPipeline*>> materials;
  std::string capture_path; bool captured=false; SDL_GPUTexture* capture_texture=nullptr; SDL_GPUTransferBuffer* readback=nullptr;
 };
 static bool error(std::string& e) { e=SDL_GetError(); return false; }
@@ -35,11 +35,10 @@ void backend_destroy(Backend* b) {
  if(b->device) {
   SDL_WaitForGPUIdle(b->device);
   for(auto&item:b->textures)SDL_ReleaseGPUTexture(b->device,item.second);
+  for(auto&item:b->materials)SDL_ReleaseGPUGraphicsPipeline(b->device,item.second);
   if(b->capture_texture) SDL_ReleaseGPUTexture(b->device,b->capture_texture);
   if(b->readback) SDL_ReleaseGPUTransferBuffer(b->device,b->readback);
   if(b->pipeline) SDL_ReleaseGPUGraphicsPipeline(b->device,b->pipeline);
-  if(b->vertex_shader) SDL_ReleaseGPUShader(b->device,b->vertex_shader);
-  if(b->fragment_shader) SDL_ReleaseGPUShader(b->device,b->fragment_shader);
   if(b->vertices) SDL_ReleaseGPUBuffer(b->device,b->vertices);
   if(b->transfer) SDL_ReleaseGPUTransferBuffer(b->device,b->transfer);
   if(b->texture) SDL_ReleaseGPUTexture(b->device,b->texture);
@@ -51,10 +50,34 @@ void backend_destroy(Backend* b) {
  if(b->init_flags) SDL_QuitSubSystem(b->init_flags);
  delete b;
 }
+static SDL_GPUGraphicsPipeline* create_sprite_pipeline(Backend*b,const uint8_t*fragment,uint32_t fragment_bytes,uint32_t uniform_buffers,std::string&e){
+ // The byte-oriented C ABI does not require pointer alignment. SDL/Vulkan receive
+ // an aligned copy for compilation, and all shader objects are released on exit.
+ std::vector<uint32_t> aligned_fragment(fragment_bytes/4);
+ std::memcpy(aligned_fragment.data(),fragment,fragment_bytes);
+ struct Shaders {
+  SDL_GPUDevice* device; SDL_GPUShader* vertex=nullptr; SDL_GPUShader* fragment=nullptr;
+  ~Shaders(){if(fragment)SDL_ReleaseGPUShader(device,fragment);if(vertex)SDL_ReleaseGPUShader(device,vertex);}
+ } shaders{b->device};
+ SDL_GPUShaderCreateInfo si{}; si.code=sprite_vert_spv; si.code_size=sizeof(sprite_vert_spv); si.entrypoint="main"; si.format=SDL_GPU_SHADERFORMAT_SPIRV; si.stage=SDL_GPU_SHADERSTAGE_VERTEX;
+ auto*vs=shaders.vertex=SDL_CreateGPUShader(b->device,&si); if(!vs){error(e);return nullptr;}
+ si.code=reinterpret_cast<const Uint8*>(aligned_fragment.data()); si.code_size=fragment_bytes; si.stage=SDL_GPU_SHADERSTAGE_FRAGMENT; si.num_samplers=1; si.num_uniform_buffers=uniform_buffers;
+ auto*fs=shaders.fragment=SDL_CreateGPUShader(b->device,&si); if(!fs){error(e);return nullptr;}
+ SDL_GPUVertexBufferDescription binding{}; binding.slot=0;binding.pitch=sizeof(Vertex);binding.input_rate=SDL_GPU_VERTEXINPUTRATE_VERTEX;
+ SDL_GPUVertexAttribute attrs[3]{};
+ attrs[0].location=0; attrs[0].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attrs[0].offset=0;
+ attrs[1].location=1; attrs[1].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attrs[1].offset=8;
+ attrs[2].location=2; attrs[2].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; attrs[2].offset=16;
+ SDL_GPUColorTargetDescription color{}; color.format=SDL_GetGPUSwapchainTextureFormat(b->device,b->window);
+ color.blend_state.enable_blend=true; color.blend_state.src_color_blendfactor=SDL_GPU_BLENDFACTOR_SRC_ALPHA; color.blend_state.dst_color_blendfactor=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA; color.blend_state.color_blend_op=SDL_GPU_BLENDOP_ADD;
+ color.blend_state.src_alpha_blendfactor=SDL_GPU_BLENDFACTOR_ONE; color.blend_state.dst_alpha_blendfactor=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA; color.blend_state.alpha_blend_op=SDL_GPU_BLENDOP_ADD;
+ SDL_GPUGraphicsPipelineCreateInfo pi{}; pi.vertex_shader=vs;pi.fragment_shader=fs;pi.vertex_input_state={&binding,1,attrs,3};pi.primitive_type=SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;pi.target_info.color_target_descriptions=&color;pi.target_info.num_color_targets=1;
+ auto*pipeline=SDL_CreateGPUGraphicsPipeline(b->device,&pi);if(!pipeline)error(e);return pipeline;
+}
 Backend* backend_create(gal_config& c,std::string& e) {
  const int runtime=SDL_GetVersion();
  if(runtime<SDL_VERSIONNUM(3,4,16)){e="SDL 3.4.16 or newer required; loaded "+std::to_string(SDL_VERSIONNUM_MAJOR(runtime))+"."+std::to_string(SDL_VERSIONNUM_MINOR(runtime))+"."+std::to_string(SDL_VERSIONNUM_MICRO(runtime));return nullptr;}
- std::unique_ptr<Backend,decltype(&backend_destroy)> ptr(new Backend,&backend_destroy); auto*b=ptr.get(); b->textures.reserve(256);
+ std::unique_ptr<Backend,decltype(&backend_destroy)> ptr(new Backend,&backend_destroy); auto*b=ptr.get(); b->textures.reserve(256); b->materials.reserve(GAL_MATERIAL_CAPACITY);
 #ifdef GAL_ENABLE_RMLUI
  // Match upstream RmlUi's SDL GPU initialization: we render preedit, the OS renders candidates.
  // Preserve an explicit host/environment override; this is an application hint, not an OS setting.
@@ -67,20 +90,7 @@ Backend* backend_create(gal_config& c,std::string& e) {
  // Vulkan is the verified shader format in this slice. D3D12 needs offline DXIL assets before enabling.
  b->device=SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV,true,"vulkan");
  if(!b->device || !SDL_ClaimWindowForGPUDevice(b->device,b->window)) {error(e);return nullptr;} b->claimed=true;
- SDL_GPUShaderCreateInfo si{}; si.code=sprite_vert_spv; si.code_size=sizeof(sprite_vert_spv); si.entrypoint="main"; si.format=SDL_GPU_SHADERFORMAT_SPIRV; si.stage=SDL_GPU_SHADERSTAGE_VERTEX;
- auto*vs=b->vertex_shader=SDL_CreateGPUShader(b->device,&si); if(!vs){error(e);return nullptr;}
- si.code=sprite_frag_spv; si.code_size=sizeof(sprite_frag_spv); si.stage=SDL_GPU_SHADERSTAGE_FRAGMENT; si.num_samplers=1;
- auto*fs=b->fragment_shader=SDL_CreateGPUShader(b->device,&si); if(!fs){error(e);return nullptr;}
- SDL_GPUVertexBufferDescription binding{}; binding.slot=0;binding.pitch=sizeof(Vertex);binding.input_rate=SDL_GPU_VERTEXINPUTRATE_VERTEX;
- SDL_GPUVertexAttribute attrs[3]{};
- attrs[0].location=0; attrs[0].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attrs[0].offset=0;
- attrs[1].location=1; attrs[1].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attrs[1].offset=8;
- attrs[2].location=2; attrs[2].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; attrs[2].offset=16;
- SDL_GPUColorTargetDescription color{}; color.format=SDL_GetGPUSwapchainTextureFormat(b->device,b->window);
- color.blend_state.enable_blend=true; color.blend_state.src_color_blendfactor=SDL_GPU_BLENDFACTOR_SRC_ALPHA; color.blend_state.dst_color_blendfactor=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA; color.blend_state.color_blend_op=SDL_GPU_BLENDOP_ADD;
- color.blend_state.src_alpha_blendfactor=SDL_GPU_BLENDFACTOR_ONE; color.blend_state.dst_alpha_blendfactor=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA; color.blend_state.alpha_blend_op=SDL_GPU_BLENDOP_ADD;
- SDL_GPUGraphicsPipelineCreateInfo pi{}; pi.vertex_shader=vs;pi.fragment_shader=fs;pi.vertex_input_state={&binding,1,attrs,3};pi.primitive_type=SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;pi.target_info.color_target_descriptions=&color;pi.target_info.num_color_targets=1;
- b->pipeline=SDL_CreateGPUGraphicsPipeline(b->device,&pi); if(!b->pipeline)error(e);SDL_ReleaseGPUShader(b->device,vs);b->vertex_shader=nullptr;SDL_ReleaseGPUShader(b->device,fs);b->fragment_shader=nullptr;if(!b->pipeline)return nullptr;
+ b->pipeline=create_sprite_pipeline(b,sprite_frag_spv,sizeof(sprite_frag_spv),0,e);if(!b->pipeline)return nullptr;
  SDL_GPUBufferCreateInfo bi{};bi.usage=SDL_GPU_BUFFERUSAGE_VERTEX;bi.size=c.max_sprites*6*sizeof(Vertex); b->vertices=SDL_CreateGPUBuffer(b->device,&bi);if(!b->vertices){error(e);return nullptr;}
  SDL_GPUTransferBufferCreateInfo ti{};ti.usage=SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;ti.size=bi.size>4096?bi.size:4096;b->transfer=SDL_CreateGPUTransferBuffer(b->device,&ti);if(!b->transfer){error(e);return nullptr;}
  SDL_GPUTextureCreateInfo tex{};tex.type=SDL_GPU_TEXTURETYPE_2D;tex.format=SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;tex.usage=SDL_GPU_TEXTUREUSAGE_SAMPLER;tex.width=32;tex.height=32;tex.layer_count_or_depth=1;tex.num_levels=1;b->texture=SDL_CreateGPUTexture(b->device,&tex);if(!b->texture){error(e);return nullptr;}
@@ -172,6 +182,7 @@ bool backend_poll(Backend*b,gal_input& input,std::string&e){
 bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,uint32_t run_count,uint32_t& drawn,std::string&e){
  drawn=0;
  if(!b->drawable||(SDL_GetWindowFlags(b->window)&SDL_WINDOW_MINIMIZED))return true;
+ for(uint32_t i=0;i<run_count;i++)if(runs[i].material&&std::none_of(b->materials.begin(),b->materials.end(),[&](const auto&item){return item.first==runs[i].material;})){e="missing material pipeline";return false;}
  // Map before acquiring a swapchain texture: acquired command buffers cannot be cancelled.
  if(count){void*m=SDL_MapGPUTransferBuffer(b->device,b->transfer,true);if(!m)return error(e);std::memcpy(m,data,count*sizeof(Vertex));SDL_UnmapGPUTransferBuffer(b->device,b->transfer);}
  auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd)return error(e);
@@ -197,12 +208,16 @@ bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,
  uint32_t submitted_runs=0;
  auto*pass=SDL_BeginGPURenderPass(cmd,&color,1,nullptr);
  if(count){
-  SDL_BindGPUGraphicsPipeline(pass,b->pipeline);SDL_GPUBufferBinding binding{};binding.buffer=b->vertices;SDL_BindGPUVertexBuffers(pass,0,&binding,1);
+  SDL_GPUBufferBinding binding{};binding.buffer=b->vertices;SDL_BindGPUVertexBuffers(pass,0,&binding,1);
   for(uint32_t i=0;i<run_count;i++){
    const auto scissor=intersect_clip(runs[i].clip,int32_t(w),int32_t(h));
    if(!scissor.width||!scissor.height)continue;
    // Set every run explicitly so old/new submissions never inherit a prior clip.
    const SDL_Rect rect{scissor.x,scissor.y,scissor.width,scissor.height};SDL_SetGPUScissor(pass,&rect);
+   auto*pipeline=b->pipeline;
+   if(runs[i].material){for(const auto&item:b->materials)if(item.first==runs[i].material){pipeline=item.second;break;}}
+   SDL_BindGPUGraphicsPipeline(pass,pipeline);
+   if(runs[i].material)SDL_PushGPUFragmentUniformData(cmd,0,runs[i].parameters,sizeof(runs[i].parameters));
    SDL_GPUTexture*texture=b->texture;if(runs[i].texture){for(auto&item:b->textures)if(item.first==runs[i].texture){texture=item.second;break;}}
    SDL_GPUTextureSamplerBinding sampler{texture,b->sampler};SDL_BindGPUFragmentSamplers(pass,0,&sampler,1);
    SDL_DrawGPUPrimitives(pass,runs[i].count,1,runs[i].first,0);++submitted_runs;
@@ -257,6 +272,18 @@ bool backend_texture_load(Backend*b,const char*path,uint64_t id,int32_t&width,in
  bool submitted=SDL_SubmitGPUCommandBuffer(cmd);SDL_ReleaseGPUTransferBuffer(b->device,transfer);if(!submitted){backend_texture_release(b,id);return error(e);}width=surface->w;height=surface->h;return true;
 }
 void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->textures.begin();it!=b->textures.end();++it)if(it->first==id){SDL_ReleaseGPUTexture(b->device,it->second);b->textures.erase(it);return;}}
+
+bool backend_material_create(Backend*b,const uint8_t*fragment,uint32_t bytes,uint64_t id,std::string&e){
+ if(b->materials.size()>=GAL_MATERIAL_CAPACITY){e="material pipeline capacity exhausted";return false;}
+ auto release=[&](SDL_GPUGraphicsPipeline*p){if(p)SDL_ReleaseGPUGraphicsPipeline(b->device,p);};
+ std::unique_ptr<SDL_GPUGraphicsPipeline,decltype(release)> pipeline(create_sprite_pipeline(b,fragment,bytes,1,e),release);
+ if(!pipeline)return false;
+ b->materials.push_back({id,pipeline.get()});pipeline.release();return true;
+}
+void backend_material_release(Backend*b,uint64_t id){
+ if(!b)return;
+ for(auto it=b->materials.begin();it!=b->materials.end();++it)if(it->first==id){SDL_ReleaseGPUGraphicsPipeline(b->device,it->second);b->materials.erase(it);return;}
+}
 
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){

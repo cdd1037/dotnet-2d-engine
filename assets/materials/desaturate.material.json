@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "profile": "sprite-fragment-v1",
+  "fragment": "desaturate.frag.spv",
+  "sha256": "05c461e76f21549ec859fea348e39dde9741649d58e2d0353fbf238ea50ed36f",
+  "parameterBytes": 32
+}

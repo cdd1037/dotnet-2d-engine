@@ -14,6 +14,7 @@
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Native.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Clipping.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Diagnostics.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Materials.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/DebugGeometry.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/InputActions.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/FrameAnimation.cs" />

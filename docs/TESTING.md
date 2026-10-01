@@ -111,3 +111,13 @@ Then run `scripts/validate-diagnostics-pixels.py` on that directory to check sol
 edges, diagonal geometry, unchanged scene interior and disabled/re-enabled output.
 This managed-only slice adds no ABI or serialization roots; it does not require a
 fresh aggregate AOT publication. See [semantics and limits](DIAGNOSTICS.md).
+
+## Materials
+
+Use `scripts/test.sh quick materials` for the source/cache/native-handle boundary,
+and `scripts/test-material-builder.py` for offline GLSL preparation. The existing
+UI graphics build supports `--material-graphics-test`; set
+`GAL_MATERIAL_CAPTURE_DIR` and run `scripts/validate-material-pixels.py` against
+the directory. At this additive ABI/source-generation boundary, run a fresh AOT
+host with the same focused graphics checks and compare readbacks. Headless tests
+do not claim shader compilation or execution. See [contract](MATERIALS.md).

@@ -1,8 +1,15 @@
-# Generated room assets
+# Generated room and material assets
 
 The initial GitHub import omits exactly `assets/room-a.bmp` and
 `assets/room-b.bmp` from historical trees. Each is a 2,073,722-byte generated
 sample image. Other small required BMP and SPIR-V files remain tracked.
+New material SPIR-V files under `assets/materials/` are generated from standard
+GLSL by `python3 scripts/compile-materials.py` and are ignored. This offline step
+uses the already installed libshaderc. The demo build prepares the two missing
+fixture binaries on first build; newly authored materials should be compiled
+explicitly. All prepared material manifests/binaries copy into build/publish
+output. Manifests are tracked; rebuild them together with shader source changes.
+See [material authoring](MATERIALS.md) for profile and trust limits.
 The milestone commit order and all other original file bytes/modes are kept;
 GitHub commit IDs differ from the original local history.
 

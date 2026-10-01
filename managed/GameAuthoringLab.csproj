@@ -17,6 +17,9 @@
   <ItemGroup>
     <Compile Remove="@(EngineRuntimeSource)" />
     <ProjectReference Include="../engine/Dotnet2D.Engine.csproj" />
+    <Content Include="../assets/materials/*.material.json" Link="assets/materials/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../assets/materials/tint.frag.spv;../assets/materials/desaturate.frag.spv" Link="assets/materials/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../assets/materials/*.spv" Exclude="../assets/materials/tint.frag.spv;../assets/materials/desaturate.frag.spv" Link="assets/materials/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/*.tilemap.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/*.physics.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/audio/*.wav;../assets/audio/*.ogg" Link="assets/audio/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -28,5 +31,8 @@
   </ItemGroup>
   <Target Name="PrepareRoomAssets" BeforeTargets="PrepareForBuild" Condition="!Exists('$(MSBuildProjectDirectory)/../assets/room-a.bmp') Or !Exists('$(MSBuildProjectDirectory)/../assets/room-b.bmp')">
     <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../scripts/prepare-room-assets.sh&quot;" />
+  </Target>
+  <Target Name="PrepareMaterialAssets" BeforeTargets="PrepareForBuild" Condition="!Exists('$(MSBuildProjectDirectory)/../assets/materials/tint.frag.spv') Or !Exists('$(MSBuildProjectDirectory)/../assets/materials/desaturate.frag.spv')">
+    <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/../scripts/compile-materials.py&quot;" />
   </Target>
 </Project>

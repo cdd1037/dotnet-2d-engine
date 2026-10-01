@@ -1,6 +1,8 @@
 #include "gal.h"
 #include "backend.h"
 #include "clip_rect.h"
+#include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cmath>
 #include <limits>
@@ -9,11 +11,14 @@
 #include <thread>
 struct Backend{int32_t width,height;};
 static int create_mode=0,draw_mode=0, poll_mode=0,destroyed=0;
+static int material_create_mode=0,material_create_calls=0,material_release_calls=0;
+static std::vector<uint64_t> backend_materials;
+static std::vector<uint8_t> captured_fragment;
 static std::vector<Vertex> captured;
 static std::vector<DrawRun> captured_runs;
 static std::vector<ScissorRect> submitted_scissors;
 Backend* backend_create(gal_config&config,std::string& e){if(create_mode==1){e="injected creation error";return nullptr;}if(create_mode==2)throw std::runtime_error("create");return new Backend{config.width,config.height};}
-void backend_destroy(Backend*b){if(b)++destroyed;delete b;}
+void backend_destroy(Backend*b){if(b){++destroyed;backend_materials.clear();}delete b;}
 const char* backend_name(Backend*){return "mock";}
 bool backend_poll(Backend*,gal_input&i,std::string&e){if(poll_mode==1){e="injected input error";return false;}if(poll_mode==2)throw std::runtime_error("poll");if(poll_mode==3)i.width=200;return true;}
 bool backend_poll_v2(Backend*,gal_input_v2&i,std::string&e){if(poll_mode==1){e="injected input error";return false;}if(poll_mode==2)throw std::runtime_error("poll");if(poll_mode==3)i.pixel_width=200;if(poll_mode==4)i.pixel_width=i.window_width=0;return true;}
@@ -29,7 +34,106 @@ bool backend_draw(Backend*b,const Vertex*v,uint32_t n,const DrawRun*runs,uint32_
  return true;
 }
 bool backend_tone(Backend*,std::string&){throw std::runtime_error("tone");}
+bool backend_material_create(Backend*,const uint8_t*fragment,uint32_t bytes,uint64_t id,std::string&e){
+ ++material_create_calls;backend_materials.push_back(id);captured_fragment.assign(fragment,fragment+bytes);
+ if(material_create_mode==1){e="injected material error after allocation";return false;}
+ if(material_create_mode==2)throw std::runtime_error("material allocation");
+ return true;
+}
+void backend_material_release(Backend*,uint64_t id){++material_release_calls;backend_materials.erase(std::remove(backend_materials.begin(),backend_materials.end(),id),backend_materials.end());}
 #define R(x) do{if(!(x)){std::fprintf(stderr,"FAIL %d %s error=%s\n",__LINE__,#x,gal_last_error());return 1;}}while(0)
+static bool zero_parameters(const DrawRun&run){for(float value:run.parameters)if(value!=0)return false;return true;}
+static int material_contract(gal_context*c,const gal_camera&cam,const gal_draw_v2&region,uint64_t&retained){
+ const std::array<uint8_t,20> fragment={3,2,35,7,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0};
+ gal_material_desc desc{sizeof(desc),GAL_MATERIAL_VERSION,uint32_t(fragment.size()),GAL_MATERIAL_PARAMETER_BYTES};
+ uint64_t first=0,second=0;uint32_t live=99;
+ R(gal_material_create_v1(c,&desc,fragment.data(),&first)==0&&first);R(backend_materials.size()==1&&backend_materials[0]==first);
+ R(captured_fragment.size()==fragment.size()&&std::equal(fragment.begin(),fragment.end(),captured_fragment.begin()));
+ // Failed backend creation can allocate first; both failure paths must release only that candidate.
+ for(int mode=1;mode<=2;mode++){
+  material_create_mode=mode;int prior_releases=material_release_calls;
+  second=UINT64_MAX;R(gal_material_create_v1(c,&desc,fragment.data(),&second)==-1&&second==0);
+  R(material_release_calls==prior_releases+1&&backend_materials.size()==1&&backend_materials[0]==first);
+  R(gal_material_count(c,&live)==0&&live==1);
+ }
+ material_create_mode=0;int prior_creates=material_create_calls;auto malformed=desc;malformed.parameter_bytes=0;
+ R(gal_material_create_v1(c,&malformed,fragment.data(),&second)==-1&&material_create_calls==prior_creates);
+ R(gal_material_create_v1(c,&desc,fragment.data(),&second)==0&&second>first);R(gal_material_count(c,&live)==0&&live==2);
+ gal_material_draw_v1 record{};record.size=sizeof(record);record.version=GAL_MATERIAL_DRAW_VERSION;record.sprite=region;record.material=first;
+ for(uint32_t i=0;i<8;i++)record.parameters[i]=float(i)-2.25f;
+ const gal_clip_rect a{sizeof(a),GAL_CLIP_VERSION,GAL_CLIP_ENABLED,0,10,20,30,40};
+ const gal_clip_rect b{sizeof(b),GAL_CLIP_VERSION,GAL_CLIP_ENABLED,0,40,50,20,10};
+ gal_material_draw_v1 draws[3]={record,record,record};gal_clip_rect clips[3]={a,b,a};
+ R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,draws,2,&a,1)==0);R(gal_submit_material_draws_v1(c,&record,1,&a,1)==0);R(gal_end(c)==0);
+ R(captured.size()==18&&captured_runs.size()==1&&captured_runs[0].first==0&&captured_runs[0].count==18&&captured_runs[0].material==first&&captured_runs[0].texture==region.draw.texture);
+ for(uint32_t i=0;i<8;i++)R(captured_runs[0].parameters[i]==record.parameters[i]);
+ // Each member of the key is significant. Equal nonadjacent runs never reorder or regroup.
+ for(int key=0;key<11;key++){
+  draws[0]=draws[1]=draws[2]=record;
+  if(key==0)draws[1].material=second;
+  else if(key==1){draws[1].sprite.draw.texture=0;draws[1].sprite.source_x=draws[1].sprite.source_y=draws[1].sprite.source_w=draws[1].sprite.source_h=0;}
+  else if(key>=3)draws[1].parameters[key-3]+=1;
+  R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,draws,3,key==2?clips:&a,key==2?3:1)==0);R(gal_end(c)==0);
+  R(captured_runs.size()==3&&captured.size()==18);
+  for(uint32_t i=0;i<3;i++){
+   R(captured_runs[i].first==i*6&&captured_runs[i].count==6&&captured_runs[i].material==draws[i].material&&captured_runs[i].texture==draws[i].sprite.draw.texture);
+   for(uint32_t p=0;p<8;p++)R(captured_runs[i].parameters[p]==draws[i].parameters[p]);
+  }
+  if(key==2)R(captured_runs[0].clip.x==a.x&&captured_runs[1].clip.x==b.x&&captured_runs[2].clip.x==a.x);
+ }
+ // Custom programs may observe signed zero, so the complete parameter bytes form the key.
+ draws[0]=draws[1]=draws[2]=record;for(auto&draw:draws)for(auto&value:draw.parameters)value=0;
+ draws[1].parameters[7]=-0.0f;
+ R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,draws,3,nullptr,0)==0);R(gal_end(c)==0);
+ R(captured_runs.size()==3&&!std::signbit(captured_runs[0].parameters[7])&&std::signbit(captured_runs[1].parameters[7])&&!std::signbit(captured_runs[2].parameters[7]));
+ // Submitted records, uniform bytes and clip records are borrowed only during the call.
+ auto mutable_record=record;auto mutable_clip=a;
+ R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,&mutable_record,1,&mutable_clip,1)==0);
+ mutable_record.parameters[0]=42;mutable_record.sprite.draw.tx+=10;mutable_clip=b;
+ R(gal_submit_material_draws_v1(c,&mutable_record,1,&mutable_clip,1)==0);
+ mutable_record.parameters[0]=-100;mutable_record.material=second;mutable_clip.x=-100;
+ R(gal_end(c)==0);R(captured_runs.size()==2&&captured_runs[0].parameters[0]==record.parameters[0]&&captured_runs[1].parameters[0]==42);
+ R(captured_runs[0].material==first&&captured_runs[1].material==first&&captured_runs[0].clip.x==a.x&&captured_runs[1].clip.x==b.x);
+ R(std::abs(captured[6].x-captured[0].x-.2f)<1e-5f);
+ // All four legacy calls reset the material and every parameter in a mixed frame.
+ for(int legacy=0;legacy<4;legacy++){
+  auto d=record;d.sprite.draw.texture=0;d.sprite.source_x=d.sprite.source_y=d.sprite.source_w=d.sprite.source_h=0;
+  gal_sprite sprite{0,0,10,10,1,1,1,1};const gal_clip_rect*clip=legacy==3?&a:nullptr;uint32_t clip_count=legacy==3?1:0;
+  R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,&d,1,clip,clip_count)==0);
+  R((legacy==0?gal_submit(c,&sprite,1):legacy==1?gal_submit_draws(c,&d.sprite.draw,1):legacy==2?gal_submit_draws_v2(c,&d.sprite,1):gal_submit_draws_clipped_v1(c,&d.sprite,1,&a,1))==0);
+  R(gal_submit_material_draws_v1(c,&d,1,clip,clip_count)==0);R(gal_end(c)==0);
+  R(captured_runs.size()==3&&captured_runs[0].material==first&&captured_runs[1].material==0&&captured_runs[2].material==first&&zero_parameters(captured_runs[1]));
+ }
+ auto builtin=record;builtin.material=0;for(auto&value:builtin.parameters)value=-0.0f;
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_submit_material_draws_v1(c,&builtin,1,nullptr,0)==0);R(gal_submit_draws(c,&region.draw,1)==0);R(gal_end(c)==0);
+ R(captured_runs.size()==1&&captured_runs[0].count==18&&captured_runs[0].material==0&&zero_parameters(captured_runs[0]));
+ for(float value:captured_runs[0].parameters)R(!std::signbit(value));
+ // Invalid late entries cannot alter an existing run or consume the two remaining slots.
+ for(int invalid=0;invalid<16;invalid++){
+  gal_material_draw_v1 candidates[2]={record,record};auto&bad=candidates[1];gal_clip_rect candidate_clips[2]={a,a};
+  switch(invalid){case 0:bad.size--;break;case 1:bad.version++;break;case 2:bad.material=UINT64_MAX;break;case 3:bad.parameters[7]=NAN;break;
+   case 4:bad.material=0;break;case 5:bad.sprite.size--;break;case 6:bad.sprite.draw.texture=UINT64_MAX;break;case 7:bad.sprite.source_x=INT32_MAX;break;
+   case 8:bad.sprite.draw.r=2;break;case 9:bad.sprite.draw.m11=INFINITY;break;case 10:candidate_clips[1].reserved=1;break;case 11:candidate_clips[1].flags=2;break;
+   case 12:candidate_clips[1].width=-1;break;case 13:candidate_clips[1].size--;break;case 14:candidate_clips[1].version++;break;case 15:candidate_clips[1].flags=0;break;}
+  R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,&record,1,&b,1)==0);
+  R(gal_submit_material_draws_v1(c,candidates,2,candidate_clips,2)==-1);
+  candidates[1]=record;R(gal_submit_material_draws_v1(c,candidates,2,&b,1)==0);R(gal_end(c)==0);
+  R(captured.size()==18&&captured_runs.size()==1&&captured_runs[0].count==18&&captured_runs[0].clip.x==b.x&&captured_runs[0].material==first);
+  for(uint32_t p=0;p<8;p++)R(captured_runs[0].parameters[p]==record.parameters[p]);
+ }
+ // Active-frame mutations are rejected without backend calls, and abort clears the material state.
+ prior_creates=material_create_calls;int prior_releases=material_release_calls;
+ R(gal_begin(c,&cam)==0);R(gal_submit_material_draws_v1(c,&record,1,&a,1)==0);
+ uint64_t candidate=0;R(gal_material_create_v1(c,&desc,fragment.data(),&candidate)==-1);R(gal_material_release(c,first)==-1);
+ R(material_create_calls==prior_creates&&material_release_calls==prior_releases);R(gal_abort(c)==0);
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_end(c)==0);R(captured_runs.size()==1&&captured_runs[0].material==0&&zero_parameters(captured_runs[0]));
+ R(gal_material_release(c,first)==0);R(gal_material_release(c,first)==-1);R(gal_material_count(c,&live)==0&&live==1&&backend_materials.size()==1&&backend_materials[0]==second);
+ R(gal_begin(c,&cam)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_submit_material_draws_v1(c,&record,1,nullptr,0)==-1);R(gal_end(c)==0);
+ R(captured.size()==6&&captured_runs.size()==1&&captured_runs[0].material==0);
+ retained=second;
+ std::puts("PASS material backend rollback, adjacent run keys, copied parameters, legacy/default reset and atomic late-entry rejection");
+ return 0;
+}
 static int clip_contract(gal_context*c,const gal_camera&cam,const gal_draw_v2&region){
  const gal_clip_rect off{sizeof(off),GAL_CLIP_VERSION,0,0,0,0,0,0};
  const gal_clip_rect a{sizeof(a),GAL_CLIP_VERSION,GAL_CLIP_ENABLED,0,10,20,30,40};
@@ -145,6 +249,7 @@ int main(){
  R(gal_begin(c,&cam)==0);R(gal_submit_draws(c,&affine,1)==0);R(gal_submit_draws_v2(c,&region,1)==0);R(gal_end(c)==0);
  R(captured.size()==12&&captured[0].u==0&&captured[6].u==.0625f);R(gal_get_stats(c,&stats)==0&&stats.draw_calls==previous_draws+1);
  R(clip_contract(c,cam,region)==0);
+ uint64_t retained_material=0;R(material_contract(c,cam,region,retained_material)==0);
  R(gal_texture_release(c,texture)==0);R(gal_texture_release(c,texture)==-1);R(gal_texture_count(c,&live)==0&&live==0);R(gal_texture_get_info(c,texture,&info)==-1);
  R(gal_begin(c,&cam)==0);R(gal_submit_draws(c,&affine,1)==-1);R(gal_abort(c)==0);
  gal_input_v2 versioned{};versioned.size=sizeof(versioned);versioned.version=GAL_INPUT_VERSION;versioned.quit=77;
@@ -153,7 +258,12 @@ int main(){
  R(gal_begin(c,&cam)==0);R(gal_submit(c,&s,1)==0);R(gal_end(c)==0);R(std::abs(captured[0].x+.9f)<1e-5f);
  poll_mode=4;R(gal_poll_v2(c,&versioned)==0&&!(versioned.flags&GAL_INPUT_DRAWABLE)&&versioned.pixel_width==0);
  R(gal_begin(c,&cam)==0);R(gal_submit(c,&s,1)==0);R(gal_end(c)==0);R(std::abs(captured[0].x+.9f)<1e-5f); // last valid projection survives zero viewport.
- int wrong=0;std::thread t([&]{wrong=gal_destroy(c);});t.join();R(wrong==-1);R(gal_destroy(c)==0&&destroyed==1);R(gal_destroy(c)==-1);
+ int wrong=0;std::thread t([&]{wrong=gal_destroy(c);});t.join();R(wrong==-1);R(gal_destroy(c)==0&&destroyed==1&&backend_materials.empty());R(gal_destroy(c)==-1);
+ // Recreating a backend drops all old materials and does not recycle their handles.
+ R(gal_create(&config,&c)==0);R(gal_material_count(c,&live)==0&&live==0);R(gal_material_release(c,retained_material)==-1);
+ const uint8_t fragment[]={3,2,35,7,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0};gal_material_desc desc{sizeof(desc),GAL_MATERIAL_VERSION,sizeof(fragment),GAL_MATERIAL_PARAMETER_BYTES};uint64_t fresh=0;
+ R(gal_material_create_v1(c,&desc,fragment,&fresh)==0&&fresh>retained_material);R(backend_materials.size()==1&&backend_materials[0]==fresh);
+ R(gal_destroy(c)==0&&destroyed==2&&backend_materials.empty());
  std::puts("PASS injected create/poll/draw/tone failures, state recovery, geometry, overflow, abort stats, skipped draw stats, wrong-thread destroy");
 }
 

@@ -28,6 +28,15 @@ _Static_assert(sizeof(gal_draw)==56, "affine draw");
 _Static_assert(sizeof(gal_draw_v2)==88, "region draw");
 _Static_assert(offsetof(gal_draw_v2,draw)==8, "region affine offset");
 _Static_assert(offsetof(gal_draw_v2,source_x)==64, "region source offset");
+_Static_assert(GAL_MATERIAL_VERSION==1 && GAL_MATERIAL_DRAW_VERSION==1, "material versions");
+_Static_assert(GAL_MATERIAL_PARAMETER_BYTES==32 && GAL_MATERIAL_CAPACITY==64, "material limits");
+_Static_assert(sizeof(gal_material_desc)==16, "material descriptor");
+_Static_assert(offsetof(gal_material_desc,fragment_bytes)==8, "material fragment length offset");
+_Static_assert(offsetof(gal_material_desc,parameter_bytes)==12, "material parameter length offset");
+_Static_assert(sizeof(gal_material_draw_v1)==136, "material draw");
+_Static_assert(offsetof(gal_material_draw_v1,sprite)==8, "material sprite offset");
+_Static_assert(offsetof(gal_material_draw_v1,material)==96, "material handle offset");
+_Static_assert(offsetof(gal_material_draw_v1,parameters)==104, "material parameter offset");
 _Static_assert(sizeof(gal_clip_rect)==32, "world scissor");
 _Static_assert(offsetof(gal_clip_rect,flags)==8, "world scissor flags offset");
 _Static_assert(offsetof(gal_clip_rect,x)==16, "world scissor x offset");
@@ -45,5 +54,11 @@ int main(void){
  gal_camera camera={0,0,1};gal_clip_rect clip={sizeof(gal_clip_rect),GAL_CLIP_VERSION,GAL_CLIP_ENABLED,0,-1,-1,10,10};
  gal_draw_v2 draw={0};draw.size=sizeof(draw);draw.version=GAL_DRAW_VERSION;draw.draw.m11=draw.draw.m22=1;draw.draw.w=draw.draw.h=10;draw.draw.r=draw.draw.g=draw.draw.b=draw.draw.a=1;
  if(gal_begin(c,&camera)!=0||gal_submit_draws_clipped_v1(c,&draw,1,&clip,1)!=0||gal_end(c)!=0)return 3;
+ const uint8_t fragment[]={3,2,35,7,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0};
+ gal_material_desc desc={sizeof(desc),GAL_MATERIAL_VERSION,sizeof(fragment),GAL_MATERIAL_PARAMETER_BYTES};uint64_t material=0;uint32_t live=0;
+ if(gal_material_create_v1(c,&desc,fragment,&material)!=0||!material||gal_material_count(c,&live)!=0||live!=1)return 4;
+ gal_material_draw_v1 custom={0};custom.size=sizeof(custom);custom.version=GAL_MATERIAL_DRAW_VERSION;custom.sprite=draw;custom.material=material;custom.parameters[0]=.5f;custom.parameters[7]=-2;
+ if(gal_begin(c,&camera)!=0||gal_submit_material_draws_v1(c,&custom,1,&clip,1)!=0||gal_end(c)!=0)return 5;
+ if(gal_material_release(c,material)!=0||gal_material_count(c,&live)!=0||live!=0)return 6;
  return gal_destroy(c)!=0;
 }

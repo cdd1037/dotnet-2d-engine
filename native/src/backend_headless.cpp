@@ -9,3 +9,5 @@ bool backend_tone(Backend*,std::string&) { return false; }
 
 bool backend_texture_load(Backend*,const char*,uint64_t,int32_t&,int32_t&,std::string&){return false;}
 void backend_texture_release(Backend*,uint64_t){}
+bool backend_material_create(Backend*,const uint8_t*,uint32_t,uint64_t,std::string&){return false;}
+void backend_material_release(Backend*,uint64_t){}

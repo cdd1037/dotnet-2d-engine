@@ -8,6 +8,7 @@ public sealed unsafe class EngineHost : IDisposable
     public bool Headless { get; }
     public uint MaximumSprites { get; }
     private IEngineOwned? _textures;
+    private IEngineOwned? _materials;
     private IEngineOwned? _audio;
     private IEngineOwned? _physics;
     private IEngineOwned? _ui;
@@ -26,6 +27,7 @@ public sealed unsafe class EngineHost : IDisposable
     }
     internal void AudioClosed(AudioSession session){if(ReferenceEquals(_audio,session))_audio=null;}
     public TextureCache Textures { get { AssertAlive(); return (TextureCache)(_textures ??= new TextureCache(this)); } }
+    public MaterialCache Materials { get { AssertAlive(); return (MaterialCache)(_materials ??= new MaterialCache(this)); } }
     internal void AssertThread()
     {
         if (Environment.CurrentManagedThreadId != _ownerThread)
@@ -131,6 +133,15 @@ public sealed unsafe class EngineHost : IDisposable
         catch{Native.Abort(context);throw;}
         Native.Check(Native.End(context),"end");
     }
+    public void Draw(in Camera camera,ReadOnlySpan<MaterialDraw> draws,ReadOnlySpan<FramebufferClip> clips=default)
+    {
+        if(clips.Length!=0&&clips.Length!=1&&clips.Length!=draws.Length)throw new ArgumentException("Clip count must be zero, one, or match draw count.",nameof(clips));
+        foreach(var clip in clips)clip.Validate();
+        var value=camera;nint context=Context;Native.Check(Native.Begin(context,&value),"begin");
+        try{fixed(MaterialDraw* data=draws)fixed(FramebufferClip* scissor=clips)Native.Check(MaterialNative.Submit(context,data,(uint)draws.Length,scissor,(uint)clips.Length),"submit material draws");}
+        catch{Native.Abort(context);throw;}
+        Native.Check(Native.End(context),"end");
+    }
     /// <summary>Draw order is unchanged. Zero clips disables scissor; one broadcasts; otherwise clips match the final draw order.</summary>
     public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,ReadOnlySpan<FramebufferClip> clips)
     {
@@ -186,6 +197,7 @@ public sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.Destroy(Context), "destroy");
         _context = 0;
         _textures?.EngineDestroyed();
+        _materials?.EngineDestroyed();_materials=null;
         _audio?.EngineDestroyed();_audio=null;
         _physics?.EngineDestroyed();_physics=null;
         _ui?.EngineDestroyed();_ui=null;

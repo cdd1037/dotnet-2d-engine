@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <atomic>
 #include <new>
 #include <thread>
@@ -17,10 +18,11 @@ struct gal_context {
  gal_config config{}; gal_camera camera{}; gal_stats stats{sizeof(gal_stats),0,0,0,0};
  AudioBackend* audio=nullptr; PhysicsBackend* physics=nullptr;
  std::thread::id owner; bool frame=false; uint32_t pending=0; Backend* backend=nullptr;
- std::vector<Vertex> vertices; std::vector<DrawRun> runs; std::vector<TextureInfo> textures;
+ std::vector<Vertex> vertices; std::vector<DrawRun> runs; std::vector<TextureInfo> textures; std::vector<uint64_t> materials;
 };
 static gal_context* live=nullptr;
 static uint64_t next_texture=1;
+static uint64_t next_material=1;
 static std::atomic_flag gate=ATOMIC_FLAG_INIT;
 struct Guard { Guard() noexcept { while(gate.test_and_set(std::memory_order_acquire)) std::this_thread::yield(); } ~Guard() noexcept { gate.clear(std::memory_order_release); } };
 static thread_local char error[512]{};
@@ -28,13 +30,15 @@ static int fail(const char* msg) noexcept { std::snprintf(error,sizeof(error),"%
 static bool valid(gal_context* c) { return c && c==live && c->owner==std::this_thread::get_id(); }
 static bool finite(float v) { return std::isfinite(v); }
 static constexpr gal_clip_rect unclipped{sizeof(gal_clip_rect),GAL_CLIP_VERSION,0,0,0,0,0,0};
+static constexpr float default_parameters[8]{};
 static bool same_clip(const gal_clip_rect&a,const gal_clip_rect&b) {
  return a.flags==b.flags&&a.x==b.x&&a.y==b.y&&a.width==b.width&&a.height==b.height;
 }
-static void append_run(gal_context*c,uint64_t texture,uint32_t first,uint32_t count,const gal_clip_rect&clip) {
- if(!c->runs.empty()&&c->runs.back().texture==texture&&same_clip(c->runs.back().clip,clip))c->runs.back().count+=count;
- else c->runs.push_back({texture,first,count,clip});
+static void append_run(gal_context*c,uint64_t texture,uint32_t first,uint32_t count,const gal_clip_rect&clip,uint64_t material=0,const float*parameters=default_parameters) {
+ if(!c->runs.empty()&&c->runs.back().texture==texture&&c->runs.back().material==material&&same_clip(c->runs.back().clip,clip)&&std::memcmp(c->runs.back().parameters,parameters,sizeof(default_parameters))==0)c->runs.back().count+=count;
+ else { DrawRun run{texture,first,count,clip,material,{}};std::memcpy(run.parameters,parameters,sizeof(run.parameters));c->runs.push_back(run); }
 }
+static void discard_material(Backend*backend,uint64_t id) noexcept { if(backend)try{backend_material_release(backend,id);}catch(...){} }
 #define ENTRY Guard lock; error[0]=0
 #define CHECK if(!valid(c)) return fail("invalid context or wrong thread")
 extern "C" {
@@ -47,7 +51,7 @@ int GAL_CALL gal_create(const gal_config* cfg, gal_context** out) {
  if(live) return fail("only one context may be live");
  gal_context* c=nullptr;
  try {
-  c=new gal_context; c->config=*cfg; c->owner=std::this_thread::get_id(); c->vertices.reserve(size_t(cfg->max_sprites)*6); c->runs.reserve(cfg->max_sprites); c->textures.reserve(256);
+  c=new gal_context; c->config=*cfg; c->owner=std::this_thread::get_id(); c->vertices.reserve(size_t(cfg->max_sprites)*6); c->runs.reserve(cfg->max_sprites); c->textures.reserve(256); c->materials.reserve(GAL_MATERIAL_CAPACITY);
   if(!(cfg->flags&GAL_HEADLESS)) { std::string why; c->backend=backend_create(c->config,why); if(!c->backend) { delete c; return fail(why.c_str()); } }
   live=c; *out=c; return 0;
  } catch(...) { if(c) { backend_destroy(c->backend); delete c; } return fail("allocation or backend exception"); }
@@ -113,6 +117,27 @@ int GAL_CALL gal_texture_get_info(gal_context*c,uint64_t id,gal_texture_info*inf
  auto it=std::find(c->textures.begin(),c->textures.end(),id);if(it==c->textures.end())return fail("stale or foreign texture handle");
  *info={sizeof(*info),it->width,it->height,0};return 0;
 }
+int GAL_CALL gal_material_create_v1(gal_context*c,const gal_material_desc*desc,const uint8_t*fragment,uint64_t*out){
+ ENTRY;if(out)*out=0;CHECK;
+ if(c->frame)return fail("cannot create material during a frame");
+ if(!out||!desc||!fragment||desc->size!=sizeof(*desc)||desc->version!=GAL_MATERIAL_VERSION||desc->parameter_bytes!=GAL_MATERIAL_PARAMETER_BYTES)return fail("invalid material descriptor or pointers");
+ if(desc->fragment_bytes<20||desc->fragment_bytes>256*1024||(desc->fragment_bytes&3u))return fail("material SPIR-V byte length must be 20..262144 and divisible by four");
+ // Read the bounded header without requiring the borrowed byte pointer to be aligned.
+ auto word=[&](uint32_t offset){return uint32_t(fragment[offset])|(uint32_t(fragment[offset+1])<<8)|(uint32_t(fragment[offset+2])<<16)|(uint32_t(fragment[offset+3])<<24);};
+ if(word(0)!=0x07230203u||word(4)!=0x00010000u||word(12)==0||word(12)>0x003fffffu||word(16)!=0)return fail("invalid SPIR-V 1.0 material header");
+ if(c->materials.size()>=GAL_MATERIAL_CAPACITY||next_material==0)return fail("material capacity exhausted");
+ const uint64_t id=next_material++;
+ try{
+  if(c->backend){std::string why;if(!backend_material_create(c->backend,fragment,desc->fragment_bytes,id,why)){discard_material(c->backend,id);return fail(why.c_str());}}
+  c->materials.push_back(id);*out=id;return 0;
+ }catch(...){discard_material(c->backend,id);return fail("material allocation or backend exception");}
+}
+int GAL_CALL gal_material_release(gal_context*c,uint64_t id){
+ ENTRY;CHECK;if(c->frame)return fail("cannot release material during a frame");
+ auto it=std::find(c->materials.begin(),c->materials.end(),id);if(it==c->materials.end())return fail("stale or foreign material handle");
+ try{if(c->backend)backend_material_release(c->backend,id);c->materials.erase(it);return 0;}catch(...){return fail("material release backend exception");}
+}
+int GAL_CALL gal_material_count(gal_context*c,uint32_t*count){ENTRY;CHECK;if(!count)return fail("null material count");*count=uint32_t(c->materials.size());return 0;}
 static bool valid_draw(gal_context*c,const gal_draw&d){
  const float values[]={d.m11,d.m12,d.m21,d.m22,d.tx,d.ty,d.w,d.h,d.r,d.g,d.b,d.a};for(float v:values)if(!finite(v)){fail("nonfinite affine draw");return false;}
  if(d.w<0||d.h<0||d.r<0||d.r>1||d.g<0||d.g>1||d.b<0||d.b>1||d.a<0||d.a>1){fail("invalid draw extents or color");return false;}
@@ -120,11 +145,11 @@ static bool valid_draw(gal_context*c,const gal_draw&d){
  for(int corner=0;corner<4;corner++){double px=(corner&1)?d.w:0,py=(corner&2)?d.h:0;double x=((double(d.m11)*px+double(d.m21)*py+d.tx-c->camera.x)*c->camera.zoom)*2/c->config.width-1;double y=1-((double(d.m12)*px+double(d.m22)*py+d.ty-c->camera.y)*c->camera.zoom)*2/c->config.height;if(!finite(float(x))||!finite(float(y))){fail("affine draw overflow");return false;}}
  return true;
 }
-static void append_draw(gal_context*c,const gal_draw&d,float u0,float v0,float u1,float v1,const gal_clip_rect&clip=unclipped){
+static void append_draw(gal_context*c,const gal_draw&d,float u0,float v0,float u1,float v1,const gal_clip_rect&clip=unclipped,uint64_t material=0,const float*parameters=default_parameters){
  uint32_t first=uint32_t(c->vertices.size());Vertex corners[4];
  for(int j=0;j<4;j++){double px=(j&1)?d.w:0,py=(j&2)?d.h:0;float x=float(((double(d.m11)*px+double(d.m21)*py+d.tx-c->camera.x)*c->camera.zoom)*2/c->config.width-1);float y=float(1-((double(d.m12)*px+double(d.m22)*py+d.ty-c->camera.y)*c->camera.zoom)*2/c->config.height);corners[j]={x,y,(j&1)?u1:u0,(j&2)?v1:v0,d.r,d.g,d.b,d.a};}
  for(int j:{0,1,2,1,3,2})c->vertices.push_back(corners[j]);
- append_run(c,d.texture,first,6,clip);
+ append_run(c,d.texture,first,6,clip,material,parameters);
 }
 int GAL_CALL gal_submit_draws(gal_context*c,const gal_draw*draws,uint32_t count){
  ENTRY;CHECK;if(!c->frame)return fail("begin required");
@@ -133,30 +158,37 @@ int GAL_CALL gal_submit_draws(gal_context*c,const gal_draw*draws,uint32_t count)
  for(uint32_t i=0;i<count;i++)append_draw(c,draws[i],0,0,1,1);
  c->pending+=count;return 0;
 }
-static int submit_draws_clipped(gal_context*c,const gal_draw_v2*draws,uint32_t count,const gal_clip_rect*clips,uint32_t clip_count){
- if(!c->frame)return fail("begin required");
- if(count>c->config.max_sprites-c->pending||(count&&!draws))return fail("invalid draws or batch capacity exceeded");
+static int validate_clips(const gal_clip_rect*clips,uint32_t clip_count,uint32_t count){
  if((clip_count&&!clips)||(clip_count>1&&clip_count!=count))return fail("invalid clip array or count");
  for(uint32_t i=0;i<clip_count;i++){
   const auto&clip=clips[i];
   if(clip.size!=sizeof(clip)||clip.version!=GAL_CLIP_VERSION||clip.reserved||(clip.flags&~uint32_t(GAL_CLIP_ENABLED)))return fail("invalid clip size/version/flags/reserved");
   if(clip.width<0||clip.height<0||(!(clip.flags&GAL_CLIP_ENABLED)&&(clip.x||clip.y||clip.width||clip.height)))return fail("invalid clip rectangle");
  }
- for(uint32_t i=0;i<count;i++){
-  const auto&d=draws[i];if(d.size!=sizeof(d)||d.version!=GAL_DRAW_VERSION||d.reserved||(d.flags&~3u))return fail("invalid draw v2 size/version/flags/reserved");
-  if(!valid_draw(c,d.draw))return -1;
-  if(d.source_x||d.source_y||d.source_w||d.source_h){
-   auto it=std::find(c->textures.begin(),c->textures.end(),d.draw.texture);
-   if(it==c->textures.end()||d.source_x<0||d.source_y<0||d.source_w<1||d.source_h<1||int64_t(d.source_x)+d.source_w>it->width||int64_t(d.source_y)+d.source_h>it->height)return fail("source rectangle outside texture");
-  }
+ return 0;
+}
+static int validate_draw_v2(gal_context*c,const gal_draw_v2&d){
+ if(d.size!=sizeof(d)||d.version!=GAL_DRAW_VERSION||d.reserved||(d.flags&~3u))return fail("invalid draw v2 size/version/flags/reserved");
+ if(!valid_draw(c,d.draw))return -1;
+ if(d.source_x||d.source_y||d.source_w||d.source_h){
+  auto it=std::find(c->textures.begin(),c->textures.end(),d.draw.texture);
+  if(it==c->textures.end()||d.source_x<0||d.source_y<0||d.source_w<1||d.source_h<1||int64_t(d.source_x)+d.source_w>it->width||int64_t(d.source_y)+d.source_h>it->height)return fail("source rectangle outside texture");
  }
- for(uint32_t i=0;i<count;i++){
-  const auto&d=draws[i];float u0=0,v0=0,u1=1,v1=1;
-  if(d.source_w){auto it=std::find(c->textures.begin(),c->textures.end(),d.draw.texture);u0=(d.source_x+.5f)/it->width;v0=(d.source_y+.5f)/it->height;u1=(d.source_x+d.source_w-.5f)/it->width;v1=(d.source_y+d.source_h-.5f)/it->height;}
-  if(d.flags&GAL_FLIP_X)std::swap(u0,u1);
-  if(d.flags&GAL_FLIP_Y)std::swap(v0,v1);
-  append_draw(c,d.draw,u0,v0,u1,v1,clip_count?clips[clip_count==1?0:i]:unclipped);
- }
+ return 0;
+}
+static void append_draw_v2(gal_context*c,const gal_draw_v2&d,const gal_clip_rect&clip,uint64_t material=0,const float*parameters=default_parameters){
+ float u0=0,v0=0,u1=1,v1=1;
+ if(d.source_w){auto it=std::find(c->textures.begin(),c->textures.end(),d.draw.texture);u0=(d.source_x+.5f)/it->width;v0=(d.source_y+.5f)/it->height;u1=(d.source_x+d.source_w-.5f)/it->width;v1=(d.source_y+d.source_h-.5f)/it->height;}
+ if(d.flags&GAL_FLIP_X)std::swap(u0,u1);
+ if(d.flags&GAL_FLIP_Y)std::swap(v0,v1);
+ append_draw(c,d.draw,u0,v0,u1,v1,clip,material,parameters);
+}
+static int submit_draws_clipped(gal_context*c,const gal_draw_v2*draws,uint32_t count,const gal_clip_rect*clips,uint32_t clip_count){
+ if(!c->frame)return fail("begin required");
+ if(count>c->config.max_sprites-c->pending||(count&&!draws))return fail("invalid draws or batch capacity exceeded");
+ if(validate_clips(clips,clip_count,count))return -1;
+ for(uint32_t i=0;i<count;i++)if(validate_draw_v2(c,draws[i]))return -1;
+ for(uint32_t i=0;i<count;i++)append_draw_v2(c,draws[i],clip_count?clips[clip_count==1?0:i]:unclipped);
  c->pending+=count;return 0;
 }
 int GAL_CALL gal_submit_draws_v2(gal_context*c,const gal_draw_v2*draws,uint32_t count){
@@ -164,6 +196,24 @@ int GAL_CALL gal_submit_draws_v2(gal_context*c,const gal_draw_v2*draws,uint32_t 
 }
 int GAL_CALL gal_submit_draws_clipped_v1(gal_context*c,const gal_draw_v2*draws,uint32_t count,const gal_clip_rect*clips,uint32_t clip_count){
  ENTRY;CHECK;return submit_draws_clipped(c,draws,count,clips,clip_count);
+}
+int GAL_CALL gal_submit_material_draws_v1(gal_context*c,const gal_material_draw_v1*draws,uint32_t count,const gal_clip_rect*clips,uint32_t clip_count){
+ ENTRY;CHECK;if(!c->frame)return fail("begin required");
+ if(count>c->config.max_sprites-c->pending||(count&&!draws))return fail("invalid material draws or batch capacity exceeded");
+ if(validate_clips(clips,clip_count,count))return -1;
+ for(uint32_t i=0;i<count;i++){
+  const auto&d=draws[i];
+  if(d.size!=sizeof(d)||d.version!=GAL_MATERIAL_DRAW_VERSION)return fail("invalid material draw size/version");
+  if(validate_draw_v2(c,d.sprite))return -1;
+  if(d.material&&std::find(c->materials.begin(),c->materials.end(),d.material)==c->materials.end())return fail("stale or foreign material handle");
+  for(float parameter:d.parameters)if(!finite(parameter)||(!d.material&&parameter!=0))return fail("invalid material parameters");
+ }
+ // Capacity was reserved at context creation. Each sprite contributes at most one
+ // run, so validated appends cannot allocate or fail partway through this batch.
+ for(uint32_t i=0;i<count;i++){
+  const auto&d=draws[i];append_draw_v2(c,d.sprite,clip_count?clips[clip_count==1?0:i]:unclipped,d.material,d.material?d.parameters:default_parameters);
+ }
+ c->pending+=count;return 0;
 }
 int GAL_CALL gal_end(gal_context* c) {
  ENTRY; CHECK; if(!c->frame) return fail("begin required"); c->frame=false;
