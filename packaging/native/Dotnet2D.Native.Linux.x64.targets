@@ -1,0 +1,8 @@
+<Project>
+  <!-- Native assets are selected by NuGet; their complete legal notices travel with the app. -->
+  <Target Name="CollectDotnet2DNativeNotices" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <Content Include="$(MSBuildThisFileDirectory)../LICENSE.txt" Link="licenses/Dotnet2D.Native.Linux.x64/LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+</Project>

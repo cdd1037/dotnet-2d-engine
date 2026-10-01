@@ -1,14 +1,16 @@
 # .NET 2D Engine — foundation milestone
 
-Status: experimental independent engine, not a production release. The proposed
-repository name is `dotnet-2d-engine`. Source directories, `GameAuthoringLab`
+Status: experimental independent engine, not a production release. The repository
+name is `dotnet-2d-engine`. Source directories, `GameAuthoringLab`
 managed names and the `gal` native ABI remain unchanged to avoid a disruptive
 rename during integration.
 
 ## What is here
 
-- `managed/`: .NET 10 executable, ordinary-object World, components, authored
-  scene loading, gameplay, persistence, UI preflight and regression tests
+- `engine/`: reusable .NET 10 runtime project and explicit linked source list
+- `managed/`: runtime source files plus the separate demo/test executable, gameplay
+  and game progress persistence
+- `packaging/`: independent PackageReference fixtures and native package preparation
 - `native/`: C++17 platform/rendering implementation and a narrow versioned C ABI
 - `assets/`: generated BMP sample art, authored JSON scene and optional RML/RCSS UI
 - `shaders/`: standard shader sources and offline-compiled SPIR-V
@@ -59,14 +61,17 @@ No existing package archive is replaced by this source milestone.
   Windows/D3D12 and macOS/Metal are not validated
 - Displayed-window UI was tried, but the first Reset after scrolling occasionally
   missed; real IME, accessibility and target-device input still require validation
-- Mobile and Web are deferred; no editor or general physics system is delivered
+- Mobile, Web and editor are deferred; the bounded Box2D core is implemented,
+  while richer controllers and specialized physics/gameplay systems are not
 - UI selection and deployment footprint remain open; full Chinese font packaging
   must be decided separately
 - Revisit native-layer validation and platform coverage after the engine model
   stabilizes
 
-This milestone is local Git history only. Remote creation, upload, release
-packaging and repository publication are separate actions.
+The source milestones and local package proof remain experimental. They do not
+establish a public package release or additional platform support. See the
+[current closure audit](ROADMAP_CLOSURE.md) before treating any historical
+follow-on section below as an outstanding task.
 
 ## Proportionate test policy
 

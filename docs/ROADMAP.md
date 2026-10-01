@@ -105,8 +105,10 @@ roadmap, not a dependency selection or instruction to implement everything immed
 
 ### A. Resources, scenes, rendering and animation
 
-- General resource cache and explicit lifetime, asynchronous loading and scene
-  transitions; reusable entity compositions with stable identity
+- General resource cache and explicit lifetime, scene transitions and reusable
+  entity compositions with stable identity. Async loading, hot reload and prefab
+  overrides were explicitly deferred in the later scope decision; this older
+  capability list does not reactivate them.
 - Sprite atlases, UV regions, cameras, clipping and stable draw order; materials,
   standard shader authoring/build workflow, render targets and basic post-processing
 - Sprite-frame animation and tweening, with explicit update/pause/lifetime rules
@@ -126,7 +128,9 @@ resource failure/reload and animation teardown remain predictable.
 - Real sound effects and streamed music, voice lifetime and volume groups
 - Reusable timers, save integration, debug drawing, logging and basic profiling
 
-The current AABB sample and dummy audio are not full physics/audio systems.
+The earlier AABB/legacy-tone samples remain separate from the now implemented
+bounded Box2D and SDL_mixer foundations. Those modules do not themselves satisfy
+the movement-example and actual-device acceptance below.
 Exit: a tile-based movement example and a different interaction/physics example
 exercise shared APIs, and input/audio work on an actual target device. Resource
 and update ownership must remain explicit across pause, scene changes and restart.
@@ -161,28 +165,21 @@ to avoid designing the entire engine around one game.
 - No full ECS, generic physics framework or editor expansion without a concrete
   need demonstrated by representative game examples
 
-## Local NuGet packaging proof (authorized evaluation)
+## Local NuGet packaging proof
 
-The [local-feed proof](NUGET_PROOF.md) now separates the managed runtime from
-the demo/test host and validates independent empty/sprite/UI consumers in three
-runtime modes. It uses ordinary NuGet + MSBuild, not a custom full SDK. The
-remaining packaging acceptance targets are: Separate
-managed API from the aggregate tests/host and package the existing Linux RID native
-payload. An independent sample should restore from the local feed, `dotnet run`,
-and publish/run in JIT and NativeAOT modes with correct native dependencies, assets,
-licenses and missing-file diagnostics. Windows/macOS packages follow their own
-validated native builds; a Linux NativeAOT build does not establish cross-OS support.
-No public NuGet publication, credentials or remote feed upload is authorized by
-this proof.
+The [local-feed proof](NUGET_PROOF.md) separates the managed runtime from the demo/
+test host and validates independent empty/sprite/UI PackageReference consumers in
+framework-dependent, trimmed JIT and AOT modes. It uses ordinary NuGet/MSBuild.
+Native profiles, assets, notices and loader dependencies are measured separately;
+prebuilt native functions are not removed by managed trimming.
 
-Include empty-app, sprite-only and UI-enabled dependency/size comparisons to check
-which modules are actually absent. Managed APIs should remain trim-friendly and
-modules opt-in. Publishing a consumer does not retroactively trim the internals of
-a precompiled shared native library; measure that native payload separately.
-Static native linking/direct P/Invoke can be a later measured tradeoff, not an
-immediate architecture rewrite. Reference constraints:
-[prepare libraries for trimming](https://learn.microsoft.com/dotnet/core/deploying/trimming/prepare-libraries-for-trimming)
-and [NativeAOT interop](https://learn.microsoft.com/dotnet/core/deploying/native-aot/interop).
+This completes the bounded local proof, not distribution/platform acceptance.
+Some implemented module APIs remain internal; broader public surfaces need their
+own consumer tests. Clean-machine setup, Windows/macOS native packages and real
+device acceptance remain open. Public NuGet publication and a custom SDK are not
+part of this proof. Source generation remains explicit; no blanket assembly roots
+or trim/AOT warning suppression were introduced. See the [closure audit](ROADMAP_CLOSURE.md)
+for remaining functional work and named validation limits.
 
 ## Deferred comparison
 

@@ -13,10 +13,13 @@ Two explicit package references separate responsibilities:
 ```
 
 The managed package contains the net10.0 runtime assembly, MIT license, README and
-one small MSBuild target for opt-in `EngineAsset` items. The native package contains
+one small MSBuild target for opt-in `EngineAsset` items and the MIT notice. The native package contains
 one full-feature Linux x64 profile and its nonbaseline dynamic dependencies under
 `runtimes/linux-x64/native/`, plus its source/version/hash manifest and notices.
-The normal SDK/NuGet native asset selection handles copy/probing. There is no custom
+The normal SDK/NuGet native asset selection handles copy/probing. Small package
+targets also copy the complete managed/native license text into `licenses/` in
+build and publish output, including AOT. Notices follow package references, so
+even an empty trimmed consumer retains the managed package notice. There is no custom
 SDK, runtime code generator, package installer or native download on first use.
 
 ## Source and API boundary
@@ -101,11 +104,11 @@ Bytes below exclude debug symbols. Framework-dependent output requires an alread
 installed .NET runtime, so it must not be compared to self-contained output as a
 complete-machine installation size.
 
-| Consumer | Framework-dependent output | Trimmed JIT output (includes .NET runtime) | AOT executable | Native engine/dependency files | Authored assets | AOT output total |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Empty | 381,958 | 23,791,557 | 1,147,432 | 0 | 0 | 1,147,432 |
-| Sprite | 9,902,042 | 33,776,116 | 2,647,704 | 9,514,720 | 1,415 | 12,163,839 |
-| UI | 9,906,555 | 34,210,871 | 3,176,744 | 9,514,720 | 2,356 | 12,693,820 |
+| Consumer | Framework-dependent output | Trimmed JIT output (includes .NET runtime) | AOT executable | Native engine/dependency files | Authored assets | Notices | AOT output total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Empty | 383,023 | 23,792,622 | 1,147,432 | 0 | 0 | 1,065 | 1,148,497 |
+| Sprite | 10,222,303 | 34,096,377 | 2,647,704 | 9,514,720 | 1,415 | 320,261 | 12,484,100 |
+| UI | 10,226,816 | 34,531,132 | 3,176,744 | 9,514,720 | 2,356 | 320,261 | 13,014,081 |
 
 The full managed runtime DLL is 297,472 bytes. It is absent from the empty trimmed
 output, 98,816 bytes in the sprite output and 74,752 bytes in the UI output. Sprite
@@ -115,18 +118,21 @@ metadata and NativeAOT symbol maps confirm neither roots AudioSession,
 PhysicsWorld, mission or room gameplay, and sprite does not root UI bindings.
 The empty AOT graph contains no engine methods.
 
-The native package was **4,286,695 compressed bytes**, with eight DSOs totaling
+With notice-copy targets, the native archive was **4,287,156 compressed bytes**,
+with eight DSOs totaling
 **9,514,720 bytes**. Every sprite/UI output contains byte-identical copies of those
 DSOs. Their unused native functions are still present: managed trimming does not
 rewrite a prebuilt shared library. Empty has no native payload because it does not
 reference the native package. No native function-trimming claim follows from that
-package choice. The managed archive was 122,410 bytes in this run; ZIP metadata and
+package choice. The managed archive was 122,427 bytes. App totals above include automatically
+copied notices. ZIP metadata and
 assembly source-revision stamps may change on rebuild. Per-run hashes are retained
 in the ignored measurements, rather than treating archive byte counts as ABI.
 
 The machine-readable report separates app executable/managed entrypoint, managed
-engine, native payload, assets, metadata, .NET framework/other files and debug
-symbols. Framework-dependent files are snapshotted before RID-specific publishes;
+engine, native payload, assets, metadata, license notices, .NET framework/other files and debug
+symbols. All notices are checked byte-for-byte against the source packages.
+Framework-dependent files are snapshotted before RID-specific publishes;
 otherwise nested build directories would falsely double-count native assets.
 
 ## Verification and remaining work
@@ -135,7 +141,9 @@ The split retains **10,293 full JIT assertions**, **60 typed UI native checks**,
 **61 offline PCM checks** and **284 real Box2D checks**. The independent package
 proof additionally checks copied assets, no project references, native hashes,
 trimmed/AOT roots, three-mode UI capture equality and compiler rejection of forged
-cache/lease construction. The native package's isolated extraction clears library
+cache/lease construction. The notice-copy correction was tested with the same
+runtime/native/AOT binaries; UI captures remain identical, and ordinary trimmed
+publishes verify the corrected output totals. The native package's isolated extraction clears library
 overrides, validates RPATH and all seven nonbaseline dependencies, performs eager
 relocation checks and actually loads the DSO. No new native ABI was required.
 

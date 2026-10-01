@@ -13,7 +13,7 @@
   <ItemGroup>
     <Compile Include="@(EngineRuntimeSource)" Link="Runtime/%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="GameAuthoringLab" />
-    <None Include="../LICENSE" Pack="true" PackagePath="LICENSE" />
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
     <None Include="README.md" Pack="true" PackagePath="README.md" />
     <None Include="Dotnet2D.Engine.targets" Pack="true" PackagePath="buildTransitive/Dotnet2D.Engine.targets" />
   </ItemGroup>

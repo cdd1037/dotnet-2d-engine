@@ -17,3 +17,7 @@ Optional EngineAsset items copy caller-owned assets to build/publish output whil
 preserving relative paths. No game assets are included or selected automatically.
 JSON uses explicit source-generated schemas. Public model binding uses delegates,
 not reflection. Trimming cannot remove functions from the prebuilt native DSO.
+
+The MIT notice is copied to licenses/Dotnet2D.Engine/LICENSE.txt in application
+build and publish outputs. The separate native package copies its complete notice
+bundle beside it. Do not omit these notices when redistributing those outputs.

@@ -37,3 +37,7 @@ Portions are copyright 1996-2024 The FreeType Project (https://www.freetype.org)
 upstream version, dependency source pins, selected license sources and build
 configuration. Paths record the producing environment and are not runtime lookup
 paths. This is a local-feed integration artifact, not a published release.
+
+The package target copies the complete LICENSE.txt bundle into application build
+and publish output under licenses/Dotnet2D.Native.Linux.x64/. Keep this notice
+with redistributed native payloads; individual source notices remain in the package.

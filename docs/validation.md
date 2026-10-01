@@ -598,3 +598,19 @@ rejects manufactured ownership; the independent UI consumer checks revision zero
 at that boundary. Neither native ABI nor new runtime features were added.
 No packages, binaries, fonts or generated reports enter source control; no remote
 package publication occurred.
+
+## Package notices and closure audit
+
+A packaging follow-on copies the complete managed/native license texts into normal,
+trimmed and AOT application outputs. All nine output sets retain byte-exact notices.
+Runtime DLLs/native DSOs and AOT executables are unchanged; the UI framebuffer
+remains identical across modes. The measured report now counts notice bytes
+separately (1,065 for empty; 320,261 for sprite/UI). Source-controlled tests check
+notice presence and content instead of only checking the NuGet archive.
+
+The [closure audit](ROADMAP_CLOSURE.md) identifies remaining original renderer,
+diagnostics, simple movement-example and desktop acceptance work. It does not
+reactivate later-deferred async/hot-reload/prefab or expanded Godot feature scope.
+World rectangular clipping is the next compact renderer batch; the full requested
+Godot/Unity comparison remains a near-completion step rather than a claim that the
+local package proof completes the roadmap.

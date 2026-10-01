@@ -1,8 +1,8 @@
 # .NET 2D Engine
 
-An independent, AI-authoring-first 2D engine prototype: .NET 10 main executable + narrow C ABI + C++ SDL3 GPU platform layer. This is not a Godot fork. Proposed repository name: `dotnet-2d-engine`; the existing `GameAuthoringLab` assembly, namespace and `gal` ABI names remain stable during this milestone.
+An independent, AI-authoring-first 2D engine prototype: .NET 10 main executable + narrow C ABI + C++ SDL3 GPU platform layer. This is not a Godot fork. Repository: `dotnet-2d-engine`; the existing `GameAuthoringLab` assembly, namespace and `gal` ABI names remain stable during this milestone.
 
-Start with the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. No remote repository is configured by this milestone.
+Start with the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. The [closure audit](docs/ROADMAP_CLOSURE.md) distinguishes delivered foundations, remaining original work and deferred expansion.
 
 ## Authoring principle
 

@@ -24,7 +24,10 @@ The eight assets are under `runtimes/linux-x64/native/`: `libgal.so`,
 RmlUi 6.3, SDL_image 3.2.4, SDL_mixer 3.2.4 and Box2D 3.1.1 are linked statically
 into the engine. One full native profile keeps this integration proof bounded;
 feature/profile packages are deferred until their savings justify additional
-runtime selection and validation. No static archive is a packaged runtime asset.
+runtime selection and validation. No static archive is a packaged runtime asset. A `buildTransitive` target copies
+the complete license bundle to `licenses/Dotnet2D.Native.Linux.x64/LICENSE.txt` in
+build/publish output, including AOT; it does not leave required notices stranded
+in the NuGet cache.
 
 `manifest.json` records exact versions, source paths, source pins, static-library
 hashes, DSO SHA-256/byte counts, ELF dependencies and minimum required symbol

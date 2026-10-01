@@ -13,6 +13,7 @@
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup Condition="'$(NativePackageStage)' != ''">
+    <None Include="Dotnet2D.Native.Linux.x64.targets" Pack="true" PackagePath="buildTransitive/Dotnet2D.Native.Linux.x64.targets" />
     <None Include="$(NativePackageStage)/*" Pack="true" PackagePath="" />
     <None Include="$(NativePackageStage)/licenses/*" Pack="true" PackagePath="licenses" />
     <None Include="$(NativePackageStage)/runtimes/linux-x64/native/*" Pack="true" PackagePath="runtimes/linux-x64/native" />

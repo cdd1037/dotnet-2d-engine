@@ -4,6 +4,7 @@ import json, hashlib, sys
 from pathlib import Path
 from zipfile import ZipFile
 proof=Path(sys.argv[1]).resolve()
+publish=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else proof/'publish'
 native_package=next((proof/'feed').glob('Dotnet2D.Native.Linux.x64.*.nupkg'))
 with ZipFile(native_package) as package:
     native_entries=[n for n in package.namelist() if n.startswith('runtimes/linux-x64/native/') and not n.endswith('/')]
@@ -12,24 +13,36 @@ with ZipFile(native_package) as package:
 rows=[]
 for sample in ('empty','sprite','ui'):
     for mode in ('fdd','trim','aot'):
-        directory=proof/'publish'/f'{sample}-{mode}'
+        directory=publish/f'{sample}-{mode}'
         files=[p for p in directory.rglob('*') if p.is_file()]
         app=[p for p in files if p.name in (f'Sample.{sample}',f'Sample.{sample}.dll')]
         native=[p for p in files if p.name.startswith(('libgal.so','libSDL3.so','libfreetype.so','libpng16.so','libz.so','libbz2.so','libbrotlidec.so','libbrotlicommon.so'))]
         assets=[p for p in files if 'assets' in p.relative_to(directory).parts]
+        notices=[p for p in files if 'licenses' in p.relative_to(directory).parts]
         symbols=[p for p in files if p.suffix in ('.pdb','.dbg')]
         managed=[p for p in files if p.name=='Dotnet2D.Engine.dll']
         metadata=[p for p in files if p.name.endswith(('.deps.json','.runtimeconfig.json'))]
-        assigned=set(app+native+assets+symbols+managed+metadata)
+        assigned=set(app+native+assets+notices+symbols+managed+metadata)
         other=[p for p in files if p not in assigned]
         total=lambda group:sum(p.stat().st_size for p in group)
-        rows.append(dict(sample=sample,mode=mode,app_bytes=total(app),engine_managed_bytes=total(managed),native_payload_bytes=total(native),asset_bytes=total(assets),metadata_bytes=total(metadata),symbols_bytes=total(symbols),framework_other_bytes=total(other),distribution_without_symbols_bytes=total(files)-total(symbols),native_files=len(native)))
+        rows.append(dict(sample=sample,mode=mode,app_bytes=total(app),engine_managed_bytes=total(managed),native_payload_bytes=total(native),asset_bytes=total(assets),notice_bytes=total(notices),metadata_bytes=total(metadata),symbols_bytes=total(symbols),framework_other_bytes=total(other),distribution_without_symbols_bytes=total(files)-total(symbols),native_files=len(native)))
+        expected_notices=1 if sample=='empty' else 2
+        assert len(notices)==expected_notices,(sample,mode,'missing redistribution notices')
         if sample=='empty': assert not native and not assets,(sample,mode,'unexpected native/assets')
         else:
             assert len(native)==len(expected_native) and total(native)==expected_native_bytes,(sample,mode,'native closure changed',total(native))
             assert all(hashlib.sha256(p.read_bytes()).hexdigest()==expected_native[p.name] for p in native),(sample,mode,'native asset changed')
         if sample=='sprite': assert len(assets)==2,(sample,mode,'sourcegen fixture files missing')
         if sample=='ui': assert len(assets)==2,(sample,mode,'UI source files missing')
+with ZipFile(next((proof/'feed').glob('Dotnet2D.Engine.*.nupkg'))) as package:
+    managed_notice=package.read('LICENSE')
+with ZipFile(native_package) as package:
+    native_notice=package.read('LICENSE.txt')
+for sample in ('empty','sprite','ui'):
+    for mode in ('fdd','trim','aot'):
+        directory=publish/f'{sample}-{mode}'
+        assert (directory/'licenses/Dotnet2D.Engine/LICENSE.txt').read_bytes()==managed_notice
+        if sample!='empty':assert (directory/'licenses/Dotnet2D.Native.Linux.x64/LICENSE.txt').read_bytes()==native_notice
 records=[json.loads(line) for line in (proof/'logs/managed-types.jsonl').read_text().splitlines() if line.startswith('{')]
 assert len(records)==3
 assert not records[0]['exists'],'unused engine assembly should trim entirely'
@@ -57,6 +70,6 @@ captures=[(proof/'logs'/f'ui-{mode}.bmp').read_bytes() for mode in ('fdd','trim'
 assert captures[0]==captures[1]==captures[2],'UI captures differ between runtime modes'
 packages={p.name:dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in (proof/'feed').glob('Dotnet2D*.nupkg')}
 report=dict(packages=packages,outputs=rows,aot_engine_roots=aot,managed_types=records)
-(proof/'measurements.json').write_text(json.dumps(report,indent=2)+'\n')
+(proof/('measurements.json' if publish==proof/'publish' else 'measurements-notices.json')).write_text(json.dumps(report,indent=2)+'\n')
 for row in rows: print(json.dumps(row))
 print('PACKAGE CONTENT/ROOT/DEPENDENCY ASSERTIONS PASS')
