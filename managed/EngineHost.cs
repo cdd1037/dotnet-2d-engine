@@ -119,6 +119,18 @@ public sealed unsafe class EngineHost : IDisposable
         catch { Native.Abort(context); throw; }
         Native.Check(Native.End(context), "end");
     }
+    /// <summary>Submit an overlay after the scene in one frame, with the same camera and no scissor.</summary>
+    public void DrawWithOverlay(in Camera camera,ReadOnlySpan<SpriteDrawV2> scene,ReadOnlySpan<SpriteDrawV2> overlay)
+    {
+        var value=camera;nint context=Context;Native.Check(Native.Begin(context,&value),"begin");
+        try
+        {
+            fixed(SpriteDrawV2* data=scene)Native.Check(Native.SubmitDrawsV2(context,data,(uint)scene.Length),"submit scene");
+            fixed(SpriteDrawV2* data=overlay)Native.Check(Native.SubmitDrawsV2(context,data,(uint)overlay.Length),"submit overlay");
+        }
+        catch{Native.Abort(context);throw;}
+        Native.Check(Native.End(context),"end");
+    }
     /// <summary>Draw order is unchanged. Zero clips disables scissor; one broadcasts; otherwise clips match the final draw order.</summary>
     public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,ReadOnlySpan<FramebufferClip> clips)
     {

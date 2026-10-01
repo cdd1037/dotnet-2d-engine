@@ -126,7 +126,9 @@ resource failure/reload and animation teardown remain predictable.
 - Input actions, remapping and focus/capture; touch and gamepad support later,
   aligned with the platform schedule (not added to phase 1)
 - Real sound effects and streamed music, voice lifetime and volume groups
-- Reusable timers, save integration, debug drawing, logging and basic profiling
+- Reusable timers, save integration, debug drawing, logging and basic profiling.
+  The current [bounded diagnostics](DIAGNOSTICS.md) slice supplies line/rectangle
+  geometry, a structured log FIFO and opt-in CPU frame/phase timings
 
 The earlier AABB/legacy-tone samples remain separate from the now implemented
 bounded Box2D and SDL_mixer foundations. Those modules do not themselves satisfy

@@ -59,8 +59,9 @@ No existing package archive is replaced by this source milestone.
 
 - Linux x64 software Vulkan is the validated rendering environment; physical GPU,
   Windows/D3D12 and macOS/Metal are not validated
-- Displayed-window UI was tried, but the first Reset after scrolling occasionally
-  missed; real IME, accessibility and target-device input still require validation
+- A targeted displayed-window Reset-after-scroll check now passes with explicit
+  desktop pointer motion; the earlier miss was not reproduced. Real IME,
+  accessibility and target-device input still require validation
 - Mobile, Web and editor are deferred; the bounded Box2D core is implemented,
   while richer controllers and specialized physics/gameplay systems are not
 - UI selection and deployment footprint remain open; full Chinese font packaging

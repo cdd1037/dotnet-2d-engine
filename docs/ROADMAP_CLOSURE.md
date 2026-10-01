@@ -1,6 +1,6 @@
 # Original roadmap closure audit
 
-Audit begun at the local package proof and updated after world clipping, 2026-10-01.
+Audit begun at the local package proof and updated after bounded diagnostics, 2026-10-01.
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
@@ -24,27 +24,31 @@ an integration milestone, not completion of the roadmap.
 | World rectangular clipping | Now implemented and validated separately from culling/UI; see [contract](WORLD_CLIPPING.md) | Hardware/DPI acceptance remains with the platform gates |
 | Materials/shader workflow | One fixed Vulkan/SPIR-V sprite pipeline; built-in GLSL is compiled by `compile_shaders.py`; HLSL is an unwired future path | A bounded material contract using existing standard GLSL and existing tooling, then a separate measured render-target/basic post-process slice |
 | Public render targets/basic post-processing | Diagnostic screenshot capture owns a private offscreen texture | Reusable target ownership and explicit pass use; screenshot internals do not count as this API |
-| Debug drawing/logging/timing | Error strings, module state, cumulative frame/draw/sprite/tone counters and test Stopwatches | Small debug lines/rectangles, structured diagnostics and opt-in CPU frame-stage timing; counts alone are not a profiler |
+| Debug drawing/logging/timing | Bounded line/rectangle buffer, typed log FIFO, opt-in explicit CPU frame/phase timing and native draw counters; see [contract](DIAGNOSTICS.md) | Current bounded slice is delivered; no general profiler, GPU timing or editor claim |
 | Basic tile movement acceptance | TileMap collision generation, Box2D bodies/queries and a falling-ball fixture work; RoomGame movement is sample logic | A simple tile-based character game fixture exercising the shared physics/input primitives, without inventing a new engine controller framework |
 | Reusable composition/resources | Synchronous BMP cache and flat authored scene loads are repeatable and isolated | Keep current limitations explicit; add only a demonstrated original composition need, with stable IDs and ownership. Async/hot-reload/prefab expansion is deferred |
 
 The world scissor batch is now complete at its documented software-validation
 boundary: framebuffer coordinates, window/world conversions, stable run ordering,
 atomic validation, region/tilemap consumers and resized pixel checks are covered.
-The next functional batch can be the bounded diagnostics slice below.
+The bounded diagnostics slice is also complete at its documented CPU/software
+rendering boundary. The next renderer work is materials, followed by explicit
+render targets and one basic post-process fixture.
 
-A separate diagnostics batch should stay focused. Do not combine clipping, timing, material
-pipelines and render targets into one redesign. Material work should reuse standard
+Keep material pipelines and render targets in separate, reviewable batches rather
+than one rendering redesign. Material work should reuse standard
 GLSL and the existing compiler path; no new language or large SDK/compiler install
 is implied by this audit.
 
 ## Acceptance and portability gates
 
-- **UI:** the historical first Reset after scrolling was not conclusively closed.
-  Later list/scroll and explicit desktop-pointer checks passed, but they are not a
-  reproduction of that exact sequence. Window-bound synthetic clicking can leave
-  SDL's pointer motion state stale; distinguish that tooling behavior in the next
-  targeted Reset check. Do not silently declare the original issue fixed
+- **UI:** a targeted cloud X11 check changed both name and slider, scrolled to the
+  bottom, then restored both defaults with one Reset click. A second changed draft
+  after scrolling back to the top also reset with one click. This narrow sequence
+  now passes; the historical miss was not reproduced and no speculative runtime
+  fix was made. Explicit desktop pointer motion preceded each click, avoiding the
+  previously observed window-bound tool's stale pointer state. This does not
+  establish every control/platform/input-device combination
 - **IME:** synthetic preedit/commit/cancellation, text-session ownership and candidate
   coordinate math pass. An actual OS Chinese IME, candidate window and selection
   remain unverified. No input-method package or OS configuration was added
@@ -92,4 +96,5 @@ acceptance. It must not turn newly discovered engine gaps into automatic scope.
 - `managed/TextureCache.cs`, `AuthoredScene.cs`, `TileMapDemo.cs` and `RoomGame.cs`:
   synchronous resources, scene loading and movement fixtures
 - [UI bridge](UI_TEXT_INPUT.md), [typed bindings](UI_BINDINGS.md),
-  [local package proof](NUGET_PROOF.md), [native baseline](NATIVE_PACKAGE.md)
+  [local package proof](NUGET_PROOF.md), [native baseline](NATIVE_PACKAGE.md),
+  [diagnostics](DIAGNOSTICS.md), [remaining renderer design](RENDERER_NEXT.md)

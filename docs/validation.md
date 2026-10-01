@@ -641,3 +641,40 @@ UI/audio/physics native library is **4,041,824 bytes** in this Release build. Th
 are aggregate files, not a repeated package-size matrix. Evidence is ignored under
 `evidence/clipping/`. Remaining renderer/diagnostic/platform work is recorded in
 the updated [closure audit](ROADMAP_CLOSURE.md).
+
+## Bounded diagnostics and targeted Reset check (2026-10-01)
+
+The [diagnostic helpers](DIAGNOSTICS.md) add fixed-capacity debug line/rectangle
+geometry, a typed bounded log FIFO and explicitly enabled CPU frame/phase timing.
+The default paths emit no geometry/log entries and take no timestamps. The sample
+uses an existing white atlas texel and submits its scene/overlay in one frame.
+No native ABI, serialization root or dependency was added.
+
+- Focused checks: **45** log/timing/overlay assertions and **112** geometry
+  assertions, including disabled paths, thread ownership, validation/capacity
+  boundaries, timer abort/reset/copied scopes and frame recovery
+- Full JIT: **10,485 CPU assertions**, build with **0 warnings/errors**; existing
+  headless native contract checks also pass through the usual JIT test script
+- Warmed log enqueue/drain and timing scopes/frames, plus debug buffer emission,
+  each measured **0 managed bytes** across **1,000** iterations
+- Headless and software Vulkan three-frame scenarios both report 3 frames and
+  15 submitted quads; actual world draw calls are respectively 0 and 3
+- **21 pixel assertions** cover four outline edges, butt-ended horizontal and
+  diagonal lines, scene interior, disabled removal and byte-identical re-enabled
+  output. Captures remain ignored under `evidence/diagnostics/`
+- Read-only lifecycle/validation review found no actionable issues. This
+  managed-only batch reuses the previously verified native ABI; a fresh AOT or
+  full package-size matrix was not run
+
+Separately, a displayed cloud X11 settings probe changed both player name and
+volume, scrolled the list to the bottom, and restored both defaults with the first
+Reset click. It repeated successfully with another draft after scrolling back to
+the top. Each click used an explicit desktop pointer move. An AT-SPI text insertion
+tool error occurred before the first draft; ordinary key events completed typing.
+The game was closed after verification. The historical missed click was not
+reproduced, so no speculative input fix was made. These two narrow cases do not
+establish universal UI/input reliability or actual Chinese IME operation.
+
+CPU duration output includes JIT/capture/presentation within the selected scopes;
+it is not a performance benchmark, GPU timing or end-to-end latency measurement.
+The next original renderer items are described in [the bounded design](RENDERER_NEXT.md).

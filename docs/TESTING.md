@@ -101,3 +101,13 @@ The optional UI graphics build runs `--clip-graphics-test`, followed by
 `scripts/validate-clipping-pixels.py` against `GAL_CLIP_CAPTURE_DIR`. The test records
 actual atlas/alpha/edge/tilemap/UI/resize pixels; the headless tier does not. A fresh
 AOT host can run those same flags at the additive ABI boundary.
+
+## Bounded diagnostics
+
+`scripts/test.sh quick diagnostics` checks the managed log/timing/geometry and
+scene-overlay recovery contracts. With the existing optional graphics build,
+run `--diagnostics-scenario --frames 3` and set `GAL_DIAGNOSTICS_CAPTURE_DIR`.
+Then run `scripts/validate-diagnostics-pixels.py` on that directory to check solid
+edges, diagonal geometry, unchanged scene interior and disabled/re-enabled output.
+This managed-only slice adds no ABI or serialization roots; it does not require a
+fresh aggregate AOT publication. See [semantics and limits](DIAGNOSTICS.md).

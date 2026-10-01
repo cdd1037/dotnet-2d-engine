@@ -20,6 +20,8 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(args.Contains("--diagnostics-self-test",StringComparer.Ordinal)){DiagnosticsTests.Run();DebugGeometryTests.Run();return 0;}
+            if(args.Contains("--diagnostics-demo",StringComparer.Ordinal)||args.Contains("--diagnostics-scenario",StringComparer.Ordinal))return DiagnosticsDemo.Run(options.Headless,options.Frames,args.Contains("--diagnostics-scenario",StringComparer.Ordinal));
             if(args.Contains("--clip-self-test",StringComparer.Ordinal)){ClippingTests.Run();return 0;}
             if(args.Contains("--clip-graphics-test",StringComparer.Ordinal)){ClippingTests.RunGraphics();return 0;}
             if(args.Contains("--binding-self-test",StringComparer.Ordinal)){BoundUiTests.RunContracts();return 0;}
@@ -203,6 +205,7 @@ internal static class Program
     {
         Console.WriteLine("Usage: GameAuthoringLab [--room-demo | --scenario] [--headless] [--frames N] [--save-file PATH] [--load-file PATH] | --validate-save PATH | --self-test | --help");
         Console.WriteLine("World clipping: --clip-self-test | --clip-graphics-test | --tilemap-clip-demo | --tilemap-clip-scenario");
+        Console.WriteLine("Diagnostics: --diagnostics-self-test | --diagnostics-demo | --diagnostics-scenario [--headless]");
         Console.WriteLine("UI bindings: --binding-demo | --binding-self-test | --binding-native-test");
         Console.WriteLine("TileMap: --tilemap-demo | --tilemap-scenario | --tilemap-physics-demo | --tilemap-physics-scenario | --tilemap-self-test | --tilemap-physics-test");
         Console.WriteLine("Animation: --animation-demo | --animation-scenario [--headless] | --animation-self-test");
@@ -234,6 +237,7 @@ internal static class Program
                     case "--room-ui-demo":roomUi=true;break;
                     case "--room-ui-scenario":roomUi=true;roomUiScenario=true;break;
                     case "--ui-demo":uiDemo=true;break;
+                    case "--diagnostics-self-test": case "--diagnostics-demo": case "--diagnostics-scenario":break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
                     case "--tilemap-clip-demo": case "--tilemap-clip-scenario": case "--clip-self-test": case "--clip-graphics-test": case "--binding-self-test": case "--binding-native-test": case "--binding-demo": case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
