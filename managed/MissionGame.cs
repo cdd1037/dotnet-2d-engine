@@ -156,15 +156,16 @@ internal sealed class MissionGame : IDisposable
     }
     public void SetNotice(string notice) => Notice = notice;
 
-    public void Advance(uint keys, float elapsed)
+    public void Advance(uint keys, float elapsed) => Advance(keys, keys & ~_previousKeys, elapsed);
+    public void Advance(uint keys, uint pressed, float elapsed)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (!float.IsFinite(elapsed) || elapsed < 0) throw new ArgumentOutOfRangeException(nameof(elapsed));
         if (Screen != MissionScreen.Playing) return;
-        if (_waitForNeutral) { if (keys == 0) _waitForNeutral = false; return; }
-        uint pressed = keys & ~_previousKeys; _previousKeys = keys;
+        if (_waitForNeutral) { if ((keys | pressed) == 0) _waitForNeutral = false; return; }
+        _previousKeys = keys;
         _pendingDelivery |= (pressed & Native.Interact) != 0;
-        Room.Advance(keys, Math.Min(elapsed, RemainingTicks * RoomGame.FixedDelta));
+        Room.Advance(keys, pressed, Math.Min(elapsed, RemainingTicks * RoomGame.FixedDelta));
         RemainingTicks = Math.Max(0, RemainingTicks - Room.LastSteps);
         var player = Room.Player.LocalTransform;
         // Delivery wins a final tick tie. E is an explicit edge, never automatic arrival.

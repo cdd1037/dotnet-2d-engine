@@ -83,6 +83,10 @@ internal static unsafe partial class Native
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial int Poll(nint context, Input* input);
 
+    [LibraryImport(Library, EntryPoint = "gal_poll_v2")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int PollV2(nint context, InputSnapshot* input);
+
     [LibraryImport(Library, EntryPoint = "gal_begin")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial int Begin(nint context, Camera* camera);

@@ -40,6 +40,13 @@ internal sealed unsafe class EngineHost : IDisposable
         }
     }
 
+    public InputSnapshot PollInput()
+    {
+        var input = new InputSnapshot { Size = (uint)sizeof(InputSnapshot), Version = 2 };
+        Native.Check(Native.PollV2(Context, &input), "poll input v2");
+        return input;
+    }
+
     public Input Poll()
     {
         var input = new Input { Size = (uint)sizeof(Input) };

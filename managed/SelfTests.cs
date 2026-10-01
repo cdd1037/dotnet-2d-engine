@@ -24,6 +24,7 @@ internal static unsafe class SelfTests
         _assertions += SpriteSortTests.Run();
         _assertions += AuthoredSceneTests.Run();
         _assertions += ResourceTests.Run();
+        _assertions += InputTests.Run();
         UiAuthoringTests.Run(Assert);
         Console.WriteLine($"SELF-TEST PASS assertions={_assertions} (headless ABI validation; no graphics/audio device exercised)");
         return 0;

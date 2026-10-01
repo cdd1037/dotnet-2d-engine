@@ -100,3 +100,13 @@ loads keep the prior usable resource set; repeated synchronization remains
 allocation-free. Final focused/full-JIT verification is recorded in
 [validation](validation.md). Asynchronous loading, atlas UVs and general asset
 packaging remain separate capability batches.
+
+## Input and viewport follow-on
+
+The [additive input/viewport contract](INPUT_VIEWPORT.md) now separates logical
+window coordinates from framebuffer pixels, preserves event-derived short taps,
+routes UI-owned inputs and supports copied/remappable managed bindings. The
+interactive mission uses it while preserving fixed-step, focus and neutral gates.
+Fresh JIT/AOT and queued SDL/Rml checks are recorded in [validation](validation.md).
+Texture regions, world scissor and sprite-frame animation remain rendering work;
+RmlUi's existing list scissor is not a world clipping API.

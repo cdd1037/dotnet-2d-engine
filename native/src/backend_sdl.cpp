@@ -1,7 +1,9 @@
 #include "backend.h"
 #include "shaders_spv.h"
+#include "input_state.h"
 #include <SDL3/SDL.h>
 #include <cmath>
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 #include <memory>
@@ -17,7 +19,7 @@ struct Backend {
  SDL_GPUShader* vertex_shader=nullptr; SDL_GPUShader* fragment_shader=nullptr;
  SDL_GPUGraphicsPipeline* pipeline=nullptr; SDL_GPUBuffer* vertices=nullptr;
  SDL_GPUTransferBuffer* transfer=nullptr; SDL_GPUTexture* texture=nullptr; SDL_GPUSampler* sampler=nullptr;
- SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false; bool focus_lost=false;
+ SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false; bool drawable=true; bool minimized=false; int projection_width=0,projection_height=0; InputState input;
  std::vector<float> tone;
  std::vector<std::pair<uint64_t,SDL_GPUTexture*>> textures;
  std::string capture_path; bool captured=false; SDL_GPUTexture* capture_texture=nullptr; SDL_GPUTransferBuffer* readback=nullptr;
@@ -48,7 +50,7 @@ void backend_destroy(Backend* b) {
  if(b->init_flags) SDL_QuitSubSystem(b->init_flags);
  delete b;
 }
-Backend* backend_create(const gal_config& c,std::string& e) {
+Backend* backend_create(gal_config& c,std::string& e) {
  std::unique_ptr<Backend,decltype(&backend_destroy)> ptr(new Backend,&backend_destroy); auto*b=ptr.get(); b->textures.reserve(256);
  const SDL_InitFlags flags=SDL_INIT_VIDEO | ((c.flags&GAL_AUDIO)?SDL_INIT_AUDIO:0);
  if(!SDL_InitSubSystem(flags)) { error(e); return nullptr; } b->init_flags=flags;
@@ -84,35 +86,93 @@ Backend* backend_create(const gal_config& c,std::string& e) {
  if(!SDL_SubmitGPUCommandBuffer(cmd)){error(e);return nullptr;}
  if(c.flags&GAL_AUDIO){SDL_AudioSpec spec{};spec.format=SDL_AUDIO_F32;spec.channels=1;spec.freq=48000;b->audio=SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&spec,nullptr,nullptr);if(!b->audio||!SDL_ResumeAudioStreamDevice(b->audio)){error(e);return nullptr;}
  b->tone.resize(9600);for(size_t i=0;i<b->tone.size();i++){float t=float(i)/48000.f;float envelope=std::fmin(1.f,t/0.005f)*std::fmin(1.f,(0.2f-t)/0.02f);b->tone[i]=0.15f*envelope*std::sin(6.283185307f*440.f*t);}}
+ if(!SDL_GetWindowSizeInPixels(b->window,&c.width,&c.height)){error(e);return nullptr;}
+ if(c.width<1||c.height<1||c.width>16384||c.height>16384){e="initial framebuffer size outside 1..16384";return nullptr;}
+ b->projection_width=c.width;b->projection_height=c.height;
  if(const char*path=std::getenv("GAL_CAPTURE_BMP")) b->capture_path=path;
  return ptr.release();
 }
 const char* backend_name(Backend* b){return SDL_GetGPUDeviceDriver(b->device);}
-bool backend_poll(Backend*b,gal_input& input,std::string&e){
+bool backend_poll_v2(Backend*b,gal_input_v2& input,std::string&e){
+ b->input.begin(input);SDL_GetMouseState(&input.mouse_x,&input.mouse_y);
+ const auto window_id=SDL_GetWindowID(b->window);
  SDL_Event event;while(SDL_PollEvent(&event)){
+  if(event.type==SDL_EVENT_QUIT){input.quit=1;continue;}
+  SDL_WindowID id=0;
+  if(event.type>=SDL_EVENT_WINDOW_FIRST&&event.type<=SDL_EVENT_WINDOW_LAST)id=event.window.windowID;
+  else switch(event.type){
+   case SDL_EVENT_KEY_DOWN:case SDL_EVENT_KEY_UP:id=event.key.windowID;break;
+   case SDL_EVENT_MOUSE_BUTTON_DOWN:case SDL_EVENT_MOUSE_BUTTON_UP:id=event.button.windowID;break;
+   case SDL_EVENT_MOUSE_MOTION:id=event.motion.windowID;break;
+   case SDL_EVENT_MOUSE_WHEEL:id=event.wheel.windowID;break;
+   case SDL_EVENT_TEXT_INPUT:id=event.text.windowID;break;
+   case SDL_EVENT_TEXT_EDITING:id=event.edit.windowID;break;
+   default:continue;
+  }
+  if(id!=window_id)continue;
+  bool consumed=false;
 #ifdef GAL_ENABLE_RMLUI
- if(b->ui)ui_input(b->ui,event);
+  if(b->ui)consumed=ui_input(b->ui,event);
 #endif
- if(event.type==SDL_EVENT_WINDOW_FOCUS_LOST&&event.window.windowID==SDL_GetWindowID(b->window))b->focus_lost=true;
- if(event.type==SDL_EVENT_WINDOW_FOCUS_GAINED&&event.window.windowID==SDL_GetWindowID(b->window))b->focus_lost=false;
- if(event.type==SDL_EVENT_QUIT){input.quit=1;}
- if(event.type==SDL_EVENT_MOUSE_WHEEL){input.wheel+=event.wheel.y;}
+  switch(event.type){
+   case SDL_EVENT_WINDOW_CLOSE_REQUESTED:input.quit=1;break;
+   case SDL_EVENT_WINDOW_MINIMIZED:b->minimized=true;break;
+   case SDL_EVENT_WINDOW_RESTORED:case SDL_EVENT_WINDOW_MAXIMIZED:b->minimized=false;break;
+   case SDL_EVENT_WINDOW_FOCUS_LOST:b->input.focus(input,false);break;
+   case SDL_EVENT_WINDOW_FOCUS_GAINED:b->input.focus(input,true);break;
+   case SDL_EVENT_KEY_DOWN:case SDL_EVENT_KEY_UP:{
+    bool captured=consumed;
+#ifdef GAL_ENABLE_RMLUI
+    captured=captured||(b->ui&&ui_keyboard_focus(b->ui));
+#endif
+    b->input.key(input,event.key.scancode,event.type==SDL_EVENT_KEY_DOWN,event.key.repeat,captured);break;
+   }
+   case SDL_EVENT_MOUSE_BUTTON_DOWN:case SDL_EVENT_MOUSE_BUTTON_UP:
+    input.mouse_x=event.button.x;input.mouse_y=event.button.y;b->input.button(input,event.button.button,event.type==SDL_EVENT_MOUSE_BUTTON_DOWN,consumed);break;
+   case SDL_EVENT_MOUSE_MOTION:input.mouse_x=event.motion.x;input.mouse_y=event.motion.y;if(consumed)input.consumed|=GAL_CONSUMED_POINTER;break;
+   case SDL_EVENT_MOUSE_WHEEL:{float direction=event.wheel.direction==SDL_MOUSEWHEEL_FLIPPED?-1.f:1.f;b->input.wheel(input,event.wheel.x*direction,event.wheel.y*direction,consumed);break;}
+   case SDL_EVENT_TEXT_INPUT:case SDL_EVENT_TEXT_EDITING:if(consumed)input.consumed|=GAL_CONSUMED_TEXT;break;
+  }
  }
- auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_LEFT]||k[SDL_SCANCODE_A])input.keys|=GAL_LEFT;if(k[SDL_SCANCODE_RIGHT]||k[SDL_SCANCODE_D])input.keys|=GAL_RIGHT;if(k[SDL_SCANCODE_UP]||k[SDL_SCANCODE_W])input.keys|=GAL_UP;if(k[SDL_SCANCODE_DOWN]||k[SDL_SCANCODE_S])input.keys|=GAL_DOWN;if(k[SDL_SCANCODE_SPACE])input.keys|=GAL_SPACE;if(k[SDL_SCANCODE_ESCAPE])input.keys|=GAL_ESCAPE;if(k[SDL_SCANCODE_E])input.keys|=GAL_INTERACT;if(k[SDL_SCANCODE_F])input.keys|=GAL_DROP;if(k[SDL_SCANCODE_T])input.keys|=GAL_TRANSITION;if(k[SDL_SCANCODE_F5])input.keys|=GAL_SAVE;if(k[SDL_SCANCODE_F9])input.keys|=GAL_LOAD;
- #ifdef GAL_ENABLE_RMLUI
- if(b->ui&&ui_keyboard_focus(b->ui)){input.keys&=GAL_ESCAPE;input.wheel=0;}
+#ifdef GAL_ENABLE_RMLUI
+ if(b->ui&&ui_keyboard_focus(b->ui)){b->input.capture_keyboard(input);if(input.game_wheel_x!=0||input.game_wheel_y!=0)input.consumed|=GAL_CONSUMED_WHEEL;input.game_wheel_x=input.game_wheel_y=0;}
 #endif
- if(b->focus_lost){input.keys=GAL_FOCUS_LOST;input.wheel=0;}
- SDL_GetMouseState(&input.mouse_x,&input.mouse_y);if(!SDL_GetWindowSizeInPixels(b->window,&input.width,&input.height))return error(e);if(input.width<1)input.width=1;if(input.height<1)input.height=1;return true;
+ int w=0,h=0,pw=0,ph=0;
+ if(!SDL_GetWindowSize(b->window,&w,&h)||!SDL_GetWindowSizeInPixels(b->window,&pw,&ph))return error(e);
+ InputState::viewport(input,w,h,pw,ph,b->minimized||(SDL_GetWindowFlags(b->window)&SDL_WINDOW_MINIMIZED)!=0);
+ b->drawable=(input.flags&GAL_INPUT_DRAWABLE)!=0;if(b->drawable){b->projection_width=pw;b->projection_height=ph;}return true;
+}
+bool backend_poll(Backend*b,gal_input& input,std::string&e){
+ gal_input_v2 snapshot{};snapshot.size=sizeof(snapshot);snapshot.version=GAL_INPUT_VERSION;
+ if(!backend_poll_v2(b,snapshot,e))return false;
+ auto key=[&](int code){return (snapshot.game_keys_down[code/64]&(uint64_t(1)<<(code%64)))!=0;};
+ if(key(SDL_SCANCODE_LEFT)||key(SDL_SCANCODE_A))input.keys|=GAL_LEFT;
+ if(key(SDL_SCANCODE_RIGHT)||key(SDL_SCANCODE_D))input.keys|=GAL_RIGHT;
+ if(key(SDL_SCANCODE_UP)||key(SDL_SCANCODE_W))input.keys|=GAL_UP;
+ if(key(SDL_SCANCODE_DOWN)||key(SDL_SCANCODE_S))input.keys|=GAL_DOWN;
+ if(key(SDL_SCANCODE_SPACE))input.keys|=GAL_SPACE;
+ if(snapshot.keys_down[SDL_SCANCODE_ESCAPE/64]&(uint64_t(1)<<(SDL_SCANCODE_ESCAPE%64)))input.keys|=GAL_ESCAPE;
+ if(key(SDL_SCANCODE_E))input.keys|=GAL_INTERACT;
+ if(key(SDL_SCANCODE_F))input.keys|=GAL_DROP;
+ if(key(SDL_SCANCODE_T))input.keys|=GAL_TRANSITION;
+ if(key(SDL_SCANCODE_F5))input.keys|=GAL_SAVE;
+ if(key(SDL_SCANCODE_F9))input.keys|=GAL_LOAD;
+ if(!(snapshot.flags&GAL_INPUT_FOCUSED))input.keys=GAL_FOCUS_LOST;
+ input.quit=snapshot.quit;input.wheel=snapshot.game_wheel_y;input.mouse_x=snapshot.mouse_x;input.mouse_y=snapshot.mouse_y;
+ input.width=std::max(1,snapshot.pixel_width);input.height=std::max(1,snapshot.pixel_height);return true;
 }
 bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,uint32_t run_count,uint32_t& drawn,std::string&e){
  drawn=0;
+ if(!b->drawable||(SDL_GetWindowFlags(b->window)&SDL_WINDOW_MINIMIZED))return true;
  // Map before acquiring a swapchain texture: acquired command buffers cannot be cancelled.
  if(count){void*m=SDL_MapGPUTransferBuffer(b->device,b->transfer,true);if(!m)return error(e);std::memcpy(m,data,count*sizeof(Vertex));SDL_UnmapGPUTransferBuffer(b->device,b->transfer);}
  auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd)return error(e);
  SDL_GPUTexture*target=nullptr;Uint32 w=0,h=0;
  if(!SDL_WaitAndAcquireGPUSwapchainTexture(cmd,b->window,&target,&w,&h)){SDL_CancelGPUCommandBuffer(cmd);return error(e);}
  if(!target)return SDL_SubmitGPUCommandBuffer(cmd)||error(e);
+ // A resize after poll must not stretch vertices projected for another pixel size.
+ // Submit an empty command buffer and retry after the next poll updates the snapshot.
+ if(int(w)!=b->projection_width||int(h)!=b->projection_height)return SDL_SubmitGPUCommandBuffer(cmd)||error(e);
  bool capture=!b->capture_path.empty()&&!b->captured;
  if(capture){
   // A prior capture failure may be retried; deferred releases are GPU-safe.

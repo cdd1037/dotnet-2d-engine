@@ -20,6 +20,8 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(args.Contains("--input-self-test",StringComparer.Ordinal)){InputTests.Run();return 0;}
+            if(args.Contains("--input-graphics-test",StringComparer.Ordinal)){InputTests.RunGraphics();return 0;}
             if(options.ResourceSelfTest){ResourceTests.Run();return 0;}
             if(options.ResourceGraphics){ResourceTests.Run(true);return 0;}
             if(options.GameSelfTest){MissionTests.Run();GameUiTests.RunAuthoring();return 0;}
@@ -178,6 +180,7 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: GameAuthoringLab [--room-demo | --scenario] [--headless] [--frames N] [--save-file PATH] [--load-file PATH] | --validate-save PATH | --self-test | --help");
+        Console.WriteLine("Input: --input-self-test (CPU) | --input-graphics-test (queued SDL/Rml input)");
         Console.WriteLine("Resources: --resource-self-test (CPU only) | --resource-graphics-test (real texture upload/release)");
         Console.WriteLine("Playable mission: --game-demo | --game-scenario [--save-file PATH] | --game-self-test (CPU only)");
         Console.WriteLine("Authored scenes: --validate-scene PATH | --authored-demo PATH [--headless] [--frames N]");
@@ -204,6 +207,7 @@ internal static class Program
                     case "--ui-demo":uiDemo=true;break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
+                    case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;
                     case "--game-ui-self-test": break;

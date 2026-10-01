@@ -13,9 +13,10 @@ dependency selections remain separate decisions. The next resource batch adds
 shared root/path validation, stable key mappings and explicit context-owned BMP
 texture leases; see [resource foundation](RESOURCES.md).
 
-Next, address input/viewport coordinate contracts and UI consumption before
-texture regions/atlas UVs and basic animation. Keep mature physics/audio library
-choices for an explicit decision, and keep the advanced-effects group deferred.
+The input/viewport batch now adds versioned raw/routed edges, coordinate helpers
+and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Next rendering
+work remains texture regions/atlas UVs and basic animation. Box2D and SDL_mixer evaluation/integration are authorized after version, license,
+footprint and platform validation; SDL_mixer requires a separate tested SDL upgrade, and keep the advanced-effects group deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.
 

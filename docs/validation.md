@@ -167,3 +167,41 @@ No dependencies, native ABI, JSON schema/source-generation options or XmlReader
 profile changed. NativeAOT was not republished in this batch; phase 1's AOT results
 remain historical and are not a current-resource-batch AOT claim. No physical GPU,
 real input/IME/audio or new-platform validation is claimed.
+
+## Input/viewport ABI boundary (2026-10-01)
+
+The additive [v2 input contract](INPUT_VIEWPORT.md) keeps ABI-1 creation and v1
+poll consumers intact. Final Release/JIT and freshly published NativeAOT each pass
+**8,894 assertions**, including **52** focused managed input/viewport checks and
+**71** resource checks. All warmed allocation checks remain zero. Native CTest
+passes **4/4**, including the new standalone input event accumulator and C11 v2
+size/offset checks. Build/publish completed with zero warnings/errors using the
+existing SDK/compiler packs and in-process ILLink configuration; no restore or
+package installation occurred.
+
+Against pinned SDL3 3.2.28, RmlUi 6.3 and Mesa software Vulkan, JIT/AOT each pass:
+
+- **28** queued SDL input/Rml consumption checks, including down+up between polls,
+  repeated click isolation, text-field capture until release, wheel consumption,
+  focus loss/gain, actual SDL resize, synthetic minimize/restore and a resize
+  between poll and draw that skips stale projection
+- **27** real texture resource ownership/rollback checks
+- **28** game UI, **49** integrated mission, **23** settings UI and **16** combined
+  room/UI checks
+- Existing alpha/order/camera/384x288 resize pixel checks and dummy tone acceptance
+
+JIT/AOT settings and selected mission captures match exactly; archive/won/lost/
+final-title mission captures also match phase 1. The final stripped aggregate AOT
+executable is **4,990,752 bytes**, excluding native libraries/assets/fonts; this is
+not a shipping-package comparison. Local logs, captures and final hashes are under
+`evidence/input/`. Large differential and size-ablation research was not rerun.
+
+A separate cloud X11 CUA pass used the displayed mission's new interactive v2 loop:
+visible title → Start click → held D movement → short E pickup (CELL LINKED visible)
+→ Escape pause with 71 seconds remaining. This validates displayed-window routing
+through virtual desktop input with software Vulkan and dummy audio, not physical
+hardware, audible output or real IME. A border-resize attempt brought another
+window forward and did not produce a verified resized mission view; no displayed
+resize/minimize acceptance is claimed. The test process was stopped from its
+terminal and the returned shell prompt was verified. Deterministic resize and
+minimize/restore coverage above remains distinct from that incomplete desktop check.

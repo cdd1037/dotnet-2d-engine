@@ -27,6 +27,25 @@ typedef struct { float x,y,w,h,r,g,b,a; } gal_sprite;
 typedef struct { float m11,m12,m21,m22,tx,ty,w,h,r,g,b,a; uint64_t texture; } gal_draw;
 typedef struct { uint32_t size,quit,keys; float wheel,mouse_x,mouse_y; int32_t width,height; } gal_input;
 enum { GAL_LEFT=1,GAL_RIGHT=2,GAL_UP=4,GAL_DOWN=8,GAL_SPACE=16,GAL_ESCAPE=32,GAL_INTERACT=64,GAL_DROP=128,GAL_TRANSITION=256,GAL_SAVE=512,GAL_LOAD=1024,GAL_FOCUS_LOST=2048 };
+/* Additive input contract v2. Poll exactly one version per tick: both consume events.
+   Key indexes are SDL3 physical scancodes (0..511), not text or layout characters.
+   Pointer coordinates are logical window units; dimensions are separate pixel units.
+   Edges mean at least one transition since the previous poll, not an ordered queue.
+   game_* excludes UI-consumed inputs, latched until release. Raw state remains observable.
+   Positive viewport dimensions + DRAWABLE are required for coordinate conversion. */
+enum { GAL_INPUT_VERSION=2, GAL_KEY_WORDS=8, GAL_KEY_COUNT=512 };
+enum { GAL_INPUT_FOCUSED=1, GAL_INPUT_DRAWABLE=2, GAL_INPUT_FOCUS_CHANGED=4 };
+enum { GAL_CONSUMED_KEYBOARD=1, GAL_CONSUMED_POINTER=2, GAL_CONSUMED_WHEEL=4, GAL_CONSUMED_TEXT=8 };
+typedef struct {
+ uint32_t size,version,quit,flags;
+ int32_t window_width,window_height,pixel_width,pixel_height;
+ float mouse_x,mouse_y,wheel_x,wheel_y,game_wheel_x,game_wheel_y;
+ uint32_t buttons_down,buttons_pressed,buttons_released;
+ uint32_t game_buttons_down,game_buttons_pressed,game_buttons_released;
+ uint64_t keys_down[GAL_KEY_WORDS],keys_pressed[GAL_KEY_WORDS],keys_released[GAL_KEY_WORDS];
+ uint64_t game_keys_down[GAL_KEY_WORDS],game_keys_pressed[GAL_KEY_WORDS],game_keys_released[GAL_KEY_WORDS];
+ uint32_t consumed,reserved;
+} gal_input_v2;
 typedef struct { uint32_t size,frames,sprites,draw_calls; uint32_t audio_plays; } gal_stats;
 GAL_API uint32_t GAL_CALL gal_abi_version(void);
 GAL_API const char* GAL_CALL gal_last_error(void);
@@ -34,6 +53,7 @@ GAL_API int GAL_CALL gal_create(const gal_config*,gal_context**);
 GAL_API int GAL_CALL gal_destroy(gal_context*);
 GAL_API const char* GAL_CALL gal_backend(gal_context*);
 GAL_API int GAL_CALL gal_poll(gal_context*,gal_input*);
+GAL_API int GAL_CALL gal_poll_v2(gal_context*,gal_input_v2*);
 GAL_API int GAL_CALL gal_begin(gal_context*,const gal_camera*);
 GAL_API int GAL_CALL gal_submit(gal_context*,const gal_sprite*,uint32_t);
 GAL_API int GAL_CALL gal_submit_draws(gal_context*,const gal_draw*,uint32_t);

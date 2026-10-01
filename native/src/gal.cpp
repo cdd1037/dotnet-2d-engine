@@ -36,7 +36,7 @@ int GAL_CALL gal_create(const gal_config* cfg, gal_context** out) {
  gal_context* c=nullptr;
  try {
   c=new gal_context; c->config=*cfg; c->owner=std::this_thread::get_id(); c->vertices.reserve(size_t(cfg->max_sprites)*6); c->runs.reserve(cfg->max_sprites); c->textures.reserve(256);
-  if(!(cfg->flags&GAL_HEADLESS)) { std::string why; c->backend=backend_create(*cfg,why); if(!c->backend) { delete c; return fail(why.c_str()); } }
+  if(!(cfg->flags&GAL_HEADLESS)) { std::string why; c->backend=backend_create(c->config,why); if(!c->backend) { delete c; return fail(why.c_str()); } }
   live=c; *out=c; return 0;
  } catch(...) { if(c) { backend_destroy(c->backend); delete c; } return fail("allocation or backend exception"); }
 }
@@ -47,6 +47,17 @@ int GAL_CALL gal_poll(gal_context* c,gal_input* input) {
  *input={sizeof(gal_input),0,0,0,0,0,c->config.width,c->config.height};
  if(c->backend) { try { std::string why; if(!backend_poll(c->backend,*input,why)) return fail(why.c_str()); c->config.width=input->width; c->config.height=input->height; } catch(...) { return fail("input backend exception"); } }
  return 0;
+}
+int GAL_CALL gal_poll_v2(gal_context* c,gal_input_v2* input) {
+ ENTRY; CHECK; if(c->frame) return fail("poll must occur outside an active frame");
+ if(!input||input->size!=sizeof(gal_input_v2)||input->version!=GAL_INPUT_VERSION||input->reserved) return fail("invalid input v2 size/version/reserved");
+ gal_input_v2 candidate{};candidate.size=sizeof(candidate);candidate.version=GAL_INPUT_VERSION;
+ candidate.flags=GAL_INPUT_FOCUSED|GAL_INPUT_DRAWABLE;
+ candidate.window_width=candidate.pixel_width=c->config.width;candidate.window_height=candidate.pixel_height=c->config.height;
+ if(c->backend){try{std::string why;if(!backend_poll_v2(c->backend,candidate,why))return fail(why.c_str());}catch(...){return fail("input backend exception");}}
+ if((candidate.flags&GAL_INPUT_DRAWABLE)&&candidate.pixel_width>0&&candidate.pixel_height>0&&candidate.pixel_width<=16384&&candidate.pixel_height<=16384&&candidate.window_width>0&&candidate.window_height>0&&candidate.window_width<=16384&&candidate.window_height<=16384){c->config.width=candidate.pixel_width;c->config.height=candidate.pixel_height;}
+ else candidate.flags&=~GAL_INPUT_DRAWABLE;
+ *input=candidate;return 0;
 }
 int GAL_CALL gal_begin(gal_context* c,const gal_camera* camera) {
  ENTRY; CHECK; if(c->frame) return fail("frame already begun");

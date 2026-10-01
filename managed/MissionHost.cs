@@ -145,18 +145,19 @@ internal static unsafe class MissionHost
         }
         Console.WriteLine("RELAY | WASD/arrows move; E pickup/deliver; F drop; T nearby door | Escape pause/resume | Space start/resume/restart | F5 save; F9 load | paused T title | close window quits");
         Console.WriteLine("Save file: " + Path.GetFullPath(savePath));
-        var clock = Stopwatch.StartNew(); double previousTime = clock.Elapsed.TotalSeconds; uint previousKeys = 0;
+        var clock = Stopwatch.StartNew(); double previousTime = clock.Elapsed.TotalSeconds; var actions = InputActionMap.CreateSample();
         for (int frame = 0; frames == 0 || frame < frames; frame++)
         {
             double now = clock.Elapsed.TotalSeconds; float dt = (float)Math.Clamp(now - previousTime, 0, .25); previousTime = now;
-            var input = engine.Poll(); if (input.Quit != 0) break;
+            var input = engine.PollInput(); if (input.Quit != 0) break;
+            var mapped = actions.Update(input);
             int revision = game.Revision;
-            if ((input.Keys & Native.FocusLost) != 0) game.Pause();
-            uint keys = input.Keys & ~Native.FocusLost, pressed = keys & ~previousKeys; previousKeys = keys;
+            if (!input.Focused || !input.Drawable) game.Pause();
+            uint keys = mapped.Down, pressed = mapped.Pressed;
             bool fromUi = false;
-            if ((input.Keys & Native.FocusLost) == 0) fromUi = PumpActions();
+            if (input.Focused && input.Drawable) fromUi = PumpActions();
             else while (ui.Poll().Action != 0) { }
-            if (!fromUi && game.Revision == revision && (input.Keys & Native.FocusLost) == 0)
+            if (!fromUi && game.Revision == revision && input.Focused && input.Drawable)
             {
                 if ((pressed & Native.Escape) != 0)
                 { if (game.Screen == MissionScreen.Playing) Dispatch(GameUiCommand.Pause); else if (game.Screen == MissionScreen.Paused) Dispatch(GameUiCommand.Resume); }
@@ -170,7 +171,7 @@ internal static unsafe class MissionHost
                 else if ((pressed & Native.Load) != 0) Dispatch(GameUiCommand.Load);
                 else if ((pressed & Native.Transition) != 0 && game.Screen is MissionScreen.Paused or MissionScreen.Won or MissionScreen.Lost) Dispatch(GameUiCommand.Menu);
             }
-            game.Advance(keys, dt); Model(); Render(); Thread.Sleep(1);
+            game.Advance(keys, pressed, dt); Model(); if (input.Drawable) Render(); Thread.Sleep(1);
         }
         return 0;
     }

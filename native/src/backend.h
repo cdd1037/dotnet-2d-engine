@@ -4,10 +4,11 @@
 struct Vertex { float x,y,u,v,r,g,b,a; };
 struct DrawRun { uint64_t texture; uint32_t first,count; };
 struct Backend;
-Backend* backend_create(const gal_config&,std::string&);
+Backend* backend_create(gal_config&,std::string&);
 void backend_destroy(Backend*);
 const char* backend_name(Backend*);
 bool backend_poll(Backend*,gal_input&,std::string&);
+bool backend_poll_v2(Backend*,gal_input_v2&,std::string&);
 bool backend_draw(Backend*,const Vertex*,uint32_t,const DrawRun*,uint32_t,uint32_t&,std::string&);
 bool backend_tone(Backend*,std::string&);
 

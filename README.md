@@ -24,6 +24,10 @@ See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistenc
 
 [Shared asset roots and texture leases](docs/RESOURCES.md) give authored scenes and UI consistent logical-path validation, copied key mappings, context-owned BMP caching and transactional world resource replacement. `scripts/test.sh quick resources` runs the focused CPU contract checks.
 
+## Input and viewport foundation
+
+[Versioned input and viewport contracts](docs/INPUT_VIEWPORT.md) separate window units from framebuffer pixels, preserve short key/button edges, route RmlUi-consumed input and expose configurable managed action maps. The mission uses the new poll path; legacy callers remain compatible.
+
 ## Complete playable loop
 
 `./scripts/run-game.sh` starts **RELAY / Archive Rescue** using the optional RmlUi build: title → start → two-room delivery mission → pause → win/lose → save/load → restart. See [controls, authored mission and verification](docs/PLAYABLE_MISSION.md). The original probes remain available.

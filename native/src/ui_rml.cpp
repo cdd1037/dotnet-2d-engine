@@ -160,10 +160,28 @@ bool ui_test_command(UiRml*u,uint32_t generation,uint32_t command,std::string&e)
  else if(command==GAL_UI_TEST_SCROLL)u->document->GetElementById("item-list")->SetScrollTop(150);
  else if(command==GAL_UI_TEST_TEXT)u->current->ProcessTextInput("星");
  else if(command==GAL_UI_TEST_CLICK_APPLY){auto*element=u->document->GetElementById("apply");auto offset=element->GetAbsoluteOffset();u->current->ProcessMouseMove(int(offset.x+8),int(offset.y+8),0);u->current->ProcessMouseButtonDown(0,0);u->current->ProcessMouseButtonUp(0,0);}
+ else if(command>=GAL_UI_TEST_SDL_TAP&&command<=GAL_UI_TEST_FOCUS_GAINED){
+  const auto id=SDL_GetWindowID(u->window);
+  auto push=[&](SDL_Event&event){if(!SDL_PushEvent(&event)){e="could not enqueue SDL input probe";return false;}return true;};
+  auto key=[&](bool down){SDL_Event event{};event.type=down?SDL_EVENT_KEY_DOWN:SDL_EVENT_KEY_UP;event.key.windowID=id;event.key.scancode=SDL_SCANCODE_E;event.key.key=SDLK_E;event.key.down=down;return push(event);};
+  if(command==GAL_UI_TEST_SDL_TAP){if(!key(true)||!key(false))return false;}
+  else if(command==GAL_UI_TEST_SDL_DOWN){if(!key(true))return false;}
+  else if(command==GAL_UI_TEST_SDL_UP){if(!key(false))return false;}
+  else if(command==GAL_UI_TEST_RESIZE||command==GAL_UI_TEST_RESTORE_SIZE){if(!SDL_SetWindowSize(u->window,command==GAL_UI_TEST_RESIZE?384:960,command==GAL_UI_TEST_RESIZE?288:540))return fail(e,SDL_GetError());}
+  else if(command>=GAL_UI_TEST_MINIMIZE){SDL_Event event{};event.window.windowID=id;event.type=command==GAL_UI_TEST_MINIMIZE?SDL_EVENT_WINDOW_MINIMIZED:command==GAL_UI_TEST_RESTORE?SDL_EVENT_WINDOW_RESTORED:command==GAL_UI_TEST_FOCUS_LOST?SDL_EVENT_WINDOW_FOCUS_LOST:SDL_EVENT_WINDOW_FOCUS_GAINED;if(!push(event))return false;}
+  else{
+   auto*element=u->document->GetElementById(command==GAL_UI_TEST_SDL_WHEEL?"item-list":"apply");auto offset=element->GetAbsoluteOffset();float density=SDL_GetWindowPixelDensity(u->window);if(density<=0)return fail(e,"invalid pixel density");
+   float x=(offset.x+8)/density,y=(offset.y+8)/density;
+   if(command==GAL_UI_TEST_SDL_OUTSIDE){int w=0,h=0;SDL_GetWindowSize(u->window,&w,&h);x=float(w-2);y=float(h-2);}
+   SDL_Event motion{};motion.type=SDL_EVENT_MOUSE_MOTION;motion.motion.windowID=id;motion.motion.x=x;motion.motion.y=y;if(!push(motion))return false;
+   if(command==GAL_UI_TEST_SDL_WHEEL){SDL_Event wheel{};wheel.type=SDL_EVENT_MOUSE_WHEEL;wheel.wheel.windowID=id;wheel.wheel.y=-1;if(!push(wheel))return false;}
+   else for(bool down:{true,false}){SDL_Event button{};button.type=down?SDL_EVENT_MOUSE_BUTTON_DOWN:SDL_EVENT_MOUSE_BUTTON_UP;button.button.windowID=id;button.button.button=SDL_BUTTON_LEFT;button.button.down=down;button.button.x=x;button.button.y=y;if(!push(button))return false;}
+  }
+ }
  else return fail(e,"unknown UI test command");
  return true;
 }
-void ui_input(UiRml*u,const SDL_Event&e){if(!u->current)return;SDL_Event copy=e;if(e.type==SDL_EVENT_TEXT_EDITING)u->ime.HandleEdit(e.edit);else RmlSDL::InputEventHandler(u->current,u->window,copy);}
+bool ui_input(UiRml*u,const SDL_Event&e){if(!u->current)return false;SDL_Event copy=e;if(e.type==SDL_EVENT_TEXT_EDITING){u->ime.HandleEdit(e.edit);return ui_keyboard_focus(u);}return !RmlSDL::InputEventHandler(u->current,u->window,copy);}
 bool ui_keyboard_focus(UiRml*u){if(!u->current)return false;auto*focused=u->current->GetFocusElement();return focused&&focused->GetTagName()=="input";}
 bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int h,std::string&e){
  u->system.elapsed+=1.0/60.0;

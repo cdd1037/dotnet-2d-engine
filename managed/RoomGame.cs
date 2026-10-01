@@ -74,10 +74,11 @@ internal sealed class RoomGame
         World.Create("Workbench",room,new Transform2D(400,190));World.Create("Shelf",room,new Transform2D(610,350));
         return room;
     }
-    public void Advance(uint keys,float elapsed)
+    public void Advance(uint keys,float elapsed) => Advance(keys,keys&~_previousKeys,elapsed);
+    public void Advance(uint keys,uint pressed,float elapsed)
     {
         if(!float.IsFinite(elapsed)||elapsed<0)throw new ArgumentOutOfRangeException(nameof(elapsed));
-        _pendingActions|=(keys&~_previousKeys)&(Native.Interact|Native.Drop|Native.Transition);_previousKeys=keys;
+        _pendingActions|=pressed&(Native.Interact|Native.Drop|Native.Transition);_previousKeys=keys;
         _accumulator+=Math.Min(elapsed,.25);LastSteps=0;
         while(_accumulator>=FixedDelta&&LastSteps<8){Step((keys&(Native.Left|Native.Right|Native.Up|Native.Down))|_pendingActions);_pendingActions=0;_accumulator-=FixedDelta;LastSteps++;}
         if(LastSteps==8&&_accumulator>=FixedDelta)_accumulator=0; // bounded backlog, no spiral after a pause

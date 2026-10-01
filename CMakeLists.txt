@@ -38,6 +38,11 @@ target_compile_features(gal_c_consumer PRIVATE c_std_11)
 target_link_libraries(gal_c_consumer PRIVATE gal)
 add_test(NAME c_abi_consumer COMMAND gal_c_consumer)
 
+add_executable(gal_input_state_tests tests/input_state_tests.cpp)
+target_include_directories(gal_input_state_tests PRIVATE native/include native/src)
+target_compile_features(gal_input_state_tests PRIVATE cxx_std_17)
+add_test(NAME input_state_contract COMMAND gal_input_state_tests)
+
 option(GAL_ENABLE_RMLUI "Enable reversible RmlUi settings UI experiment" OFF)
 set(GAL_RMLUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/.deps/RmlUi-ba95ffe8bfb6370efb2cdcca927eaad4710c5413" CACHE PATH "Pinned RmlUi 6.3 source")
 set(GAL_RMLUI_CORE "${CMAKE_CURRENT_SOURCE_DIR}/.deps/rmlui-build/librmlui.a" CACHE FILEPATH "Built RmlUi core static library")
