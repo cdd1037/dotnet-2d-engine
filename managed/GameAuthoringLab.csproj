@@ -16,7 +16,11 @@
   <ItemGroup>
     <Content Include="../assets/*.mission.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/*.scene.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="../assets/*.bmp" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../assets/*.bmp" Exclude="../assets/room-a.bmp;../assets/room-b.bmp" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../assets/room-a.bmp;../assets/room-b.bmp" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   <Content Include="../assets/ui/*" Link="assets/ui/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="PrepareRoomAssets" BeforeTargets="PrepareForBuild" Condition="!Exists('$(MSBuildProjectDirectory)/../assets/room-a.bmp') Or !Exists('$(MSBuildProjectDirectory)/../assets/room-b.bmp')">
+    <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../scripts/prepare-room-assets.sh&quot;" />
+  </Target>
 </Project>

@@ -24,3 +24,7 @@
 # Local playable mission checkpoints (never source assets)
 /relay-save.json
 /relay-scenario-save.json
+
+# Large reproducible room art omitted from the initial GitHub import
+/assets/room-a.bmp
+/assets/room-b.bmp
