@@ -479,3 +479,50 @@ both the animation and TileMap additions since the previous publication, along
 with aggregate tests; this is not an isolated TileMap API or whole-package size.
 Native libraries are unchanged. Local evidence and hashes are in
 `evidence/tilemap/`; generated images/build outputs remain excluded from Git.
+
+## UI composition/ownership subbatch (2026-10-01)
+
+The [UI text-input bridge](UI_TEXT_INPUT.md) now wraps the unchanged pinned RmlUi
+SDL editor with explicit lifecycle, bounds, candidate-coordinate conversion and
+exclusive managed session ownership. UI-enabled SDL initialization advertises
+inline composition as upstream's GPU backend does. Candidate-list rendering and
+OS input-method setup are not implemented by this bridge.
+
+Final-source verification:
+
+- Native CTest **5/5**, including a new SDL-independent caret geometry test for
+  2×/nonuniform density, clamping and invalid sizes; C11 verifies the additive
+  **832-byte** text-state diagnostic struct and payload offset
+- Full JIT and **fresh NativeAOT: 10,265 CPU assertions each**, including **9** UI
+  owner/layout checks. Duplicate same/cross-profile sessions, wrong-thread close,
+  failed opening, obsolete-wrapper disposal and engine-first disposal are covered
+- JIT/AOT each pass **41 queued-SDL composition assertions** through real RmlUi:
+  ASCII/CJK preedit replacement and scalar selection; ordinary/direct commit;
+  original selected-text restoration on cancel; field-length enforcement;
+  malformed/oversized/range rejection; consumed Escape; blur/focus/minimize/restore;
+  candidate refresh after resize and same-bounds glyph-width changes; failed reload
+  retention; staged autofocus isolation; new context state; and queued old text
+  retirement on document replacement and close/reopen
+- Both modes retain existing routed input **28**, settings UI **23**, mission UI
+  **28**, and modal room/UI **16** checks. In particular, retiring text packets
+  preserves the existing pointer/key routing behavior
+- **Four text/settings captures are byte-identical between JIT and AOT**. The
+  Chinese preedit/selection capture was inspected visually. Rendering remains
+  offscreen Mesa software Vulkan with the existing external CJK font
+
+Review and focused reproduction found three lifecycle/geometry defects beyond
+initial wiring: pending autofocus could steal the live text context; same-size
+text replacement could leave the candidate anchor stale; and text already in the
+SDL queue could leak into a replacement document. Regression tests reproduce and
+cover each corrected boundary. Text retirement filters only this window's queued
+text/editing/candidate events, preserving pointer/key events and other windows.
+
+No real OS Chinese IME, actual candidate window/selection, high-DPI hardware or
+cross-platform acceptance was performed. Synthetic SDL editing packets are not a
+substitute for those tests. No input-method package, font or OS setting was added
+or changed. Generic typed binding and dynamic lists remain the next UI subbatch.
+
+The stripped aggregate AOT test host is **5,575,888 bytes**; the combined optional
+UI/audio/physics native library is **4,005,768 bytes** in this Release build. These
+are aggregate file measurements, not an isolated API or total distribution size.
+Logs, readbacks and output hashes remain ignored under `evidence/ui-text/`.

@@ -218,3 +218,7 @@ The archived font-excluded ZIP measurements above are historical and the ZIP has
 not been rebuilt. Current host size and merged regression evidence are recorded
 in [XML trimming report](XML_TRIMMING.md); do not substitute the new host size into an
 old package's claimed total.
+
+## Text-input and ownership follow-on
+
+The [text-input bridge and owner contract](UI_TEXT_INPUT.md) now cover bounded SDL composition events, cancellation/focus lifecycle, candidate-coordinate conversion and exclusive managed UI ownership. Real OS Chinese-IME acceptance remains unverified; generic bindings and dynamic list mutation are a separate next batch.

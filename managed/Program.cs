@@ -20,6 +20,8 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(args.Contains("--ui-owner-test",StringComparer.Ordinal)){UiTextTests.RunContracts();return 0;}
+            if(args.Contains("--ui-text-test",StringComparer.Ordinal)){UiTextTests.RunComposition();return 0;}
             if(args.Contains("--tilemap-demo",StringComparer.Ordinal)||args.Contains("--tilemap-scenario",StringComparer.Ordinal)||args.Contains("--tilemap-physics-demo",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal))return TileMapDemo.Run(options.Headless,options.Frames,args.Contains("--tilemap-scenario",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal),args.Contains("--tilemap-physics-demo",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal));
             if(args.Contains("--tilemap-self-test",StringComparer.Ordinal)){TileMapTests.Run();return 0;}
             if(args.Contains("--tilemap-physics-test",StringComparer.Ordinal)){TileMapTests.RunPhysics();return 0;}
@@ -226,7 +228,7 @@ internal static class Program
                     case "--ui-demo":uiDemo=true;break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
-                    case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
+                    case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;
                     case "--game-ui-self-test": break;

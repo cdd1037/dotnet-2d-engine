@@ -14,19 +14,17 @@ internal static unsafe partial class GameUiNative
     [LibraryImport("gal",EntryPoint="gal_game_ui_poll_action")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Poll(nint c,GameUiAction* action);
     [LibraryImport("gal",EntryPoint="gal_game_ui_test_command")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Command(nint c,uint generation,uint action);
 }
-internal sealed unsafe class GameUiSession(EngineHost engine):IDisposable
+internal sealed unsafe class GameUiSession(EngineHost engine):UiSessionOwner(engine)
 {
-    private bool _closed;
-    private nint Context {get{ObjectDisposedException.ThrowIf(_closed,this);return engine.NativeContext;}}
     public static string SourcePath=>new AssetRoot().FilePath("ui/game.rml");
     public UiState State {get{UiState state=new(){Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"game UI state");return state;}}
     public void Load(string path)
     {
-        ObjectDisposedException.ThrowIf(_closed,this);Stage(GameUiAuthoring.ValidateFiles(path));
+        CheckAccess();Stage(GameUiAuthoring.ValidateFiles(path));
     }
     public void LoadAsset(AssetRoot assets, string logicalPath)
     {
-        ObjectDisposedException.ThrowIf(_closed,this);Stage(GameUiAuthoring.ValidateAsset(assets,logicalPath));
+        CheckAccess();Stage(GameUiAuthoring.ValidateAsset(assets,logicalPath));
     }
     private void Stage((string Rml,string Rcss) validated)
     {
@@ -35,7 +33,7 @@ internal sealed unsafe class GameUiSession(EngineHost engine):IDisposable
         {
             File.WriteAllText(Path.Combine(staging,"game.rml"),validated.Rml,new UTF8Encoding(false));
             File.WriteAllText(Path.Combine(staging,"game.rcss"),validated.Rcss,new UTF8Encoding(false));
-            Native.Check(GameUiNative.Open(Context,Path.Combine(staging,"game.rml"),Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),"game UI stage");
+            Native.Check(GameUiNative.Open(Context,Path.Combine(staging,"game.rml"),Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),"game UI stage");MarkNativeOpened();
         }
         finally{Directory.Delete(staging,true);}
     }
@@ -52,5 +50,4 @@ internal sealed unsafe class GameUiSession(EngineHost engine):IDisposable
     internal void TestFocus(bool focused)=>Native.Check(GameUiNative.Command(Context,State.Generation,focused?101u:100u),"game UI focus probe");
     internal void TestPointer(uint generation,GameUiCommand command)=>Native.Check(GameUiNative.Command(Context,generation,200+(uint)command),"game UI pointer probe");
     public void Capture(string path)=>Native.Check(UiNative.Capture(Context,Path.GetFullPath(path)),"game UI capture");
-    public void Dispose(){if(_closed)return;Native.Check(UiNative.Close(Context),"game UI close");_closed=true;}
 }

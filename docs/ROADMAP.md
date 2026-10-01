@@ -25,6 +25,9 @@ explicit lifetimes. The [Box2D foundation](PHYSICS.md) now adds bounded bodies,
 shapes, events and queries with explicit units/ownership. The managed
 [basic TileMap](TILEMAP.md) adds bounded authored grids, chunk-assisted visibility
 culling and optional generated static collision.
+The [UI text-input/ownership follow-on](UI_TEXT_INPUT.md) now validates the
+composition bridge and candidate-coordinate contract synthetically; generic
+typed bindings/dynamic lists and real desktop IME acceptance remain UI follow-ons.
 The advanced-effects group remains deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.

@@ -10,6 +10,9 @@ internal sealed unsafe class EngineHost : IDisposable
     private TextureCache? _textures;
     private AudioSession? _audio;
     private PhysicsWorld? _physics;
+    private UiSessionOwner? _ui;
+    internal void AcquireUi(UiSessionOwner owner) { AssertAlive(); if(_ui is not null)throw new InvalidOperationException("This engine already has a managed UI owner."); _ui=owner; }
+    internal void ReleaseUi(UiSessionOwner owner) { AssertThread(); if(ReferenceEquals(_ui,owner))_ui=null; }
     public PhysicsWorld OpenPhysics(PhysicsSettings? settings=null)
     {
         AssertAlive();if(_physics is not null)throw new InvalidOperationException("A physics world is already open.");
@@ -154,5 +157,6 @@ internal sealed unsafe class EngineHost : IDisposable
         _textures?.EngineDestroyed();
         _audio?.EngineDestroyed();_audio=null;
         _physics?.EngineDestroyed();_physics=null;
+        _ui?.EngineDestroyed();_ui=null;
     }
 }

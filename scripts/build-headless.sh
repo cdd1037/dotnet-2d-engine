@@ -14,3 +14,6 @@ echo 'PASS C11 consumer ABI layouts/create/destroy'
 
 "$cxx" -std=c++17 -Wall -Wextra -Werror -O2 tests/input_state_tests.cpp -Inative/include -Inative/src -o build-headless/gal_input_state_tests
 build-headless/gal_input_state_tests
+
+"$cxx" -std=c++17 -Wall -Wextra -Werror -O2 tests/text_input_geometry_tests.cpp -Inative/src -o build-headless/gal_text_geometry_tests
+build-headless/gal_text_geometry_tests

@@ -2,20 +2,18 @@ using System.Text;
 namespace GameAuthoringLab;
 
 // An optional settings adapter; no World or RoomGame type depends on it.
-internal sealed unsafe class UiSession : IDisposable
+internal sealed unsafe class UiSession : UiSessionOwner
 {
-    private readonly EngineHost _engine;private bool _closed;
-    private nint Context{get{ObjectDisposedException.ThrowIf(_closed,this);return _engine.NativeContext;}}
-    public UiSession(EngineHost engine){_engine=engine;}
+    public UiSession(EngineHost engine):base(engine) { }
     public UiState State{get{var state=new UiState{Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"ui state");return state;}}
     public void Load(string path)
     {
-        ObjectDisposedException.ThrowIf(_closed,this);
+        CheckAccess();
         Stage(UiAuthoring.ValidateFiles(path));
     }
     public void LoadAsset(AssetRoot assets,string logicalPath)
     {
-        ObjectDisposedException.ThrowIf(_closed,this);Stage(UiAuthoring.ValidateAsset(assets,logicalPath));
+        CheckAccess();Stage(UiAuthoring.ValidateAsset(assets,logicalPath));
     }
     private void Stage(UiValidatedDocument validated)
     {
@@ -23,7 +21,7 @@ internal sealed unsafe class UiSession : IDisposable
         try {
         File.WriteAllText(Path.Combine(directory,"settings.rml"),validated.Rml,new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(directory,"settings.rcss"),validated.Rcss,new UTF8Encoding(false));
-        Native.Check(UiNative.Open(Context,Path.Combine(directory,"settings.rml"),Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),"ui stage");
+        Native.Check(UiNative.Open(Context,Path.Combine(directory,"settings.rml"),Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),"ui stage");MarkNativeOpened();
         } finally {Directory.Delete(directory,true);}
     }
     public void Set(uint generation,string name,int volume,string status)
@@ -35,7 +33,6 @@ internal sealed unsafe class UiSession : IDisposable
     public UiAction Poll(){UiAction action=new(){Size=(uint)sizeof(UiAction)};Native.Check(UiNative.Poll(Context,&action),"ui event");return action;}
     public void Command(uint generation,uint command)=>Native.Check(UiNative.Command(Context,generation,command),"ui scripted input");
     public void Capture(string path)=>Native.Check(UiNative.Capture(Context,Path.GetFullPath(path)),"ui capture");
-    public void Dispose(){if(_closed)return;Native.Check(UiNative.Close(Context),"ui close");_closed=true;}
 }
 internal static unsafe class UiProbe
 {

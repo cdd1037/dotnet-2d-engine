@@ -30,6 +30,7 @@ internal static unsafe class SelfTests
         _assertions += PhysicsTests.RunContracts();
         _assertions += AnimationTests.Run();
         _assertions += TileMapTests.Run();
+        _assertions += UiTextTests.RunContracts();
         UiAuthoringTests.Run(Assert);
         Console.WriteLine($"SELF-TEST PASS assertions={_assertions} (headless ABI validation; no graphics/audio device exercised)");
         return 0;

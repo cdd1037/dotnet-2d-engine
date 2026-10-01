@@ -1,0 +1,22 @@
+namespace GameAuthoringLab;
+
+// One managed owner for the context's optional UI. No abandoned wrapper can close a newer owner.
+internal abstract unsafe class UiSessionOwner : IDisposable
+{
+    protected EngineHost Engine { get; }
+    private bool _nativeOpened;
+    public bool IsDisposed { get; private set; }
+    protected UiSessionOwner(EngineHost engine) { ArgumentNullException.ThrowIfNull(engine); Engine=engine; engine.AcquireUi(this); }
+    protected nint Context { get { CheckAccess(); return Engine.NativeContext; } }
+    protected void CheckAccess() { Engine.AssertThread(); ObjectDisposedException.ThrowIf(IsDisposed,this); Engine.AssertAlive(); }
+    public UiTextState TextState { get { var state=new UiTextState{Size=(uint)sizeof(UiTextState),Version=1};Native.Check(UiNative.TextState(Context,&state),"UI text state");return state; } }
+    protected void MarkNativeOpened() => _nativeOpened=true;
+    internal void EngineDestroyed() { IsDisposed=true; OnClosed(); }
+    protected virtual void OnClosed() { }
+    public void Dispose()
+    {
+        Engine.AssertThread(); if(IsDisposed)return;
+        if(_nativeOpened)Native.Check(UiNative.Close(Context),"UI close");
+        IsDisposed=true; Engine.ReleaseUi(this); OnClosed();
+    }
+}

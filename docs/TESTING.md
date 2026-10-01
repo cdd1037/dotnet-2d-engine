@@ -66,3 +66,5 @@ wall time (Release build reported **2.13 s**, zero warnings/errors). Native
 contracts passed, three CPU frames processed 777 sprites with no GPU draws/audio,
 and sample UI preflight passed. This is one measured invocation, not a benchmark
 or guarantee. Existing final aggregate evidence is reused rather than duplicated.
+
+UI text-input changes can run `--ui-owner-test` on the headless build and `--ui-text-test` with the prepared RmlUi build/font. The latter queues SDL composition packets; it does not drive a real OS input method. See [text bridge](UI_TEXT_INPUT.md).

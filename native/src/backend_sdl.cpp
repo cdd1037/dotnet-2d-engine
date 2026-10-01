@@ -54,6 +54,11 @@ Backend* backend_create(gal_config& c,std::string& e) {
  const int runtime=SDL_GetVersion();
  if(runtime<SDL_VERSIONNUM(3,4,16)){e="SDL 3.4.16 or newer required; loaded "+std::to_string(SDL_VERSIONNUM_MAJOR(runtime))+"."+std::to_string(SDL_VERSIONNUM_MINOR(runtime))+"."+std::to_string(SDL_VERSIONNUM_MICRO(runtime));return nullptr;}
  std::unique_ptr<Backend,decltype(&backend_destroy)> ptr(new Backend,&backend_destroy); auto*b=ptr.get(); b->textures.reserve(256);
+#ifdef GAL_ENABLE_RMLUI
+ // Match upstream RmlUi's SDL GPU initialization: we render preedit, the OS renders candidates.
+ // Preserve an explicit host/environment override; this is an application hint, not an OS setting.
+ if(!SDL_GetHint(SDL_HINT_IME_IMPLEMENTED_UI))SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI,"composition");
+#endif
  const SDL_InitFlags flags=SDL_INIT_VIDEO | ((c.flags&GAL_AUDIO)?SDL_INIT_AUDIO:0);
  if(!SDL_InitSubSystem(flags)) { error(e); return nullptr; } b->init_flags=flags;
  b->window=SDL_CreateWindow("Game Authoring Lab | C# + SDL3 GPU",c.width,c.height,SDL_WINDOW_RESIZABLE);
@@ -241,8 +246,11 @@ void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
  if(op==1||op==10){auto paths=static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
-  if(!b->ui){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;}
-  return ui_load(b->ui,paths[0],e,op==10);
+  const bool created=!b->ui;
+  if(created){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;ui_window_state(b->ui,b->input.focused,!b->minimized);}
+  if(ui_load(b->ui,paths[0],e,op==10))return true;
+  if(created){ui_destroy(b->ui);b->ui=nullptr;}
+  return false;
  }
  if(op==2){ui_destroy(b->ui);b->ui=nullptr;return true;}
  if(op==7){auto path=static_cast<const char*>(in);if(!path||!path[0]||std::strlen(path)>4096){e="invalid capture path";return false;}b->capture_path=path;b->captured=false;return true;}
@@ -253,6 +261,7 @@ bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
  if(op==3){auto*m=static_cast<const gal_ui_model*>(in);if(!m||m->size!=sizeof(*m)){e="invalid UI model size";return false;}return ui_set_model(b->ui,*m,e);}
  if(op==4){auto*a=static_cast<gal_ui_action*>(out);if(!a||a->size!=sizeof(*a)){e="invalid UI action size";return false;}return ui_poll_action(b->ui,*a,e);}
  if(op==5){auto*s=static_cast<gal_ui_state*>(out);if(!s||s->size!=sizeof(*s)){e="invalid UI state size";return false;}ui_state(b->ui,*s);return true;}
+ if(op==8){auto*s=static_cast<gal_ui_text_state*>(out);if(!s||s->size!=sizeof(*s)||s->version!=1||s->reserved){e="invalid UI text state size/version/reserved";return false;}ui_text_state(b->ui,*s);return true;}
  if(op==6){auto args=static_cast<const uint32_t*>(in);return ui_test_command(b->ui,args[0],args[1],e);}
  e="unknown UI operation";return false;
 }

@@ -78,3 +78,8 @@ if(GAL_ENABLE_PHYSICS)
 else()
  target_sources(gal PRIVATE native/src/physics_stub.cpp)
 endif()
+
+add_executable(gal_text_geometry_tests tests/text_input_geometry_tests.cpp)
+target_include_directories(gal_text_geometry_tests PRIVATE native/src)
+target_compile_features(gal_text_geometry_tests PRIVATE cxx_std_17)
+add_test(NAME text_input_geometry COMMAND gal_text_geometry_tests)

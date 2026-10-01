@@ -14,13 +14,22 @@ enum { GAL_UI_APPLY=1,GAL_UI_RESET=2,GAL_UI_CHANGED=3 };
 enum { GAL_UI_TEST_APPLY=1,GAL_UI_TEST_RESET=2,GAL_UI_TEST_FOCUS=3,GAL_UI_TEST_SCROLL=4,GAL_UI_TEST_TEXT=5,GAL_UI_TEST_CLICK_APPLY=6,
  GAL_UI_TEST_SDL_TAP=7,GAL_UI_TEST_SDL_CLICK=8,GAL_UI_TEST_SDL_DOWN=9,GAL_UI_TEST_SDL_UP=10,
  GAL_UI_TEST_SDL_WHEEL=11,GAL_UI_TEST_SDL_OUTSIDE=12,GAL_UI_TEST_RESIZE=13,GAL_UI_TEST_RESTORE_SIZE=14,
- GAL_UI_TEST_MINIMIZE=15,GAL_UI_TEST_RESTORE=16,GAL_UI_TEST_FOCUS_LOST=17,GAL_UI_TEST_FOCUS_GAINED=18 };
+ GAL_UI_TEST_MINIMIZE=15,GAL_UI_TEST_RESTORE=16,GAL_UI_TEST_FOCUS_LOST=17,GAL_UI_TEST_FOCUS_GAINED=18,
+ GAL_UI_TEST_PREEDIT_ASCII=19,GAL_UI_TEST_PREEDIT_CJK=20,GAL_UI_TEST_PREEDIT_END=21,GAL_UI_TEST_COMMIT_CJK=22,
+ GAL_UI_TEST_BLUR=23,GAL_UI_TEST_SELECT_RANGE=24,GAL_UI_TEST_BAD_EDIT_UTF8=25,GAL_UI_TEST_BAD_EDIT_RANGE=26,
+ GAL_UI_TEST_LONG_EDIT=27,GAL_UI_TEST_SELECT_END=28,GAL_UI_TEST_COMPOSITION_ESCAPE=29 };
 GAL_API int GAL_CALL gal_ui_open(gal_context*,const char* rml_path,const char* font_path);
 GAL_API int GAL_CALL gal_ui_close(gal_context*);
 GAL_API int GAL_CALL gal_ui_set_model(gal_context*,const gal_ui_model*);
 /* action=0 means queue empty. Overflow is explicit in get_state. */
 GAL_API int GAL_CALL gal_ui_poll_action(gal_context*,gal_ui_action*);
 GAL_API int GAL_CALL gal_ui_get_state(gal_context*,gal_ui_state*);
+/* Read-only text bridge diagnostics v1. Value may contain a bounded preedit, not a committed model.
+   flags: active context=1, composing=2, SDL text active=4, window focus=8,
+   keyboard requested=16, candidate geometry valid=32, visible=64, SDL inline-composition capability=128. Rect is in WINDOW coordinates. */
+typedef struct { uint32_t size,version,generation,flags; int32_t selection_start,selection_end,area_x,area_y,area_w,area_h;
+ float caret_x,caret_y,line_height; uint32_t preedit_scalars,failures,reserved; char value[512],diagnostic[256]; } gal_ui_text_state;
+GAL_API int GAL_CALL gal_ui_get_text_state(gal_context*,gal_ui_text_state*);
 /* Deterministic probe input, not OS-input/IME verification. */
 GAL_API int GAL_CALL gal_ui_test_command(gal_context*,uint32_t generation,uint32_t command);
 GAL_API int GAL_CALL gal_capture_next(gal_context*,const char* bmp_path);

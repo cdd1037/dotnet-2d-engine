@@ -1,7 +1,10 @@
 #include "gal.h"
 #include "gal_audio.h"
+#include "gal_ui.h"
 #include "gal_physics.h"
 #include <stddef.h>
+_Static_assert(sizeof(gal_ui_text_state)==832, "UI text state");
+_Static_assert(offsetof(gal_ui_text_state,value)==64, "UI text payload offset");
 _Static_assert(sizeof(gal_physics_config)==32, "physics config");
 _Static_assert(sizeof(gal_body_def)==56, "physics body");
 _Static_assert(sizeof(gal_shape_def)==72, "physics shape");

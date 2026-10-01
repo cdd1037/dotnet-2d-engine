@@ -167,3 +167,7 @@ optional merged static box collision. It reuses existing native drawing/physics
 ABIs and explicit scene cleanup. Frame capacity, physics capacity and unit limits
 remain separate checked contracts; richer terrain/controller/editor features
 remain outside this slice.
+
+## UI text-input follow-on
+
+The [UI ownership/text bridge](UI_TEXT_INPUT.md) now preserves selected text through composition cancellation, maps candidate geometry to window coordinates, isolates staged focus and retires contexts safely. Scripted composition is distinguished from real OS IME acceptance. The typed-binding/list API remains a later UI subbatch.
