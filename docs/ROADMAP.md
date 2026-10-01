@@ -5,6 +5,20 @@ proposed delivery stages, not claims of implemented support or approval to insta
 publish or deploy anything. Use small playable examples to validate general-purpose engine capabilities;
 one sample is a starting point, not the engine feature ceiling.
 
+## Current progress and immediate order
+
+Phase 1's playable loop is committed locally as `105eb06`. Continued incremental
+engine implementation is authorized (2026-10-01); external publication and new
+dependency selections remain separate decisions. The next resource batch adds
+shared root/path validation, stable key mappings and explicit context-owned BMP
+texture leases; see [resource foundation](RESOURCES.md).
+
+Next, address input/viewport coordinate contracts and UI consumption before
+texture regions/atlas UVs and basic animation. Keep mature physics/audio library
+choices for an explicit decision, and keep the advanced-effects group deferred.
+The delivery stages below remain useful acceptance targets, not a replacement for
+this engine-capability order.
+
 ## 1. Turn the sample into a repeatable small game
 
 Goal: extend the current two-room/pickup/save/menu slice into a representative
@@ -71,9 +85,9 @@ editor adds a second authoring surface. A Godot fork is outside this project.
 ## Engine capability track (alongside the stages above)
 
 The stages above describe integration, authoring and delivery. They do not replace
-building reusable 2D engine functionality. Phase 1 remains the currently authorized
-implementation; the following is a prioritized roadmap, not a dependency selection
-or instruction to implement everything immediately.
+building reusable 2D engine functionality. Phase 1 is complete and focused resource/input/rendering
+batches are being advanced incrementally. The following remains a prioritized
+roadmap, not a dependency selection or instruction to implement everything immediately.
 
 ### A. Resources, scenes, rendering and animation
 

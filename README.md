@@ -20,6 +20,10 @@ This project is primarily designed for AI-driven authoring and iteration. Prefer
 
 See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistence, CLI scenarios and current limits.
 
+## Resource foundation
+
+[Shared asset roots and texture leases](docs/RESOURCES.md) give authored scenes and UI consistent logical-path validation, copied key mappings, context-owned BMP caching and transactional world resource replacement. `scripts/test.sh quick resources` runs the focused CPU contract checks.
+
 ## Complete playable loop
 
 `./scripts/run-game.sh` starts **RELAY / Archive Rescue** using the optional RmlUi build: title → start → two-room delivery mission → pause → win/lose → save/load → restart. See [controls, authored mission and verification](docs/PLAYABLE_MISSION.md). The original probes remain available.

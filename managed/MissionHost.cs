@@ -9,7 +9,7 @@ internal static unsafe class MissionHost
         using var engine = new EngineHost(false, 4096);
         var catalog = new AssetCatalog();
         using var bank = new TextureBank(engine, catalog);
-        using var game = new MissionGame(Path.Combine(catalog.Root, "relay.mission.json"), catalog);
+        using var game = new MissionGame(catalog.Assets.Resolve("relay.mission.json"), catalog);
         using var ui = new GameUiSession(engine);
         var batch = new SpriteBatch(64) { TextureResolver = bank.Resolve };
         var camera = new Camera { Zoom = 1 };
@@ -84,7 +84,7 @@ internal static unsafe class MissionHost
             return false;
         }
         void Click(GameUiCommand action) { ui.Command(generation, action); PumpActions(); Render(); }
-        ui.Load(Path.Combine(catalog.Root, "ui", "game.rml"));
+        ui.LoadAsset(catalog.Assets, "ui/game.rml");
         Render(); generation = ui.State.Generation; Model(); Render();
         if (scenario)
         {

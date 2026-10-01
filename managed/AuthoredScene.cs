@@ -29,7 +29,7 @@ internal sealed class AuthoredSceneException(string code, string file, string pa
     public string JsonPath { get; } = path;
     public Guid? EntityId { get; } = entityId;
 }
-internal sealed record LoadedAuthoredScene(AuthoredSceneDocument Source, World World, IReadOnlyDictionary<string, string> Resources);
+internal sealed record LoadedAuthoredScene(AuthoredSceneDocument Source, World World, IReadOnlyDictionary<string, string> Resources, AssetCatalog Catalog);
 
 internal static class AuthoredScene
 {
@@ -37,23 +37,27 @@ internal static class AuthoredScene
     private const int MaximumBytes = 1024 * 1024;
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
-    public static LoadedAuthoredScene LoadFile(string path)
+    public static LoadedAuthoredScene LoadAsset(AssetRoot assets, string logicalPath)
+        => LoadFile(assets.Resolve(logicalPath), assets);
+
+    public static LoadedAuthoredScene LoadFile(string path, AssetRoot? assets = null)
     {
         string full = System.IO.Path.GetFullPath(path);
         try
         {
+            if (assets is not null) full = assets.Resolve(assets.LogicalPathFor(full));
             using var stream = File.OpenRead(full);
             if (stream.Length is <= 0 or > MaximumBytes) throw Error("SCENE_SIZE", full, "$", null, "Expected 1..1048576 UTF-8 bytes.");
             byte[] bytes = new byte[(int)stream.Length];
             stream.ReadExactly(bytes);
             if (stream.ReadByte() != -1) throw Error("SCENE_SIZE", full, "$", null, "Source changed while reading.");
-            return Load(Utf8.GetString(bytes), full);
+            return Load(Utf8.GetString(bytes), full, assets);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or DecoderFallbackException)
         { throw Error("SCENE_FILE", full, "$", null, e.Message, e); }
     }
 
-    public static LoadedAuthoredScene Load(string json, string sourcePath)
+    public static LoadedAuthoredScene Load(string json, string sourcePath, AssetRoot? assets = null)
     {
         if (json.Length > MaximumBytes || Utf8.GetByteCount(json) > MaximumBytes)
             throw Error("SCENE_SIZE", sourcePath, "$", null, "Source exceeds 1048576 UTF-8 bytes.");
@@ -65,21 +69,21 @@ internal static class AuthoredScene
         }
         catch (JsonException e)
         { throw Error("SCENE_JSON", sourcePath, e.Path ?? "$", null, $"Line {(e.LineNumber ?? 0) + 1}, byte column {(e.BytePositionInLine ?? 0) + 1}: {e.Message}", e); }
-        return Build(doc, sourcePath);
+        return Build(doc, sourcePath, assets);
     }
 
-    public static string Write(AuthoredSceneDocument document, string sourcePath)
+    public static string Write(AuthoredSceneDocument document, string sourcePath, AssetRoot? assets = null)
     {
-        _ = Build(document, sourcePath); // Same validation path used by runtime and tools.
+        _ = Build(document, sourcePath, assets); // Same validation path used by runtime and tools.
         string json = JsonSerializer.Serialize(document, AuthoredSceneJsonContext.Default.AuthoredSceneDocument);
         if (Utf8.GetByteCount(json) > MaximumBytes) throw Error("SCENE_SIZE", sourcePath, "$", null, "Output exceeds 1048576 UTF-8 bytes.");
         return json;
     }
 
-    public static void SaveFile(AuthoredSceneDocument document, string path)
+    public static void SaveFile(AuthoredSceneDocument document, string path, AssetRoot? assets = null)
     {
         string full = System.IO.Path.GetFullPath(path);
-        string json = Write(document, full); // Resolve resources at destination before any write.
+        string json = Write(document, full, assets); // Resolve resources at destination before any write.
         string temp = full + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
@@ -91,7 +95,7 @@ internal static class AuthoredScene
         finally { if (File.Exists(temp)) File.Delete(temp); }
     }
 
-    private static LoadedAuthoredScene Build(AuthoredSceneDocument doc, string file)
+    private static LoadedAuthoredScene Build(AuthoredSceneDocument doc, string file, AssetRoot? assets)
     {
         if (doc.Kind != Kind) throw Error("SCENE_KIND", file, "$.kind", null, $"Expected {Kind}; runtime saves are separate documents.");
         if (doc.Version != 1) throw Error("SCENE_VERSION", file, "$.version", null, "Only authored scene version 1 is supported.");
@@ -103,38 +107,27 @@ internal static class AuthoredScene
         { if (id == Guid.Empty || !ids.Add(id)) throw Error("SCENE_ID", file, path, entity, "ID must be nonempty and unique across scene, persistent scope and entities."); }
         Unique(doc.Id, "$.id"); Unique(doc.PersistentScopeId, "$.persistentScopeId");
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
-        string root = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file))!;
-        Span<byte> header = stackalloc byte[54];
+        assets ??= new AssetRoot(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file))!);
+        string sourceLogical;
+        try { sourceLogical = assets.LogicalPathFor(file); }
+        catch (AssetException e) { throw Error("SCENE_RESOURCE", file, "$", null, e.Message, e); }
+        var logicalPaths = new Dictionary<string, string>(StringComparer.Ordinal);
         for (int i = 0; i < doc.Resources.Count; i++)
         {
             var resource = doc.Resources[i]; string prefix = $"$.resources[{i}]";
             if (resource is null) throw Error("SCENE_RESOURCE", file, prefix, null, "Resource cannot be null.");
             if (string.IsNullOrWhiteSpace(resource.Key) || !paths.TryAdd(resource.Key, ""))
                 throw Error("SCENE_RESOURCE", file, prefix + ".key", null, "Resource key must be nonempty and unique (case sensitive).");
-            string? relative = resource.Path;
-            if (string.IsNullOrWhiteSpace(relative) || relative.Contains('\\') || relative.Contains(':') ||
-                System.IO.Path.IsPathRooted(relative) || relative.Split('/').Any(p => p is "" or "." or "..") ||
-                !relative.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
-                throw Error("SCENE_RESOURCE", file, prefix + ".path", null, "Expected a relative BMP path with '/' separators, no traversal or URI.");
-            string resolved = root;
             try
             {
-                foreach (string part in relative.Split('/'))
-                {
-                    resolved = System.IO.Path.Combine(resolved, part);
-                    if ((File.GetAttributes(resolved) & FileAttributes.ReparsePoint) != 0)
-                        throw new IOException("Symbolic-link resources are outside this profile.");
-                }
-                using var stream = File.OpenRead(resolved);
-                stream.ReadExactly(header);
-                int width = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(header[18..]);
-                int height = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(header[22..]);
-                if (header[0] != 'B' || header[1] != 'M' || width is < 1 or > 4096 || height is < 1 or > 4096)
-                    throw new IOException("Expected BMP header and dimensions 1..4096. Native upload validates decoding.");
+                // Version 1 remains relative to its scene. The root supplies one namespace,
+                // not a second meaning for an existing resource field.
+                string logical = assets.Sibling(sourceLogical, resource.Path);
+                paths[resource.Key] = assets.ValidateBitmap(logical);
+                logicalPaths.Add(resource.Key, logical);
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+            catch (AssetException e)
             { throw Error("SCENE_RESOURCE", file, prefix + ".path", null, e.Message, e); }
-            paths[resource.Key] = resolved;
         }
         var entities = new Dictionary<Guid, int>();
         for (int i = 0; i < doc.Entities.Count; i++)
@@ -203,7 +196,7 @@ internal static class AuthoredScene
             }
             catch (ArgumentOutOfRangeException e) { throw Error("SCENE_TRANSFORM", file, $"$.entities[{i}].transform", entity.PersistentId, e.Message, e); }
         }
-        return new(doc, world, paths);
+        return new(doc, world, new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(paths), new AssetCatalog(assets, logicalPaths));
     }
     private static AuthoredSceneException Error(string code, string file, string path, Guid? id, string cause, Exception? inner = null)
         => new(code, file, path, id, cause, inner);

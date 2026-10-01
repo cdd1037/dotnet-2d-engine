@@ -11,7 +11,14 @@ internal sealed unsafe class UiSession : IDisposable
     public void Load(string path)
     {
         ObjectDisposedException.ThrowIf(_closed,this);
-        var validated=UiAuthoring.ValidateFiles(path);
+        Stage(UiAuthoring.ValidateFiles(path));
+    }
+    public void LoadAsset(AssetRoot assets,string logicalPath)
+    {
+        ObjectDisposedException.ThrowIf(_closed,this);Stage(UiAuthoring.ValidateAsset(assets,logicalPath));
+    }
+    private void Stage(UiValidatedDocument validated)
+    {
         string directory=Path.Combine(Path.GetTempPath(),"gal-ui-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(directory);
         try {
         File.WriteAllText(Path.Combine(directory,"settings.rml"),validated.Rml,new UTF8Encoding(false));
@@ -32,12 +39,12 @@ internal sealed unsafe class UiSession : IDisposable
 }
 internal static unsafe class UiProbe
 {
-    internal static string SourcePath=>Path.Combine(Environment.GetEnvironmentVariable("GAL_ASSET_ROOT")??Path.Combine(AppContext.BaseDirectory,"assets"),"ui","settings.rml");
+    internal static string SourcePath=>new AssetRoot().FilePath("ui/settings.rml");
     internal static int Run(bool scenario,int frames)
     {
-        using var engine=new EngineHost(false,4096);using var bank=new TextureBank(engine,new AssetCatalog());var game=new RoomGame();var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
+        using var engine=new EngineHost(false,4096);var catalog=new AssetCatalog();using var bank=new TextureBank(engine,catalog);var game=new RoomGame();var batch=new SpriteBatch(64){TextureResolver=bank.Resolve};var camera=new Camera{Zoom=1};
         void Render(){bank.Sync(game.World);game.World.ExtractSprites(batch);engine.Draw(camera,batch.Draws);}
-        using var ui=new UiSession(engine);ui.Load(SourcePath);Render();var state=ui.State;
+        using var ui=new UiSession(engine);ui.LoadAsset(catalog.Assets,"ui/settings.rml");Render();var state=ui.State;
         if(state.Loaded!=1||state.Pending!=0)throw new InvalidOperationException("UI staging failed: "+UiNative.Text(state.Diagnostic,512));
         uint generation=state.Generation;int assertions=0;
         void Check(bool value,string message){if(!value)throw new InvalidOperationException("UI check: "+message);assertions++;}
@@ -67,7 +74,7 @@ internal static unsafe class UiProbe
             while(ui.Poll().Action!=0){}
             for(int i=0;i<70;i++)ui.Command(generation,1);
             Check(ui.State.Queued==64&&ui.State.Overflow==6,"bounded queue and explicit overflow");
-            ui.Load(SourcePath);Check(ui.State.Pending==1,"reload staged");Render();
+            ui.LoadAsset(catalog.Assets,"ui/settings.rml");Check(ui.State.Pending==1,"reload staged");Render();
             uint newer=ui.State.Generation;Check(newer!=generation&&ui.State.Queued==0&&ui.State.Overflow==0,"reload invalidates old queued actions");
             ExpectFailure(()=>ui.Set(generation,"old",1,"stale"),"stale model was accepted");
             ExpectFailure(()=>ui.Command(generation,1),"stale command was accepted");
@@ -83,7 +90,7 @@ internal static unsafe class UiProbe
             ui.Set(generation,"林 River",72,"已应用 / Applied by C# · 72%");ui.Command(generation,4);Render();
             ui.Capture(capture);Render();
             ui.Dispose();ui.Dispose();Check(UiNative.Close(engine.NativeContext)==0,"native repeated UI close safe");Render();
-            using(var reopened=new UiSession(engine)){reopened.Load(SourcePath);Render();Check(reopened.State.Loaded==1&&reopened.State.Generation!=generation,"close/reopen generation and cleanup");}
+            using(var reopened=new UiSession(engine)){reopened.LoadAsset(catalog.Assets,"ui/settings.rml");Render();Check(reopened.State.Loaded==1&&reopened.State.Generation!=generation,"close/reopen generation and cleanup");}
             Render();bank.Dispose();Check(engine.TextureCount==0,"world resources cleaned");
             Console.WriteLine($"UI SCENARIO PASS assertions={assertions} frames={engine.GetStats().Frames} screenshot={Path.GetFullPath(capture)}; scripted software renderer, real IME unverified");return 0;
         }

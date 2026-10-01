@@ -13,8 +13,18 @@ internal static class GameUiAuthoring
     internal static bool IsStyleSelector(string value)=>value is "body" or "div" or "h1" or "p" or "button" or "button:hover" or "button:focus" or "button:active" || value.StartsWith('#')&&Elements.ContainsKey(value[1..]);
     public static (string Rml,string Rcss) ValidateFiles(string path)
     {
-        string css=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!,"game.rcss");
-        return Validate(UiAuthoring.ReadBounded(path),UiAuthoring.ReadBounded(css),path,css);
+        try
+        {
+            var assets = new AssetRoot(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            return ValidateAsset(assets, Path.GetFileName(path));
+        }
+        catch (Exception e) when (e is AssetException or ArgumentException or NotSupportedException)
+        { throw new UiAuthoringException("UI_FILE", path, 1, 1, "$", e.Message, e); }
+    }
+    public static (string Rml, string Rcss) ValidateAsset(AssetRoot assets, string logicalPath)
+    {
+        var files = UiAuthoring.ReadAssetFiles(assets, logicalPath, "game.rcss");
+        return Validate(files.Rml, files.Rcss, files.RmlFile, files.RcssFile);
     }
     internal static (string Rml,string Rcss) Validate(ReadOnlySpan<byte> rml,ReadOnlySpan<byte> css,string file="game.rml",string cssFile="game.rcss")
     {

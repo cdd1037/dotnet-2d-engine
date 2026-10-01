@@ -1,49 +1,106 @@
+using System.Collections.ObjectModel;
+
 namespace GameAuthoringLab;
 
+/// <summary>Immutable key-to-logical-path mapping; sample names are only the default catalog.</summary>
 internal sealed class AssetCatalog
 {
-    private static readonly HashSet<string> Keys = new(StringComparer.Ordinal) { "room-a", "room-b", "player", "cell", "status-empty", "status-held", "status-restored" };
-    public string Root { get; }
-    public AssetCatalog(string? root = null)
+    private static readonly string[] SampleKeys = ["room-a", "room-b", "player", "cell", "status-empty", "status-held", "status-restored"];
+    private readonly IReadOnlyDictionary<string, string> _paths;
+    public AssetRoot Assets { get; }
+    public string Root => Assets.DirectoryPath;
+    public IReadOnlyDictionary<string, string> Paths => _paths;
+
+    public AssetCatalog(string? root = null) : this(new AssetRoot(root), SampleKeys.ToDictionary(key => key, key => key + ".bmp", StringComparer.Ordinal)) { }
+
+    public AssetCatalog(AssetRoot assets, IReadOnlyDictionary<string, string> paths)
     {
-        Root = Path.GetFullPath(root ?? Environment.GetEnvironmentVariable("GAL_ASSET_ROOT")
-            ?? (Directory.Exists(Path.Combine(AppContext.BaseDirectory,"assets")) ? Path.Combine(AppContext.BaseDirectory,"assets") : "assets"));
+        ArgumentNullException.ThrowIfNull(assets);
+        ArgumentNullException.ThrowIfNull(paths);
+        Assets = assets;
+        var copy = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in paths)
+        {
+            if (string.IsNullOrWhiteSpace(pair.Key)) throw new ArgumentException("Resource key must be nonempty.", nameof(paths));
+            assets.ValidateLogicalPath(pair.Value);
+            copy.Add(pair.Key, pair.Value);
+        }
+        _paths = new ReadOnlyDictionary<string, string>(copy);
     }
-    public bool Exists(string key) => Keys.Contains(key) && File.Exists(Path.Combine(Root,key+".bmp"));
-    public string PathFor(string key)
+
+    public bool Exists(string key)
     {
-        if(!Exists(key)) throw new FileNotFoundException($"Missing or unregistered asset: {key}");
-        string path=Path.Combine(Root,key+".bmp");
-        using var stream=File.OpenRead(path); Span<byte> header=stackalloc byte[54];
-        if(stream.Read(header)!=header.Length||header[0]!='B'||header[1]!='M')throw new InvalidDataException($"Invalid BMP asset: {key}");
-        int width=System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(header[18..]);
-        int height=System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(header[22..]);
-        if(width is <1 or >4096 || height is <1 or >4096)throw new InvalidDataException($"Invalid BMP dimensions: {key}");
-        return path;
+        if (!_paths.TryGetValue(key, out string? logicalPath)) return false;
+        try { Assets.Resolve(logicalPath); return true; }
+        catch (AssetException) { return false; }
     }
+
+    public string LogicalPathFor(string key) => _paths.TryGetValue(key, out string? path) ? path
+        : throw new AssetException("ASSET_KEY", Root, key, "Unregistered resource key.");
+    public string PathFor(string key) => Assets.ValidateBitmap(LogicalPathFor(key));
 }
 
+/// <summary>
+/// One world's leases. Synchronization prepares all additions before releasing old resources.
+/// Validation/upload failures release only candidate leases, retaining the previous usable set.
+/// Repeated Sync on an unchanged world does no file I/O and allocates no managed memory.
+/// </summary>
 internal sealed class TextureBank : IDisposable
 {
-    private readonly EngineHost _engine; private readonly AssetCatalog _catalog;
-    private readonly Dictionary<string,ulong> _loaded=new(StringComparer.Ordinal);
-    private readonly HashSet<string> _needed=new(StringComparer.Ordinal);
-    private readonly List<string> _remove=[]; private readonly List<string> _added=[];
-    public int LoadedCount=>_loaded.Count;
-    public int Loads {get;private set;} public int Releases {get;private set;}
-    public TextureBank(EngineHost engine,AssetCatalog catalog){_engine=engine;_catalog=catalog;}
-    public ulong Resolve(string key)=>_loaded.TryGetValue(key,out ulong value)?value:throw new InvalidOperationException($"Texture not synchronized: {key}");
+    private readonly TextureCache _cache;
+    private readonly AssetCatalog _catalog;
+    private readonly Dictionary<string, TextureLease> _loaded = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _needed = new(StringComparer.Ordinal);
+    private readonly List<string> _remove = [];
+    private readonly List<KeyValuePair<string, TextureLease>> _pending = [];
+    private bool _disposed;
+    public int LoadedCount => _loaded.Count;
+    public int Loads { get; private set; }
+    public int Releases { get; private set; }
+    public TextureBank(EngineHost engine, AssetCatalog catalog) { _cache = engine.Textures; _catalog = catalog; }
+
+    public ulong Resolve(string key)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _loaded.TryGetValue(key, out var lease) ? lease.Handle : throw new InvalidOperationException($"Texture not synchronized: {key}");
+    }
+
     public void Sync(World world)
     {
-        _needed.Clear();var entities=world.Entities;
-        for(int i=0;i<entities.Count;i++)if(entities[i].IsAlive&&entities[i].Sprite?.AssetKey is {} key)_needed.Add(key);
-        // Validate every path before changing ownership. Upload failures release newly added resources.
-        foreach(string key in _needed)if(!_loaded.ContainsKey(key))_catalog.PathFor(key);
-        _added.Clear();
-        try{foreach(string key in _needed)if(!_loaded.ContainsKey(key)){string path=_catalog.PathFor(key);ulong value=_engine.Headless?0:_engine.LoadTexture(path);_loaded.Add(key,value);_added.Add(key);Loads++;}}
-        catch{foreach(string key in _added){if(!_engine.Headless)_engine.ReleaseTexture(_loaded[key]);_loaded.Remove(key);Releases++;}throw;}
-        _remove.Clear();foreach(string key in _loaded.Keys)if(!_needed.Contains(key))_remove.Add(key);
-        foreach(string key in _remove){if(!_engine.Headless)_engine.ReleaseTexture(_loaded[key]);_loaded.Remove(key);Releases++;}
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _cache.CheckAccess();
+        _needed.Clear(); var entities = world.Entities;
+        for (int i = 0; i < entities.Count; i++)
+            if (entities[i].IsAlive && entities[i].Sprite?.AssetKey is {} key) _needed.Add(key);
+        foreach (string key in _needed)
+            if (!_loaded.ContainsKey(key)) _cache.Validate(_catalog.Assets, _catalog.LogicalPathFor(key));
+        _pending.Clear();
+        try
+        {
+            foreach (string key in _needed)
+                if (!_loaded.ContainsKey(key))
+                    _pending.Add(new(key, _cache.Acquire(_catalog.Assets, _catalog.LogicalPathFor(key))));
+        }
+        catch
+        {
+            foreach (var pair in _pending) pair.Value.Dispose();
+            _pending.Clear();
+            throw;
+        }
+        foreach (var pair in _pending) { _loaded.Add(pair.Key, pair.Value); Loads++; }
+        _pending.Clear();
+        _remove.Clear();
+        foreach (string key in _loaded.Keys) if (!_needed.Contains(key)) _remove.Add(key);
+        foreach (string key in _remove) { _loaded[key].Dispose(); _loaded.Remove(key); Releases++; }
     }
-    public void Dispose(){foreach(ulong id in _loaded.Values)if(!_engine.Headless)_engine.ReleaseTexture(id);_loaded.Clear();}
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        // Leases can be discarded after engine destruction; they never release into a new context.
+        _remove.Clear();
+        foreach (string key in _loaded.Keys) _remove.Add(key);
+        foreach (string key in _remove) { _loaded[key].Dispose(); _loaded.Remove(key); Releases++; }
+        _disposed = true;
+    }
 }

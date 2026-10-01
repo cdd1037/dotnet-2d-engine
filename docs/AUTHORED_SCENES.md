@@ -32,6 +32,8 @@ To try an AI/manual edit, copy the JSON to another filename in the same assets d
 
 Loading builds a fresh candidate before returning it. Caller-owned live worlds are not changed on rejection. Saving validates before writing a unique same-directory temporary file and renaming it over the destination. Failed validation or tested replacement failure retains the prior destination; this is not a crash-durability/fsync guarantee.
 
+Root-backed loading and shared texture lifetime are described in [Resource foundation](RESOURCES.md). `LoadAsset(root, logicalPath)` keeps version-1 sibling resource semantics; the loaded catalog feeds the same `TextureBank` used by the gameplay hosts.
+
 ## Compositions and evidence
 
 The two fixture roots each have one child with local parent/owner references and globally unique IDs. They are expanded JSON, not live prefab instances: editing one does not propagate to another and no template provenance is retained. A future copy/instantiate operation must remap *all* IDs/internal references; don't implement inheritance or nested overrides just for this fixture.

@@ -133,3 +133,37 @@ readout; Start always resets from the authored 90-second mission. Hiding or labe
 that title readout is a small outstanding UI polish item. Simultaneous restart
 and pause commands in one input batch are deliberately discarded at the first
 screen boundary; a fresh Escape or Pause click works after that boundary.
+
+## Resource-root and texture-lifetime batch (2026-10-01)
+
+Following phase-1 commit `105eb06`, the managed resource batch introduces the
+[shared path/cache contract](RESOURCES.md). Final source Release build has zero
+warnings/errors; full JIT passes **8,842 assertions**, including **71** focused
+resource checks. Existing warmed direct/world/room frame loops still allocate
+zero managed bytes. Native headless contracts pass unchanged.
+
+Focused software-Vulkan checks with the existing SDL3/RmlUi build pass:
+
+- **27** resource graphics assertions: shared uploads, lease release, wrong-thread
+  rejection, native BMP failure after a candidate upload, complete candidate
+  rollback, drawing the retained world and zero final native textures
+- Three-frame authored composition demo through the same `TextureBank`
+- **49** integrated mission and **23** settings UI scenario assertions
+- Settings final capture and mission archive/won/lost/final-title captures are
+  byte-identical to phase 1's JIT captures
+
+The initial negative BMP fixture changed compression metadata that SDL accepted;
+this was a fixture assumption, not a proven engine defect. The final fixture uses
+unsupported 7-bit pixel depth: bounded managed header preflight accepts it, native
+BMP decoding rejects it, and the test proves upload rollback and live-world
+retention. An added source-ancestor check also verifies that explicit-root scene
+file reads cannot skip the descendant-link policy.
+
+Local logs/source hashes and captures: `evidence/resources/`. The last change after
+the graphics/UI integration run only added the explicit-root scene-source guard
+and its CPU test; texture-cache, UI and mission source hashes remained unchanged.
+The final focused resource/scene graphics run is repeated against the final build.
+No dependencies, native ABI, JSON schema/source-generation options or XmlReader
+profile changed. NativeAOT was not republished in this batch; phase 1's AOT results
+remain historical and are not a current-resource-batch AOT claim. No physical GPU,
+real input/IME/audio or new-platform validation is claimed.

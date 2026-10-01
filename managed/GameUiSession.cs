@@ -18,11 +18,18 @@ internal sealed unsafe class GameUiSession(EngineHost engine):IDisposable
 {
     private bool _closed;
     private nint Context {get{ObjectDisposedException.ThrowIf(_closed,this);return engine.NativeContext;}}
-    public static string SourcePath=>Path.Combine(Environment.GetEnvironmentVariable("GAL_ASSET_ROOT")??Path.Combine(AppContext.BaseDirectory,"assets"),"ui","game.rml");
+    public static string SourcePath=>new AssetRoot().FilePath("ui/game.rml");
     public UiState State {get{UiState state=new(){Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"game UI state");return state;}}
     public void Load(string path)
     {
-        ObjectDisposedException.ThrowIf(_closed,this);var validated=GameUiAuthoring.ValidateFiles(path);
+        ObjectDisposedException.ThrowIf(_closed,this);Stage(GameUiAuthoring.ValidateFiles(path));
+    }
+    public void LoadAsset(AssetRoot assets, string logicalPath)
+    {
+        ObjectDisposedException.ThrowIf(_closed,this);Stage(GameUiAuthoring.ValidateAsset(assets,logicalPath));
+    }
+    private void Stage((string Rml,string Rcss) validated)
+    {
         string staging=Path.Combine(Path.GetTempPath(),"gal-game-ui-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(staging);
         try
         {

@@ -90,3 +90,13 @@ win/loss, transactional checkpoint replacement and restart cleanup. Start with
 settings probes remain available. Final phase-1 counts are recorded in
 [validation](validation.md). This does not select RmlUi permanently or broaden the
 project into a generic binding, physics, ECS or editor framework.
+
+## Resource follow-on
+
+[Resource roots and texture leases](RESOURCES.md) now provide shared authoring path
+validation and a context-owned synchronous BMP cache with explicit per-world
+leases. Stable authored keys remain independent of file mappings. Failed candidate
+loads keep the prior usable resource set; repeated synchronization remains
+allocation-free. Final focused/full-JIT verification is recorded in
+[validation](validation.md). Asynchronous loading, atlas UVs and general asset
+packaging remain separate capability batches.

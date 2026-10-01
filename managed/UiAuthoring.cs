@@ -149,7 +149,33 @@ internal static class UiAuthoring
         }
         catch (Exception e) when (e is IOException or ArgumentException or NotSupportedException)
         { throw Error("UI_FILE", rmlPath, 1, 1, "$", "Invalid source path: " + e.Message, e); }
-        return Validate(ReadBounded(rmlPath), ReadBounded(rcssPath), rmlPath, rcssPath);
+        try
+        {
+            var assets = new AssetRoot(Path.GetDirectoryName(Path.GetFullPath(rmlPath))!);
+            return ValidateAsset(assets, Path.GetFileName(rmlPath));
+        }
+        catch (Exception e) when (e is AssetException or ArgumentException or NotSupportedException)
+        { throw Error("UI_FILE", rmlPath, 1, 1, "$", e.Message, e); }
+    }
+
+    public static UiValidatedDocument ValidateAsset(AssetRoot assets, string logicalPath)
+    {
+        var files = ReadAssetFiles(assets, logicalPath, "settings.rcss");
+        return Validate(files.Rml, files.Rcss, files.RmlFile, files.RcssFile);
+    }
+
+    internal static (byte[] Rml, byte[] Rcss, string RmlFile, string RcssFile) ReadAssetFiles(
+        AssetRoot assets, string logicalPath, string stylesheet)
+    {
+        string file = logicalPath;
+        try
+        {
+            file = assets.Resolve(logicalPath);
+            string css = assets.Resolve(assets.Sibling(logicalPath, stylesheet));
+            return (ReadBounded(file), ReadBounded(css), file, css);
+        }
+        catch (AssetException e)
+        { throw Error("UI_FILE", file, 1, 1, "$", e.Message, e); }
     }
 
     public static UiValidatedDocument Validate(ReadOnlySpan<byte> rml, ReadOnlySpan<byte> rcss,

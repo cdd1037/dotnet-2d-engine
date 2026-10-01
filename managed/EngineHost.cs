@@ -6,6 +6,14 @@ internal sealed unsafe class EngineHost : IDisposable
 {
     private nint _context;
     public bool Headless { get; }
+    private TextureCache? _textures;
+    public TextureCache Textures { get { AssertAlive(); return _textures ??= new TextureCache(this); } }
+    internal void AssertThread()
+    {
+        if (Environment.CurrentManagedThreadId != _ownerThread)
+            throw new InvalidOperationException("The engine must be used on its creating thread.");
+    }
+    internal void AssertAlive() => _ = Context;
     internal nint NativeContext => Context;
     private readonly int _ownerThread = Environment.CurrentManagedThreadId;
 
@@ -26,8 +34,7 @@ internal sealed unsafe class EngineHost : IDisposable
     {
         get
         {
-            if (Environment.CurrentManagedThreadId != _ownerThread)
-                throw new InvalidOperationException("The engine must be used on its creating thread.");
+            AssertThread();
             ObjectDisposedException.ThrowIf(_context == 0, this);
             return _context;
         }
@@ -107,5 +114,6 @@ internal sealed unsafe class EngineHost : IDisposable
             return;
         Native.Check(Native.Destroy(Context), "destroy");
         _context = 0;
+        _textures?.EngineDestroyed();
     }
 }
