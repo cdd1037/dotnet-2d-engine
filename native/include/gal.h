@@ -26,7 +26,7 @@ typedef struct { float x,y,w,h,r,g,b,a; } gal_sprite;
 /* Affine: x_world=m11*x+m21*y+tx; y_world=m12*x+m22*y+ty. Texture0 is builtin. */
 typedef struct { float m11,m12,m21,m22,tx,ty,w,h,r,g,b,a; uint64_t texture; } gal_draw;
 typedef struct { uint32_t size,quit,keys; float wheel,mouse_x,mouse_y; int32_t width,height; } gal_input;
-enum { GAL_LEFT=1,GAL_RIGHT=2,GAL_UP=4,GAL_DOWN=8,GAL_SPACE=16,GAL_ESCAPE=32,GAL_INTERACT=64,GAL_DROP=128,GAL_TRANSITION=256,GAL_SAVE=512,GAL_LOAD=1024 };
+enum { GAL_LEFT=1,GAL_RIGHT=2,GAL_UP=4,GAL_DOWN=8,GAL_SPACE=16,GAL_ESCAPE=32,GAL_INTERACT=64,GAL_DROP=128,GAL_TRANSITION=256,GAL_SAVE=512,GAL_LOAD=1024,GAL_FOCUS_LOST=2048 };
 typedef struct { uint32_t size,frames,sprites,draw_calls; uint32_t audio_plays; } gal_stats;
 GAL_API uint32_t GAL_CALL gal_abi_version(void);
 GAL_API const char* GAL_CALL gal_last_error(void);

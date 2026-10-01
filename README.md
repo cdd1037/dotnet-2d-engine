@@ -20,6 +20,10 @@ This project is primarily designed for AI-driven authoring and iteration. Prefer
 
 See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistence, CLI scenarios and current limits.
 
+## Complete playable loop
+
+`./scripts/run-game.sh` starts **RELAY / Archive Rescue** using the optional RmlUi build: title → start → two-room delivery mission → pause → win/lose → save/load → restart. See [controls, authored mission and verification](docs/PLAYABLE_MISSION.md). The original probes remain available.
+
 ## Quick contract test (Linux, no new dependencies)
 
 Use `scripts/test.sh` for the default small CPU-only loop after initial restore.

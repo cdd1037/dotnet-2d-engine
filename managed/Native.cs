@@ -57,7 +57,7 @@ internal static unsafe partial class Native
 {
     private const string Library = "gal";
     public const uint Headless = 1, Audio = 2;
-    public const uint Left = 1, Right = 2, Up = 4, Down = 8, Space = 16, Escape = 32, Interact = 64, Drop = 128, Transition = 256, Save = 512, Load = 1024;
+    public const uint Left = 1, Right = 2, Up = 4, Down = 8, Space = 16, Escape = 32, Interact = 64, Drop = 128, Transition = 256, Save = 512, Load = 1024, FocusLost = 2048;
 
     [LibraryImport(Library, EntryPoint = "gal_abi_version")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

@@ -5,9 +5,9 @@ cd "$(dirname "$0")/.."
 tier="${1:-quick}"
 focus="${2:-core}"
 case "$tier" in
- quick|jit) case "$focus" in core|scene|ui) ;; *) echo 'Focus must be core, scene or ui' >&2; exit 2;; esac;;
+ quick|jit) case "$focus" in core|scene|ui|game) ;; *) echo 'Focus must be core, scene, ui or game' >&2; exit 2;; esac;;
  aot|graphics|ui) ;;
- *) echo 'Usage: scripts/test.sh [quick [core|scene|ui]|jit|aot|graphics|ui]' >&2; exit 2;;
+ *) echo 'Usage: scripts/test.sh [quick [core|scene|ui|game]|jit|aot|graphics|ui]' >&2; exit 2;;
 esac
 start=$SECONDS
 trap 'code=$?; echo "TEST tier=$tier focus=$focus exit=$code elapsed=$((SECONDS-start))s" >&2' EXIT
@@ -34,6 +34,7 @@ case "$tier" in
    case "$focus" in
     scene) "${app[@]}" --validate-scene assets/compositions.scene.json;;
     ui) "${app[@]}" --validate-ui assets/ui/settings.rml;;
+    game) "${app[@]}" --game-self-test;;
    esac
   fi
   ;;

@@ -17,7 +17,7 @@ struct Backend {
  SDL_GPUShader* vertex_shader=nullptr; SDL_GPUShader* fragment_shader=nullptr;
  SDL_GPUGraphicsPipeline* pipeline=nullptr; SDL_GPUBuffer* vertices=nullptr;
  SDL_GPUTransferBuffer* transfer=nullptr; SDL_GPUTexture* texture=nullptr; SDL_GPUSampler* sampler=nullptr;
- SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false;
+ SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false; bool focus_lost=false;
  std::vector<float> tone;
  std::vector<std::pair<uint64_t,SDL_GPUTexture*>> textures;
  std::string capture_path; bool captured=false; SDL_GPUTexture* capture_texture=nullptr; SDL_GPUTransferBuffer* readback=nullptr;
@@ -93,6 +93,8 @@ bool backend_poll(Backend*b,gal_input& input,std::string&e){
 #ifdef GAL_ENABLE_RMLUI
  if(b->ui)ui_input(b->ui,event);
 #endif
+ if(event.type==SDL_EVENT_WINDOW_FOCUS_LOST&&event.window.windowID==SDL_GetWindowID(b->window))b->focus_lost=true;
+ if(event.type==SDL_EVENT_WINDOW_FOCUS_GAINED&&event.window.windowID==SDL_GetWindowID(b->window))b->focus_lost=false;
  if(event.type==SDL_EVENT_QUIT){input.quit=1;}
  if(event.type==SDL_EVENT_MOUSE_WHEEL){input.wheel+=event.wheel.y;}
  }
@@ -100,6 +102,7 @@ bool backend_poll(Backend*b,gal_input& input,std::string&e){
  #ifdef GAL_ENABLE_RMLUI
  if(b->ui&&ui_keyboard_focus(b->ui)){input.keys&=GAL_ESCAPE;input.wheel=0;}
 #endif
+ if(b->focus_lost){input.keys=GAL_FOCUS_LOST;input.wheel=0;}
  SDL_GetMouseState(&input.mouse_x,&input.mouse_y);if(!SDL_GetWindowSizeInPixels(b->window,&input.width,&input.height))return error(e);if(input.width<1)input.width=1;if(input.height<1)input.height=1;return true;
 }
 bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,uint32_t run_count,uint32_t& drawn,std::string&e){
@@ -175,15 +178,18 @@ void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->
 
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
- if(op==1){auto paths=static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
+ if(op==1||op==10){auto paths=static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
   if(!b->ui){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;}
-  return ui_load(b->ui,paths[0],e);
+  return ui_load(b->ui,paths[0],e,op==10);
  }
  if(op==2){ui_destroy(b->ui);b->ui=nullptr;return true;}
  if(op==7){auto path=static_cast<const char*>(in);if(!path||!path[0]||std::strlen(path)>4096){e="invalid capture path";return false;}b->capture_path=path;b->captured=false;return true;}
  if(!b->ui){e="UI is not open";return false;}
+ if(op==11){auto*m=static_cast<const gal_game_ui_model*>(in);if(!m||m->size!=sizeof(*m)){e="invalid game UI model size";return false;}return ui_set_game_model(b->ui,*m,e);}
+ if(op==12){auto*a=static_cast<gal_game_ui_action*>(out);if(!a||a->size!=sizeof(*a)){e="invalid game UI action size";return false;}return ui_poll_game_action(b->ui,*a,e);}
+ if(op==13){auto args=static_cast<const uint32_t*>(in);return ui_game_test_command(b->ui,args[0],args[1],e);}
  if(op==3){auto*m=static_cast<const gal_ui_model*>(in);if(!m||m->size!=sizeof(*m)){e="invalid UI model size";return false;}return ui_set_model(b->ui,*m,e);}
- if(op==4){auto*a=static_cast<gal_ui_action*>(out);if(!a||a->size!=sizeof(*a)){e="invalid UI action size";return false;}ui_poll_action(b->ui,*a);return true;}
+ if(op==4){auto*a=static_cast<gal_ui_action*>(out);if(!a||a->size!=sizeof(*a)){e="invalid UI action size";return false;}return ui_poll_action(b->ui,*a,e);}
  if(op==5){auto*s=static_cast<gal_ui_state*>(out);if(!s||s->size!=sizeof(*s)){e="invalid UI state size";return false;}ui_state(b->ui,*s);return true;}
  if(op==6){auto args=static_cast<const uint32_t*>(in);return ui_test_command(b->ui,args[0],args[1],e);}
  e="unknown UI operation";return false;

@@ -130,5 +130,9 @@ int GAL_CALL gal_ui_set_model(gal_context*c,const gal_ui_model*m){return ui_call
 int GAL_CALL gal_ui_poll_action(gal_context*c,gal_ui_action*a){return ui_call(c,4,nullptr,a);}
 int GAL_CALL gal_ui_get_state(gal_context*c,gal_ui_state*s){return ui_call(c,5,nullptr,s);}
 int GAL_CALL gal_ui_test_command(gal_context*c,uint32_t generation,uint32_t command){uint32_t args[]={generation,command};return ui_call(c,6,args,nullptr);}
+int GAL_CALL gal_game_ui_open(gal_context*c,const char*path,const char*font){const char*paths[]={path,font};return ui_call(c,10,paths,nullptr);}
+int GAL_CALL gal_game_ui_set_model(gal_context*c,const gal_game_ui_model*m){return ui_call(c,11,m,nullptr);}
+int GAL_CALL gal_game_ui_poll_action(gal_context*c,gal_game_ui_action*a){return ui_call(c,12,nullptr,a);}
+int GAL_CALL gal_game_ui_test_command(gal_context*c,uint32_t generation,uint32_t command){uint32_t args[]={generation,command};return ui_call(c,13,args,nullptr);}
 int GAL_CALL gal_capture_next(gal_context*c,const char*path){return ui_call(c,7,path,nullptr);}
 }

@@ -80,3 +80,13 @@ expensive suite merely to organize documentation.
 Large differential/fuzz corpora and binary-size ablation experiments are opt-in
 research. They are not the default development or CI loop. A headless pass and a
 software-rendered pass must always remain clearly distinguished.
+
+## Phase-1 playable follow-on
+
+The separate `--game-demo` now delivers a repeatable 90-second two-room mission
+with authored mission data, explicit RmlUi game screens, pause/focus/input gates,
+win/loss, transactional checkpoint replacement and restart cleanup. Start with
+[RELAY controls and run instructions](PLAYABLE_MISSION.md); the original room and
+settings probes remain available. Final phase-1 counts are recorded in
+[validation](validation.md). This does not select RmlUi permanently or broaden the
+project into a generic binding, physics, ECS or editor framework.

@@ -9,6 +9,7 @@ Every entry point prints elapsed wall time and its exit status.
 | Small core edit (default) | `scripts/test.sh` | Native headless contracts, Release compile, three CPU-only frames |
 | Authored scene edit | `scripts/test.sh quick scene` | Default plus sample scene validation |
 | UI authoring edit | `scripts/test.sh quick ui` | Default plus RML/RCSS preflight, no renderer |
+| Playable mission edit | `scripts/test.sh quick game` | Default plus focused CPU mission lifecycle/save checks |
 | Feature batch | `scripts/test.sh jit` | Native contracts, compile, complete JIT self-test |
 | Interop/trimming/serialization/publish change | `AOT_APP=/absolute/path/to/fresh/app scripts/test.sh aot` | Native contracts and full self-test of the explicitly selected NativeAOT binary |
 | Renderer change | `scripts/test.sh graphics` | Existing software Vulkan pixel checks, requires prepared SDL/ICD environment |

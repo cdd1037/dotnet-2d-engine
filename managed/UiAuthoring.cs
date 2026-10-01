@@ -166,7 +166,7 @@ internal static class UiAuthoring
         return new(markup, style, rmlFile, rcssFile, name, volume, status, Array.AsReadOnly(items));
     }
 
-    private static byte[] ReadBounded(string path)
+    internal static byte[] ReadBounded(string path)
     {
         try
         {
@@ -181,7 +181,7 @@ internal static class UiAuthoring
         { throw Error("UI_FILE", path, 1, 1, "$", e.Message, e); }
     }
 
-    private static string Decode(ReadOnlySpan<byte> bytes, string file)
+    internal static string Decode(ReadOnlySpan<byte> bytes, string file)
     {
         if (bytes.Length is <= 0 or > MaxFileBytes) throw Error("UI_SIZE", file, 1, 1, "$", $"File must contain 1..{MaxFileBytes} bytes.");
         try
@@ -192,7 +192,7 @@ internal static class UiAuthoring
         catch (DecoderFallbackException e) { throw Error("UI_UTF8", file, 1, Math.Max(1, e.Index + 1), "$", "Invalid UTF-8 byte sequence.", e); }
     }
 
-    private static UiXmlDocument ParseXml(string source, string file)
+    internal static UiXmlDocument ParseXml(string source, string file)
     {
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
             MaxCharactersInDocument = MaxFileBytes, MaxCharactersFromEntities = 1024, IgnoreComments = false };
@@ -374,7 +374,9 @@ internal static class UiAuthoring
     private static bool Integer(string s, int min, int max) => s.Length is > 0 and <= 5 &&
         s.All(c => c is >= '0' and <= '9') && int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n >= min && n <= max;
 
-    private sealed class StyleParser(string source, string file)
+    internal static void ValidateGameStyle(string source,string file)=>new StyleParser(source,file,true).Parse();
+
+    private sealed class StyleParser(string source, string file, bool gameProfile=false)
     {
         private int _position, _line = 1, _column = 1;
         public void Parse()
@@ -386,7 +388,7 @@ internal static class UiAuthoring
                 if (++rules > 128) Fail("UI_LIMIT", "$rcss", "Maximum 128 rules exceeded.");
                 int selectorLine = _line, selectorColumn = _column;
                 string selector = ReadUntil('{', "selector").Trim();
-                if (!ValidSelector(selector)) FailAt("UI_SELECTOR", selectorLine, selectorColumn, selector, "Unsupported selector.");
+                if (!(gameProfile?GameUiAuthoring.IsStyleSelector(selector):ValidSelector(selector))) FailAt("UI_SELECTOR", selectorLine, selectorColumn, selector, "Unsupported selector.");
                 Advance(); SkipTrivia();
                 var properties = new HashSet<string>(StringComparer.Ordinal);
                 while (_position < source.Length && source[_position] != '}')

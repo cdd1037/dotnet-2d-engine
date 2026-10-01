@@ -17,6 +17,8 @@ internal static unsafe class SelfTests
         _assertions += WorldSelfTests.Run();
         _assertions += WorldPersistenceTests.Run();
         _assertions += RoomGameTests.Run();
+        _assertions += MissionTests.Run();
+        _assertions += GameUiTests.RunAuthoring();
         _assertions += GameplayLifecycleTests.Run();
         _assertions += LifecycleOwnershipTests.Run();
         _assertions += SpriteSortTests.Run();

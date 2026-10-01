@@ -103,9 +103,14 @@ Exit: a tile-based movement example and a different interaction/physics example
 exercise shared APIs, and input/audio work on an actual target device. Resource
 and update ownership must remain explicit across pause, scene changes and restart.
 
-### C. Effects and specialized capabilities
+### C. Effects and specialized capabilities — deferred
 
-Evaluate particles, 2D lights/shadows, navigation/pathfinding and skeletal animation
+User decision (2026-10-01): defer this entire enhancement group. Initial scope
+targets ordinary top-down, side-scrolling action and platform games; mass-unit RTS
+and large simulation/management games are not initial priorities. Do not add ECS
+or parallel scheduling solely for those deferred workloads.
+
+Later, evaluate particles, 2D lights/shadows, navigation/pathfinding and skeletal animation
 against concrete game needs. Prefer suitable maintained dependencies where they
 reduce total maintenance. Do not promise complete Godot feature parity or create
 large abstract frameworks before the required semantics are understood.

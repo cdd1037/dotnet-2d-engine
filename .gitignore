@@ -20,3 +20,7 @@
 .vs/
 .idea/
 .DS_Store
+
+# Local playable mission checkpoints (never source assets)
+/relay-save.json
+/relay-scenario-save.json

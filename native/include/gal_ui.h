@@ -21,6 +21,16 @@ GAL_API int GAL_CALL gal_ui_get_state(gal_context*,gal_ui_state*);
 /* Deterministic probe input, not OS-input/IME verification. */
 GAL_API int GAL_CALL gal_ui_test_command(gal_context*,uint32_t generation,uint32_t command);
 GAL_API int GAL_CALL gal_capture_next(gal_context*,const char* bmp_path);
+/* Fixed mission profile, separate from settings. Screen: title/play/pause/won/lost.
+   flags: bit0 can-save, bit1 can-load. Set changes generation on screen/flags change. */
+typedef struct { uint32_t size,generation,screen,seconds,flags,reserved; char title[128],objective[256],status[256]; } gal_game_ui_model;
+typedef struct { uint32_t size,generation,action,reserved; } gal_game_ui_action;
+enum { GAL_GAME_START=10,GAL_GAME_RESUME=11,GAL_GAME_SAVE=12,GAL_GAME_LOAD=13,GAL_GAME_RESTART=14,GAL_GAME_MENU=15,GAL_GAME_PAUSE=16 };
+GAL_API int GAL_CALL gal_game_ui_open(gal_context*,const char* rml_path,const char* font_path);
+GAL_API int GAL_CALL gal_game_ui_set_model(gal_context*,const gal_game_ui_model*);
+GAL_API int GAL_CALL gal_game_ui_poll_action(gal_context*,gal_game_ui_action*);
+/* Probe-only: 100/101 queue focus-lost/gained SDL events; 200+action uses Rml pointer hit-testing. */
+GAL_API int GAL_CALL gal_game_ui_test_command(gal_context*,uint32_t generation,uint32_t command);
 #ifdef __cplusplus
 }
 #endif

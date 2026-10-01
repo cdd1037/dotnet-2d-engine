@@ -1,0 +1,12 @@
+{
+  "kind": "gal-relay-mission",
+  "version": 1,
+  "id": "archive-relay",
+  "title": "RELAY / Archive Rescue",
+  "objective": "Carry the power cell through the east door. In the archive, press E at the glowing relay before time runs out.",
+  "seconds": 90,
+  "deliveryRoom": 1,
+  "deliveryX": 800,
+  "deliveryY": 175,
+  "deliveryRadius": 48
+}

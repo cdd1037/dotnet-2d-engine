@@ -20,6 +20,9 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(options.GameSelfTest){MissionTests.Run();GameUiTests.RunAuthoring();return 0;}
+            if(args.Contains("--game-ui-self-test",StringComparer.Ordinal)){GameUiTests.RunNative();return 0;}
+            if(options.GameDemo){if(options.Headless)throw new ArgumentException("--game-demo/--game-scenario require the UI graphics build; use --game-self-test for CPU checks.");return MissionHost.Run(options.GameScenario,options.Frames,options.SavePath=="two-room-save.json"?(options.GameScenario?"relay-scenario-save.json":"relay-save.json"):options.SavePath);}
             if(options.SceneValidatePath is {} scenePath){var authored=AuthoredScene.LoadFile(scenePath);Console.WriteLine($"VALID AUTHORED SCENE {scenePath} entities={authored.World.EntityCount}");return 0;}
             if(options.AuthoredPath is {} authoredPath)return AuthoredSceneDemo.Run(authoredPath,options.Headless,options.Frames);
             if(options.UiValidatePath is {} uiPath){UiAuthoring.ValidateFiles(uiPath);Console.WriteLine($"VALID UI {uiPath}");return 0;}
@@ -173,18 +176,19 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: GameAuthoringLab [--room-demo | --scenario] [--headless] [--frames N] [--save-file PATH] [--load-file PATH] | --validate-save PATH | --self-test | --help");
+        Console.WriteLine("Playable mission: --game-demo | --game-scenario [--save-file PATH] | --game-self-test (CPU only)");
         Console.WriteLine("Authored scenes: --validate-scene PATH | --authored-demo PATH [--headless] [--frames N]");
         Console.WriteLine("Optional UI: --room-ui-demo | --room-ui-scenario | --ui-demo | --ui-scenario | --validate-ui PATH (requires experimental native UI build for rendering)");
         Console.WriteLine("--frames N must be a positive integer. Headless defaults to 120 frames; a window runs until closed unless bounded.");
     }
 
-    internal readonly record struct Options(bool Headless, int Frames, bool SelfTest, bool Help, bool RoomDemo=false, bool Scenario=false, string SavePath="two-room-save.json", string? LoadPath=null, string? ValidatePath=null,bool UiDemo=false,bool UiScenario=false,string? UiValidatePath=null,bool RoomUi=false,bool RoomUiScenario=false,string? SceneValidatePath=null,string? AuthoredPath=null)
+    internal readonly record struct Options(bool Headless, int Frames, bool SelfTest, bool Help, bool RoomDemo=false, bool Scenario=false, string SavePath="two-room-save.json", string? LoadPath=null, string? ValidatePath=null,bool UiDemo=false,bool UiScenario=false,string? UiValidatePath=null,bool RoomUi=false,bool RoomUiScenario=false,string? SceneValidatePath=null,string? AuthoredPath=null,bool GameDemo=false,bool GameScenario=false,bool GameSelfTest=false)
     {
         public static bool TryParse(string[] args, out Options options, out string error)
         {
             bool headless = false, selfTest = false, help = false, roomDemo=false, scenario=false,uiDemo=false,uiScenario=false;string? uiValidate=null;bool roomUi=false,roomUiScenario=false;
             string savePath="two-room-save.json";string? loadPath=null;string? validatePath=null;
-            int frames = 0;string? sceneValidate=null,authoredPath=null;
+            int frames = 0;string? sceneValidate=null,authoredPath=null;bool gameDemo=false,gameScenario=false,gameSelfTest=false;
             error = "";
             for (int i = 0; i < args.Length; i++)
             {
@@ -197,6 +201,10 @@ internal static class Program
                     case "--ui-demo":uiDemo=true;break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
+                    case "--game-ui-self-test": break;
+                    case "--game-demo": gameDemo=true;break;
+                    case "--game-scenario": gameDemo=true;gameScenario=true;break;
+                    case "--game-self-test": gameSelfTest=true;break;
                     case "--headless": headless = true; break;
                     case "--room-demo": roomDemo=true;break;
                     case "--scenario": scenario=true;roomDemo=true;break;
@@ -217,7 +225,7 @@ internal static class Program
                     return false;
                 }
             }
-            options = new Options(headless, frames != 0 ? frames : headless ? 120 : 0, selfTest, help,roomDemo,scenario,savePath,loadPath,validatePath,uiDemo,uiScenario,uiValidate,roomUi,roomUiScenario,sceneValidate,authoredPath);
+            options = new Options(headless, frames != 0 ? frames : headless ? 120 : 0, selfTest, help,roomDemo,scenario,savePath,loadPath,validatePath,uiDemo,uiScenario,uiValidate,roomUi,roomUiScenario,sceneValidate,authoredPath,gameDemo,gameScenario,gameSelfTest);
             return true;
         }
     }

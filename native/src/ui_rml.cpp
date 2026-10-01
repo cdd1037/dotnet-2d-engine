@@ -21,6 +21,8 @@ struct UiSystem final: SystemInterface_SDL {
  void Clear(){warnings=0;diagnostic[0]=0;}
 };
 static uint32_t next_generation=1;
+static const char* game_button(uint32_t action){switch(action){case 10:return "game-start";case 11:return "game-resume";case 12:return "game-save";case 13:return "game-load";case 14:return "game-restart";case 15:return "game-menu";case 16:return "game-pause";default:return nullptr;}}
+
 struct UiRml final: Rml::EventListener {
  SDL_GPUDevice* device;SDL_Window* window;UiSystem system;
  std::unique_ptr<RenderInterface_SDL_GPU> renderer;
@@ -28,11 +30,22 @@ struct UiRml final: Rml::EventListener {
  Rml::Context* current=nullptr;Rml::Context* pending=nullptr;
  Rml::ElementDocument* document=nullptr;Rml::ElementDocument* candidate=nullptr;
  uint32_t generation=0,serial=0;bool initialized=false;
+ bool game=false,pending_game=false;uint32_t game_screen=0,game_flags=0;
+ bool GameAllowed(uint32_t action)const{
+  switch(action){case 10:return game_screen==0;case 11:return game_screen==2;case 12:return game_screen==2&&(game_flags&1);case 13:return (game_screen==0||game_screen==2)&&(game_flags&2);case 14:case 15:return game_screen>=2;case 16:return game_screen==1;default:return false;}
+ }
+
  std::array<gal_ui_action,64> actions{};uint32_t first=0,count=0,overflow=0;
  char diagnostic[512]{};
  UiRml(SDL_GPUDevice*d,SDL_Window*w):device(d),window(w),system(w){}
  void ProcessEvent(Rml::Event& event) override {
   const auto& id=event.GetCurrentElement()->GetId();
+  if(game){
+   uint32_t action=0;for(uint32_t i=10;i<=16;i++)if(id==game_button(i)){action=i;break;}
+   if(!GameAllowed(action))return;
+   if(count==actions.size()){overflow++;return;}
+   actions[(first+count)%actions.size()]={sizeof(gal_ui_action),generation,action,0,{}};count++;return;
+  }
   uint32_t action=id=="apply"?GAL_UI_APPLY:id=="reset"?GAL_UI_RESET:GAL_UI_CHANGED;
   if(count==actions.size()){overflow++;return;}
   gal_ui_action value{sizeof(gal_ui_action),generation,action,0,{}};
@@ -72,7 +85,8 @@ UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  if(u->system.warnings){e=u->system.diagnostic;return nullptr;}
  return u.release();
 }
-bool ui_load(UiRml*u,const char*path,std::string&e){
+bool ui_load(UiRml*u,const char*path,std::string&e,bool game){
+ u->pending_game=game;
  u->DropCandidate();Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
  int w=0,h=0;SDL_GetWindowSizeInPixels(u->window,&w,&h);
  u->pending=Rml::CreateContext("gal-stage-"+std::to_string(++u->serial),{w,h});
@@ -80,9 +94,14 @@ bool ui_load(UiRml*u,const char*path,std::string&e){
  u->pending->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
- for(const char*id:{"player-name","volume","apply","reset","status","item-list"})if(!u->candidate||!u->candidate->GetElementById(id))valid=false;
- if(valid){for(const char*id:{"player-name","volume"})if(!dynamic_cast<Rml::ElementFormControlInput*>(u->candidate->GetElementById(id)))valid=false;}
- if(!valid||u->system.warnings){remember(u,u->system.warnings?u->system.diagnostic:"missing required settings element");u->DropCandidate();return fail(e,u->diagnostic);}
+ if(game){
+  for(const char*id:{"game-panel","game-title","game-objective","game-status","game-time","game-actions","hud","hud-objective","hud-status","hud-time"})if(!u->candidate||!u->candidate->GetElementById(id))valid=false;
+  for(uint32_t action=10;action<=16;action++)if(!u->candidate||!u->candidate->GetElementById(game_button(action))||u->candidate->GetElementById(game_button(action))->GetTagName()!="button")valid=false;
+ }else{
+  for(const char*id:{"player-name","volume","apply","reset","status","item-list"})if(!u->candidate||!u->candidate->GetElementById(id))valid=false;
+  if(valid){for(const char*id:{"player-name","volume"})if(!dynamic_cast<Rml::ElementFormControlInput*>(u->candidate->GetElementById(id)))valid=false;}
+ }
+ if(!valid||u->system.warnings){remember(u,u->system.warnings?u->system.diagnostic:"missing required profile element");u->DropCandidate();return fail(e,u->diagnostic);}
  u->candidate->Show();u->pending->Update();
  if(u->system.warnings){remember(u,u->system.diagnostic);u->DropCandidate();return fail(e,u->diagnostic);}
  return true;
@@ -93,7 +112,7 @@ static bool utf8(const char*text,size_t cap,size_t max_scalars){
  return true;
 }
 bool ui_set_model(UiRml*u,const gal_ui_model&m,std::string&e){
- if(!u->document||m.generation!=u->generation)return fail(e,"stale UI generation");
+ if(u->game||!u->document||m.generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
  if(m.reserved||m.volume<0||m.volume>100||!utf8(m.name,sizeof(m.name),32)||!utf8(m.status,sizeof(m.status),255))return fail(e,"invalid UI model fields/UTF8");
  auto*name=dynamic_cast<Rml::ElementFormControlInput*>(u->document->GetElementById("player-name"));
  auto*volume=dynamic_cast<Rml::ElementFormControlInput*>(u->document->GetElementById("volume"));
@@ -102,10 +121,40 @@ bool ui_set_model(UiRml*u,const gal_ui_model&m,std::string&e){
  u->document->GetElementById("status")->SetInnerRML(Rml::StringUtilities::EncodeRml(m.status));
  return true;
 }
-void ui_state(UiRml*u,gal_ui_state&s){s={sizeof(s),u->generation,u->document?1u:0u,u->pending?1u:0u,u->count,u->overflow,ui_keyboard_focus(u)?1u:0u,u->document?u->document->GetElementById("item-list")->GetScrollTop():0,{}};std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->diagnostic);}
-void ui_poll_action(UiRml*u,gal_ui_action&a){a={sizeof(a),u->generation,0,0,{}};if(u->count){a=u->actions[u->first];u->first=(u->first+1)%u->actions.size();u->count--;}}
+bool ui_set_game_model(UiRml*u,const gal_game_ui_model&m,std::string&e){
+ if(!u->game||!u->document||m.generation!=u->generation)return fail(e,"stale game UI generation or wrong profile");
+ if(m.screen>4||m.seconds>9999||m.flags>3||m.reserved||!utf8(m.title,sizeof(m.title),127)||!utf8(m.objective,sizeof(m.objective),255)||!utf8(m.status,sizeof(m.status),255))return fail(e,"invalid game UI model fields/UTF8");
+ if(m.screen!=u->game_screen||m.flags!=u->game_flags){
+  if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
+  u->generation=next_generation++;u->first=u->count=u->overflow=0;
+ }
+ u->game_screen=m.screen;u->game_flags=m.flags;
+ auto text=[&](const char*id,const char*value){u->document->GetElementById(id)->SetInnerRML(Rml::StringUtilities::EncodeRml(value));};
+ text("game-title",m.title);text("game-objective",m.objective);text("hud-objective",m.objective);text("game-status",m.status);text("hud-status",m.status);
+ std::string timer="Time / 剩余: "+std::to_string(m.seconds)+" s";text("game-time",timer.c_str());text("hud-time",timer.c_str());
+ u->document->GetElementById("game-panel")->SetProperty("display",m.screen==1?"none":"block");
+ u->document->GetElementById("hud")->SetProperty("display",m.screen==1?"block":"none");
+ for(uint32_t action=10;action<=16;action++)u->document->GetElementById(game_button(action))->SetProperty("display",u->GameAllowed(action)?"inline-block":"none");
+ return true;
+}
+bool ui_poll_game_action(UiRml*u,gal_game_ui_action&a,std::string&e){
+ if(!u->game)return fail(e,"game UI profile required");
+ a={sizeof(a),u->generation,0,0};if(u->count){const auto&queued=u->actions[u->first];a.generation=queued.generation;a.action=queued.action;u->first=(u->first+1)%u->actions.size();u->count--;}return true;
+}
+bool ui_game_test_command(UiRml*u,uint32_t generation,uint32_t command,std::string&e){
+ if(!u->game||!u->document||generation!=u->generation)return fail(e,"stale game UI generation or wrong profile");
+ if(command==100||command==101){SDL_Event event{};event.type=command==100?SDL_EVENT_WINDOW_FOCUS_LOST:SDL_EVENT_WINDOW_FOCUS_GAINED;event.window.windowID=SDL_GetWindowID(u->window);if(!SDL_PushEvent(&event))return fail(e,"could not enqueue focus probe event");return true;}
+ bool pointer=command>=210&&command<=216;if(pointer)command-=200;
+ if(!u->GameAllowed(command))return fail(e,"game action unavailable on this screen");
+ auto*element=u->document->GetElementById(game_button(command));
+ if(pointer){auto offset=element->GetAbsoluteOffset();u->current->ProcessMouseMove(int(offset.x+8),int(offset.y+8),0);u->current->ProcessMouseButtonDown(0,0);u->current->ProcessMouseButtonUp(0,0);}
+ else {element->DispatchEvent("click",{});}
+ return true;
+}
+void ui_state(UiRml*u,gal_ui_state&s){s={sizeof(s),u->generation,u->document?1u:0u,u->pending?1u:0u,u->count,u->overflow,ui_keyboard_focus(u)?1u:0u,u->document&&!u->game?u->document->GetElementById("item-list")->GetScrollTop():0,{}};std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->diagnostic);}
+bool ui_poll_action(UiRml*u,gal_ui_action&a,std::string&e){if(u->game)return fail(e,"settings UI profile required");a={sizeof(a),u->generation,0,0,{}};if(u->count){a=u->actions[u->first];u->first=(u->first+1)%u->actions.size();u->count--;}return true;}
 bool ui_test_command(UiRml*u,uint32_t generation,uint32_t command,std::string&e){
- if(!u->document||generation!=u->generation)return fail(e,"stale UI generation");
+ if(u->game||!u->document||generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
  if(command==GAL_UI_TEST_APPLY||command==GAL_UI_TEST_RESET)u->document->GetElementById(command==GAL_UI_TEST_APPLY?"apply":"reset")->DispatchEvent("click",{});
  else if(command==GAL_UI_TEST_FOCUS)u->document->GetElementById("player-name")->Focus();
  else if(command==GAL_UI_TEST_SCROLL)u->document->GetElementById("item-list")->SetScrollTop(150);
@@ -130,9 +179,12 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
    if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
    if(u->current)Rml::RemoveContext(u->current->GetName());
    u->current=u->pending;u->document=u->candidate;u->pending=nullptr;u->candidate=nullptr;
-   u->generation=next_generation++;u->first=u->count=u->overflow=0;u->diagnostic[0]=0;
+   u->generation=next_generation++;u->game=u->pending_game;u->game_screen=0;u->game_flags=0;u->first=u->count=u->overflow=0;u->diagnostic[0]=0;
+   if(u->game){for(uint32_t action=10;action<=16;action++)u->document->GetElementById(game_button(action))->AddEventListener("click",u);}
+   else{
    for(const char*id:{"apply","reset"})u->document->GetElementById(id)->AddEventListener("click",u);
    for(const char*id:{"player-name","volume"})u->document->GetElementById(id)->AddEventListener("change",u);
+   }
   }
  }
  if(u->current){u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));u->current->Update();u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}}

@@ -1,0 +1,24 @@
+/* Fixed mission profile: real HUD and modal game commands, no settings controls. */
+body { font-family: "Noto Sans CJK SC"; font-size: 16dp; font-weight: normal; color: #edf3fc; width: 100%; height: 100%; }
+div { display: block; }
+h1 { display: block; font-size: 28dp; margin: 0dp 0dp 14dp; color: #b9e4df; }
+p { display: block; line-height: 140%; margin: 8dp 0dp; }
+#game-panel { position: absolute; left: 224dp; top: 100dp; width: 464dp; padding: 24dp; background-color: #172338; border-width: 1dp; border-color: #4c6486; }
+#game-objective { color: #c9d7e9; }
+#game-status { color: #9dd8b7; }
+#game-time { font-size: 20dp; color: #f3d690; }
+#game-actions { margin-top: 18dp; }
+button { display: inline-block; width: 126dp; padding: 10dp 8dp; margin: 4dp 6dp 4dp 0dp; background-color: #2e5064; color: #edf3fc; border-width: 1dp; border-color: #6582a6; border-radius: 5dp; text-align: center; }
+button:hover { background-color: #3d687d; }
+button:focus { border-color: #b9e4df; }
+button:active { background-color: #234052; }
+#hud { display: none; position: absolute; left: 24dp; top: 12dp; width: 880dp; padding: 10dp; background-color: #172338; }
+#hud-objective { font-size: 16dp; margin: 0dp; color: #b9e4df; }
+#hud-status { font-size: 13dp; margin: 2dp 0dp; color: #c9d7e9; }
+#hud-time { display: inline-block; width: 660dp; margin: 0dp; color: #f3d690; }
+#game-pause { width: 150dp; padding: 4dp 8dp; margin: 0dp; }
+#game-resume { display: none; }
+#game-save { display: none; }
+#game-load { display: none; }
+#game-restart { display: none; }
+#game-menu { display: none; }

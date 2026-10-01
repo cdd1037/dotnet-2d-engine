@@ -75,3 +75,61 @@ same-source XDocument baseline of 5,290,432 bytes. JSON source-generation remain
 unchanged. The historical 7,188,451-byte nofont ZIP is not rebuilt by this change.
 See [merged evidence](XML_TRIMMING.md) for hashes, logs,
 reproduction, limits and exact distinctions between fresh and reused checks.
+
+## Phase-1 playable mission (2026-10-01)
+
+The local phase-1 working tree adds RELAY's complete title/start/play/pause/
+win/lose/save/load/restart loop. See [mission instructions](PLAYABLE_MISSION.md)
+and [bounded game UI contract](GAME_UI_PROFILE.md). This supersedes aggregate
+counts above for this working tree; older evidence remains historical.
+
+Final feature-boundary verification used existing .NET 10.0.401 / runtime 10.0.12,
+SDL3 3.2.28, RmlUi 6.3 and Mesa lavapipe software Vulkan:
+
+- Release build: zero warnings/errors; full JIT **8,771 assertions**
+- Fresh NativeAOT publish: full **8,771 assertions**, including 185 focused mission
+  checks and 12 game-profile authoring checks
+- JIT and AOT each: **28** native game UI checks, **49** integrated game-loop
+  checks, original **23** settings UI checks, original **16** combined room/UI checks
+- Native optional-UI CTest: **3/3**
+- Mission CPU checks include 25 repeated playthrough replacements with subscription
+  cleanup, repeated room crossings, invalid/missing resources retaining the live
+  run, malformed/incompatible saves, failed candidate preparation, timer/input
+  boundaries and final-tick simulation limits
+- Integrated UI checks include 12 repeated restart/menu cycles, bounded native
+  texture counts, stale-generation rejection and final entity/texture/context cleanup
+- Captured archive/win/loss/final-title pixels are byte-identical between JIT/AOT;
+  settings captures are also identical. Initial title/pause captures intentionally
+  differ in Load-button availability: the JIT scenario began with an existing
+  checkpoint, while the AOT scenario began without one
+- Final stripped aggregate NativeAOT executable: **4,867,040 bytes**. This includes
+  the test/probe host, excludes native libraries/assets/fonts, and is not a shipping
+  package measurement. No size-ablation or large differential corpus was rerun
+
+Local logs/captures: `evidence/mission/`. Initial AOT `--no-restore` against the
+ordinary JIT assets file failed before compilation because it lacked a linux-x64
+restore target. The successful publish reused the already-restored isolated
+`build-aot-artifacts`, existing clang 19 and existing in-process ILLink host override;
+no packages, frameworks or toolchains were downloaded for this phase.
+
+These graphics checks use real SDL GPU rendering and Rml listeners with synthetic
+host input and synthetic SDL focus events. They do not establish physical-GPU
+performance, physical keyboard timing, audio output or real IME behavior. Displayed
+X11 desktop checks are recorded separately from this deterministic evidence. The
+settings first-Reset-after-scroll issue remains outside this phase's claim.
+
+### Displayed-window check, same phase-1 build
+
+A separate CUA pass on the cloud X11 desktop with software Vulkan verified:
+Title → Start → Escape pause → Save (Load becomes available) → Restart → Pause →
+Load (90-second checkpoint restored) → Resume; then actual held-key movement,
+E pickup, T door transition, E delivery with 6 seconds remaining, visible win,
+Menu back to title, and window close. This exercises the displayed SDL window and
+Rml controls; it is still a virtual desktop with CPU rendering and dummy audio,
+not a physical GPU/input/audio/IME test.
+
+The title deliberately retains the frozen last room, including its remaining-time
+readout; Start always resets from the authored 90-second mission. Hiding or labeling
+that title readout is a small outstanding UI polish item. Simultaneous restart
+and pause commands in one input batch are deliberately discarded at the first
+screen boundary; a fresh Escape or Pause click works after that boundary.
