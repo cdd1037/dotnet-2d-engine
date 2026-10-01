@@ -20,6 +20,9 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(args.Contains("--physics-demo",StringComparer.Ordinal)||args.Contains("--physics-scenario",StringComparer.Ordinal)){if(options.Headless)throw new ArgumentException("Use --physics-self-test for device-free solver validation.");return PhysicsDemo.Run(options.Frames,args.Contains("--physics-scenario",StringComparer.Ordinal));}
+            if(args.Contains("--physics-contract-test",StringComparer.Ordinal)){PhysicsTests.RunContracts();return 0;}
+            if(args.Contains("--physics-self-test",StringComparer.Ordinal)){PhysicsTests.RunSimulation();return 0;}
             if(args.Contains("--audio-demo",StringComparer.Ordinal)){if(options.Headless)throw new ArgumentException("Use --audio-offline-test for device-free PCM validation.");return AudioDemo.Run(options.Frames);}
             if(args.Contains("--audio-self-test",StringComparer.Ordinal)){AudioTests.RunContracts();return 0;}
             if(args.Contains("--audio-offline-test",StringComparer.Ordinal)){AudioTests.RunOffline();return 0;}
@@ -186,6 +189,7 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: GameAuthoringLab [--room-demo | --scenario] [--headless] [--frames N] [--save-file PATH] [--load-file PATH] | --validate-save PATH | --self-test | --help");
+        Console.WriteLine("Physics: --physics-demo | --physics-scenario | --physics-contract-test | --physics-self-test (real solver)");
         Console.WriteLine("Audio: --audio-demo [--frames N] | --audio-self-test | --audio-offline-test | --audio-device-test");
         Console.WriteLine("Regions: --region-self-test (CPU) | --region-graphics-test (SDL texture regions/capture)");
         Console.WriteLine("Input: --input-self-test (CPU) | --input-graphics-test (queued SDL/Rml input)");
@@ -215,7 +219,7 @@ internal static class Program
                     case "--ui-demo":uiDemo=true;break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
-                    case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
+                    case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;
                     case "--game-ui-self-test": break;

@@ -90,3 +90,11 @@ PIC library with WAVE and bundled stb_vorbis only. `scripts/build-mixer.sh` is t
 explicit setup entry point; normal builds do not download codecs. Full mixer and
 stb notices are retained. Generated audio fixtures are source-only reproductions
 from `scripts/generate-audio-fixtures.py`, using Python/ffmpeg for authoring only.
+
+## Optional physics dependency
+
+[Box2D 3.1.1](PHYSICS.md) is pinned to official commit
+`8c661469c9507d3ad6fbd2fea3f1aa71669c2fe3`; the archive hash and all 233 source
+file blobs were verified. `scripts/build-box2d.sh` builds only the static C17
+library, with no samples/GLFW/enkiTS/ImGui downloads. The full MIT notice is
+retained. Native physics and helper scripts require explicit opt-in.

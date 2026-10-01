@@ -2,6 +2,7 @@
 #include "gal_ui.h"
 #include "backend.h"
 #include "audio_backend.h"
+#include "physics_backend.h"
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -14,7 +15,7 @@
 struct TextureInfo { uint64_t id; int32_t width,height; bool operator==(uint64_t other)const{return id==other;} };
 struct gal_context {
  gal_config config{}; gal_camera camera{}; gal_stats stats{sizeof(gal_stats),0,0,0,0};
- AudioBackend* audio=nullptr;
+ AudioBackend* audio=nullptr; PhysicsBackend* physics=nullptr;
  std::thread::id owner; bool frame=false; uint32_t pending=0; Backend* backend=nullptr;
  std::vector<Vertex> vertices; std::vector<DrawRun> runs; std::vector<TextureInfo> textures;
 };
@@ -43,7 +44,7 @@ int GAL_CALL gal_create(const gal_config* cfg, gal_context** out) {
   live=c; *out=c; return 0;
  } catch(...) { if(c) { backend_destroy(c->backend); delete c; } return fail("allocation or backend exception"); }
 }
-int GAL_CALL gal_destroy(gal_context* c) { ENTRY; CHECK; audio_destroy(c->audio); backend_destroy(c->backend); delete c; live=nullptr; return 0; }
+int GAL_CALL gal_destroy(gal_context* c) { ENTRY; CHECK; physics_destroy(c->physics); audio_destroy(c->audio); backend_destroy(c->backend); delete c; live=nullptr; return 0; }
 const char* GAL_CALL gal_backend(gal_context* c) { ENTRY; if(!valid(c)) { fail("invalid context or wrong thread"); return nullptr; } return c->backend?backend_name(c->backend):"headless-validation"; }
 int GAL_CALL gal_poll(gal_context* c,gal_input* input) {
  ENTRY; CHECK; if(c->frame) return fail("poll must occur outside an active frame"); if(!input || input->size!=sizeof(gal_input)) return fail("invalid input size");
@@ -198,4 +199,25 @@ int GAL_CALL gal_audio_group_gain(gal_context*c,uint32_t group,float gain){Audio
 int GAL_CALL gal_audio_get_voice(gal_context*c,uint64_t id,gal_voice_state*out){return audio_call(c,AudioOp::VoiceState,&id,out);}
 int GAL_CALL gal_audio_get_state(gal_context*c,gal_audio_state*out){return audio_call(c,AudioOp::State,nullptr,out);}
 int GAL_CALL gal_audio_mix(gal_context*c,float*output,uint32_t frames,uint32_t*mixed){AudioMix r{output,frames};return audio_call(c,AudioOp::Mix,&r,mixed);}
+}
+
+static int physics_call(gal_context*c,PhysicsOp op,const void*in,void*out){
+ ENTRY;CHECK;if(c->frame)return fail("physics operations require no active sprite frame");
+ try{std::string why;if(!physics_dispatch(c->physics,op,in,out,why))return fail(why.c_str());return 0;}
+ catch(const std::exception&e){return fail(e.what());}catch(...){return fail("physics allocation or backend exception");}
+}
+extern "C" {
+int GAL_CALL gal_physics_open(gal_context*c,const gal_physics_config*cfg){return physics_call(c,PhysicsOp::Open,cfg,nullptr);}
+int GAL_CALL gal_physics_close(gal_context*c){return physics_call(c,PhysicsOp::Close,nullptr,nullptr);}
+int GAL_CALL gal_physics_create_body(gal_context*c,const gal_body_def*def,uint64_t*out){return physics_call(c,PhysicsOp::CreateBody,def,out);}
+int GAL_CALL gal_physics_release_body(gal_context*c,uint64_t id){return physics_call(c,PhysicsOp::ReleaseBody,&id,nullptr);}
+int GAL_CALL gal_physics_create_shape(gal_context*c,uint64_t body,const gal_shape_def*def,uint64_t*out){PhysicsShapeRequest r{body,def};return physics_call(c,PhysicsOp::CreateShape,&r,out);}
+int GAL_CALL gal_physics_release_shape(gal_context*c,uint64_t id){return physics_call(c,PhysicsOp::ReleaseShape,&id,nullptr);}
+int GAL_CALL gal_physics_body_command(gal_context*c,uint64_t body,uint32_t command,float x,float y,float z){PhysicsCommand r{body,command,x,y,z};return physics_call(c,PhysicsOp::BodyCommand,&r,nullptr);}
+int GAL_CALL gal_physics_get_body(gal_context*c,uint64_t id,gal_body_state*out){return physics_call(c,PhysicsOp::BodyState,&id,out);}
+int GAL_CALL gal_physics_step(gal_context*c,gal_physics_step_result*out){return physics_call(c,PhysicsOp::Step,nullptr,out);}
+int GAL_CALL gal_physics_events(gal_context*c,gal_physics_event*out,uint32_t cap,uint32_t*count){PhysicsEventsRequest r{out,cap};return physics_call(c,PhysicsOp::Events,&r,count);}
+int GAL_CALL gal_physics_ray_cast(gal_context*c,const gal_physics_ray*q,gal_physics_ray_hit*out){return physics_call(c,PhysicsOp::Ray,q,out);}
+int GAL_CALL gal_physics_query_aabb(gal_context*c,const gal_physics_aabb*q,uint64_t*out,uint32_t cap,uint32_t*count){PhysicsAabbRequest r{q,out,cap};return physics_call(c,PhysicsOp::Aabb,&r,count);}
+int GAL_CALL gal_physics_get_state(gal_context*c,gal_physics_state*out){return physics_call(c,PhysicsOp::State,nullptr,out);}
 }

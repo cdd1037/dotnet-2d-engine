@@ -333,3 +333,55 @@ Audio WAV/Ogg binaries are ignored rather than committed. Build/publish copies
 locally generated fixtures; generation is explicit and never launches an encoder
 during an ordinary build. Evidence/source/output hashes are under local
 `evidence/audio/`. The separate room-asset preparation commit remains independent.
+
+## Box2D foundation milestone — 2026-10-01
+
+The opt-in [physics contract](PHYSICS.md) uses unmodified Box2D 3.1.1, library-only.
+The official tag commit was resolved and all **233 archive blobs** matched its Git
+tree; archive SHA-256 is pinned. Full MIT notice retained. Samples/task systems/
+profilers were disabled, and no extra dependency install was needed.
+
+Final verification:
+
+- Native CTest **4/4** in the real solver and combined graphics builds, including
+  new C11 physics struct sizes/offsets
+- Full JIT and **fresh NativeAOT: 8,948 CPU assertions each**, including **16**
+  layout/unit/source-generation checks; that aggregate alone is not solver validation
+- JIT and AOT each pass **284 real Box2D assertions** without SDL/GPU: falling and
+  resting/sleeping bodies, wake-on-teleport contact ends, kinematic motion, force/
+  impulse, fixed rotation, sensor passage and deletion ends, mask/group filters,
+  dynamic-circle rebound, closest rays and initial-overlap policy, broad-phase
+  output capacity, event overflow diagnostics, body/shape caps and slot reuse,
+  ownership/thread/frame guards, scene unload and late disposal
+- Warmed step/body-state/copied-event access allocates **zero managed bytes**
+- Two independently loaded fixed-input fixtures repeat their same-binary result.
+  The rendered **180-step** source fixture reports **3 contact begins**, **2 sensor
+  begins**, and zero final bodies/shapes. Its final poses and initial readback match
+  JIT/AOT using the same native library
+- Combined-build regressions pass in JIT/AOT: actual audio PCM **61**, region graphics
+  **29**, input **28**, resources **27**, mission **49**. All six mission captures
+  match both modes and the prior audio milestone
+
+A focused displayed cloud-X11 CUA pass observed the dynamic box resting on its
+static floor, T teleport/reset, yellow pause state, upward E impulse/resume and
+Escape exit; terminal output confirmed bodies=0/shapes=0. Rendering is still Mesa
+software Vulkan, and this does not establish physical GPU/platform acceptance.
+The native solver result likewise does not promise cross-platform determinism.
+
+The tests exposed two integration details now explicit in the contract: teleports
+wake sleeping bodies, and the pinned closest-ray convenience API ignores initial
+overlap. Box2D's intentionally approximate angle-to-rotation math is preserved;
+render pose angles are derived from its actual rotation rather than presumed to be
+identical to the authored angle.
+
+Consistent final-source Release headless builds: physics disabled **46,248 bytes**,
+physics enabled **381,920 bytes**, increment **335,672 bytes**. The Box2D static
+archive is **498,984 bytes**. Combined SDL/mixer/physics `libgal.so` is **605,984
+bytes**, or **3,991,744 bytes** with the existing RmlUi module. The stripped aggregate
+AOT test host is **5,261,152 bytes**, excluding native libraries/assets/fonts. These
+are build-specific file measurements, not peak RSS, performance or package totals.
+
+Evidence, source/output hashes and source-tree verification are local under
+`evidence/physics/`. Only source/JSON/scripts/notices/reports are committed. The
+agreed scope remains basic engine foundations; advanced controller/authoring gaps
+and a broader Godot/Unity comparison are deferred as recorded in the roadmap.

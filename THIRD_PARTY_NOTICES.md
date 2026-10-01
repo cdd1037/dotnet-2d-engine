@@ -10,6 +10,7 @@ the project's MIT license does not relicense them. Retained upstream notices:
 - [SDL3_image](docs/SDL3-IMAGE-LICENSE.txt): zlib
 - [SDL3_mixer](docs/SDL3-MIXER-LICENSE.txt): zlib
 - [stb_vorbis](docs/STB-VORBIS-LICENSE.txt): MIT selected from upstream dual license
+- [Box2D](docs/BOX2D-LICENSE.txt): MIT
 - [RmlUi](docs/RMLUI-LICENSE.txt): MIT
 
 See [dependency documentation](docs/dependencies.md) for versions and build

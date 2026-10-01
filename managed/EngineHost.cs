@@ -8,6 +8,13 @@ internal sealed unsafe class EngineHost : IDisposable
     public bool Headless { get; }
     private TextureCache? _textures;
     private AudioSession? _audio;
+    private PhysicsWorld? _physics;
+    public PhysicsWorld OpenPhysics(PhysicsSettings? settings=null)
+    {
+        AssertAlive();if(_physics is not null)throw new InvalidOperationException("A physics world is already open.");
+        return _physics=new PhysicsWorld(this,settings??PhysicsSettings.Default);
+    }
+    internal void PhysicsClosed(PhysicsWorld world){if(ReferenceEquals(_physics,world))_physics=null;}
     public AudioSession OpenAudio(bool offline=false)
     {
         AssertAlive();if(_audio is not null)throw new InvalidOperationException("An audio session is already open.");
@@ -145,5 +152,6 @@ internal sealed unsafe class EngineHost : IDisposable
         _context = 0;
         _textures?.EngineDestroyed();
         _audio?.EngineDestroyed();_audio=null;
+        _physics?.EngineDestroyed();_physics=null;
     }
 }

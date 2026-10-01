@@ -139,3 +139,12 @@ controls are labeled separately from physical speaker/latency acceptance. Genera
 audio fixtures stay out of Git and have a verified source generator. The native
 module is CMake opt-in and opens no mixer/device until requested. Final verification
 and consistent-build footprint comparisons are recorded in [validation](validation.md).
+
+## Physics follow-on
+
+The optional [Box2D foundation](PHYSICS.md) provides fixed-step static/dynamic/
+kinematic bodies, circle/box shapes, filters/sensors, copied begin/end events and
+bounded closest-ray/broad-phase AABB queries. Units and transform authority are
+explicit; scene ownership uses existing teardown hooks. The strict source-generated
+fixture and tests do not establish a full character controller, rich authoring
+workflow or cross-platform determinism guarantee.

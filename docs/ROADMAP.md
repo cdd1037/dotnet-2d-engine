@@ -20,7 +20,8 @@ and world clipping remain follow-ons. Box2D and SDL_mixer
 evaluation/integration are authorized after version, license, footprint and platform
 validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
 The minimal [SDL_mixer audio module](AUDIO.md) now covers clips, streams, gains and
-explicit lifetimes; Box2D integration remains the next authorized dependency batch.
+explicit lifetimes. The [Box2D foundation](PHYSICS.md) now adds bounded bodies,
+shapes, events and queries with explicit units/ownership.
 The advanced-effects group remains deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.
@@ -173,3 +174,9 @@ Static native linking/direct P/Invoke can be a later measured tradeoff, not an
 immediate architecture rewrite. Reference constraints:
 [prepare libraries for trimming](https://learn.microsoft.com/dotnet/core/deploying/trimming/prepare-libraries-for-trimming)
 and [NativeAOT interop](https://learn.microsoft.com/dotnet/core/deploying/native-aot/interop).
+
+## Deferred comparison
+
+Near completion of the currently agreed roadmap, perform a comprehensive
+Godot/Unity 2D capability comparison. Newly discussed advanced gaps are deferred
+and are not added to this implementation scope now.

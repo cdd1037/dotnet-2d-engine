@@ -14,6 +14,7 @@
     <RootNamespace>GameAuthoringLab</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="../assets/*.physics.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/audio/*.wav;../assets/audio/*.ogg" Link="assets/audio/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/*.mission.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/*.scene.json" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

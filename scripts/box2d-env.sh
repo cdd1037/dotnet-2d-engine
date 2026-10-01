@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+export BOX2D_VERSION=3.1.1
+export BOX2D_COMMIT=8c661469c9507d3ad6fbd2fea3f1aa71669c2fe3
+export BOX2D_ARCHIVE_SHA256=fb6ef914b50f4312d7d921a600eabc12318bb3c55a0b8c0b90608fa4488ef2e4
+export BOX2D_PREFIX="${BOX2D_PREFIX:-$PWD/.deps/box2d-$BOX2D_VERSION-install}"
