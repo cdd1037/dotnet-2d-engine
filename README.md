@@ -64,6 +64,11 @@ See [world model](managed/WORLD.md), [dependency checklist](docs/dependencies.md
 
 RmlUi 6.3 settings prototype: `docs/UI_PROTOTYPE.md`. Build flag `GAL_ENABLE_RMLUI` is off by default. Bilingual text, scrolling, C# events/model updates and JIT/NativeAOT are tested with software Vulkan; real IME and other-platform acceptance remain open. RML/RCSS are RmlUi-specific formats. Other UI choices and a future Blazor/engine-self-hosted/hybrid editor remain alternatives.
 
+The [typed binding/list profile](docs/UI_BINDINGS.md) adds explicit C# projections,
+plain text/boolean/integer values and stable-ID dynamic lists with guarded copied
+actions. Run `scripts/test.sh quick bindings` or use `--binding-demo` in the UI
+build for the interactive inventory fixture.
+
 Combined gameplay/menu and lifecycle experiments: [findings and run instructions](docs/GAMEPLAY_UI_LIFECYCLE.md).
 
 Explicit attachment ownership and efficient stable sorting: [semantics and validation](docs/LIFECYCLE_SORTING.md).

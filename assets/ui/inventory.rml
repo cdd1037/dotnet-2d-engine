@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head>
+    <title>Inventory / 物品</title>
+    <link type="text/rcss" href="inventory.rcss" />
+  </head>
+  <body>
+    <div id="inventory-panel" class="panel">
+      <h1 id="heading">Inventory / 物品</h1>
+      <p class="hint">Typed values and keyed rows / 类型值与列表</p>
+      <label for="name">Name / 名称</label>
+      <input id="name" type="text" maxlength="64" value="Travel pack / 旅行包" />
+      <div class="toggle-row">
+        <label for="enabled" class="toggle-label">Available / 可用</label>
+        <input id="enabled" type="checkbox" checked="checked" />
+      </div>
+      <label for="quantity">Quantity / 数量</label>
+      <input id="quantity" type="range" min="0" max="100" step="1" value="3" />
+      <div class="actions"><button id="refresh">Refresh / 刷新</button></div>
+      <h2>Contents / 内容</h2>
+      <div id="items"></div>
+    </div>
+  </body>
+</rml>

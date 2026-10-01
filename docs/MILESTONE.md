@@ -170,4 +170,12 @@ remain outside this slice.
 
 ## UI text-input follow-on
 
-The [UI ownership/text bridge](UI_TEXT_INPUT.md) now preserves selected text through composition cancellation, maps candidate geometry to window coordinates, isolates staged focus and retires contexts safely. Scripted composition is distinguished from real OS IME acceptance. The typed-binding/list API remains a later UI subbatch.
+The [UI ownership/text bridge](UI_TEXT_INPUT.md) now preserves selected text through composition cancellation, maps candidate geometry to window coordinates, isolates staged focus and retires contexts safely. Scripted composition is distinguished from real OS IME acceptance. The subsequent [typed-binding/list API](UI_BINDINGS.md) adds explicit model projections, stable row IDs and generation/revision-guarded copied actions.
+
+## Typed UI binding follow-on
+
+The reusable [bounded binding profile](UI_BINDINGS.md) supports text, text input,
+checkboxes, integer ranges, buttons and dynamically replaced lists. Inventory and
+roster fixtures use different IDs/models without new native profile branches.
+Unchanged model batches skip interop; invalid projections and snapshots preserve
+the live document. UI ownership and composition lifetimes remain explicit.

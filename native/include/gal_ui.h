@@ -6,7 +6,7 @@ extern "C" {
 #endif
 /* Optional experimental API v1. Main thread, outside active sprite frame.
    Fixed-size UTF8 buffers are NUL-terminated; no pointers/callbacks are retained.
-   Settings model only: this is deliberately not a DOM binding. */
+   The first records are the original settings profile; additive profiles follow. */
 typedef struct { uint32_t size,generation; int32_t volume; uint32_t reserved; char name[128],status[256]; } gal_ui_model;
 typedef struct { uint32_t size,generation,action; int32_t volume; char name[128]; } gal_ui_action;
 typedef struct { uint32_t size,generation,loaded,pending,queued,overflow,keyboard_focus; float scroll_top; char diagnostic[512]; } gal_ui_state;
@@ -43,6 +43,25 @@ GAL_API int GAL_CALL gal_game_ui_set_model(gal_context*,const gal_game_ui_model*
 GAL_API int GAL_CALL gal_game_ui_poll_action(gal_context*,gal_game_ui_action*);
 /* Probe-only: 100/101 queue focus-lost/gained SDL events; 200+action uses Rml pointer hit-testing. */
 GAL_API int GAL_CALL gal_game_ui_test_command(gal_context*,uint32_t generation,uint32_t command);
+/* Bounded binding profile v1, additive to the settings/game ABIs. All arrays copied during call.
+   1..32 targets, <=64 rows total. IDs ASCII, 1..47 bytes; text <=255 UTF8 bytes.
+   Values are a complete ordered snapshot (target=index). Revision must advance by one.
+   No retained pointers or callbacks. Each accepted snapshot retires prior actions. */
+enum { GAL_BOUND_TEXT=1,GAL_BOUND_TEXT_INPUT=2,GAL_BOUND_BOOLEAN=3,GAL_BOUND_NUMBER=4,GAL_BOUND_ACTION=5,GAL_BOUND_LIST=6 };
+typedef struct { uint32_t size,kind,action,reserved; char id[48]; } gal_bound_ui_target;
+/* flags: enabled=1, boolean checked=2. number: integer 0..100 for NUMBER, otherwise zero. */
+typedef struct { uint32_t size,target,flags,row_first,row_count,reserved; double number; char text[256]; } gal_bound_ui_value;
+/* IDs nonzero and unique within a list. flags: enabled=1, selected=2. */
+typedef struct { uint64_t id; uint32_t flags,reserved; char text[256]; } gal_bound_ui_row;
+typedef struct { uint32_t size,version,generation,revision,value_count,row_count; } gal_bound_ui_snapshot;
+typedef struct { uint32_t size,generation,revision,target,action,kind; uint64_t row; double number; uint32_t flags,reserved; char text[256]; } gal_bound_ui_action;
+GAL_API int GAL_CALL gal_bound_ui_open(gal_context*,const char* rml_path,const char* font_path,const gal_bound_ui_target*,uint32_t count);
+GAL_API int GAL_CALL gal_bound_ui_apply(gal_context*,const gal_bound_ui_snapshot*,const gal_bound_ui_value*,const gal_bound_ui_row*);
+/* action=0 means queue empty; common gal_ui_get_state exposes overflow. */
+GAL_API int GAL_CALL gal_bound_ui_poll(gal_context*,gal_bound_ui_action*);
+/* Probe-only: 1 dispatch click, 2 hit-tested click, 3 focus, 4 set value/change, 5 read displayed value,
+   6 pointer down, 7 pointer up, 8 queued preedit, 9 queued CJK commit, 10 queued astral commit. Generation/revision/target/row identify the current element. */
+GAL_API int GAL_CALL gal_bound_ui_test_command(gal_context*,uint32_t command,gal_bound_ui_action*);
 #ifdef __cplusplus
 }
 #endif

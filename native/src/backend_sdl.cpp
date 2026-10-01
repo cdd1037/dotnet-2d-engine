@@ -245,16 +245,23 @@ void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->
 
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
- if(op==1||op==10){auto paths=static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
+ if(op==1||op==10||op==20){
+  const auto*bound=op==20?static_cast<const BoundUiOpen*>(in):nullptr;
+  const char*bound_paths[]={bound?bound->path:nullptr,bound?bound->font:nullptr};
+  auto paths=op==20?bound_paths:static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
   const bool created=!b->ui;
   if(created){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;ui_window_state(b->ui,b->input.focused,!b->minimized);}
-  if(ui_load(b->ui,paths[0],e,op==10))return true;
+  if(op==20&&(!bound||!bound->targets||!bound->count||bound->count>32)){e="binding targets required (1..32)";if(created){ui_destroy(b->ui);b->ui=nullptr;}return false;}
+  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0))return true;
   if(created){ui_destroy(b->ui);b->ui=nullptr;}
   return false;
  }
  if(op==2){ui_destroy(b->ui);b->ui=nullptr;return true;}
  if(op==7){auto path=static_cast<const char*>(in);if(!path||!path[0]||std::strlen(path)>4096){e="invalid capture path";return false;}b->capture_path=path;b->captured=false;return true;}
  if(!b->ui){e="UI is not open";return false;}
+ if(op==21){auto*r=static_cast<const BoundUiApply*>(in);if(!r||!r->snapshot){e="binding snapshot required";return false;}return ui_apply_bound(b->ui,*r->snapshot,r->values,r->rows,e);}
+ if(op==22){auto*a=static_cast<gal_bound_ui_action*>(out);if(!a){e="binding action required";return false;}return ui_poll_bound(b->ui,*a,e);}
+ if(op==23){auto*r=static_cast<const BoundUiTest*>(in);if(!r||!r->value){e="binding probe required";return false;}return ui_test_bound(b->ui,r->command,*r->value,e);}
  if(op==11){auto*m=static_cast<const gal_game_ui_model*>(in);if(!m||m->size!=sizeof(*m)){e="invalid game UI model size";return false;}return ui_set_game_model(b->ui,*m,e);}
  if(op==12){auto*a=static_cast<gal_game_ui_action*>(out);if(!a||a->size!=sizeof(*a)){e="invalid game UI action size";return false;}return ui_poll_game_action(b->ui,*a,e);}
  if(op==13){auto args=static_cast<const uint32_t*>(in);return ui_game_test_command(b->ui,args[0],args[1],e);}

@@ -526,3 +526,51 @@ The stripped aggregate AOT test host is **5,575,888 bytes**; the combined option
 UI/audio/physics native library is **4,005,768 bytes** in this Release build. These
 are aggregate file measurements, not an isolated API or total distribution size.
 Logs, readbacks and output hashes remain ignored under `evidence/ui-text/`.
+
+## Typed bindings and dynamic lists (2026-10-01)
+
+The optional [binding profile](UI_BINDINGS.md) now supports six registered target
+kinds, explicit C# model projections and stable-ID list replacement. Inventory and
+roster fixtures share the same native path. It adds four C entry points and keeps
+all prior ABI records unchanged. The managed API/session is 141 lines, the native
+profile implementation/header 206 lines, and the reusable strict authoring profile
+273 lines in this source snapshot; integration, tests and fixtures are additional.
+
+Final-source checks:
+
+- Full JIT and fresh NativeAOT: **10,293 CPU assertions each**, including 28 binding
+  schema/value/ownership checks; native CTest **5/5**, including C11 layouts
+- JIT/AOT each: **59 native binding assertions**, covering typed model/input values,
+  escaped plain text, pointer-hit actions, disabled rows/buttons, add/remove/clear/
+  reorder/reinsert, stale generation/revision rejection, queued and already-polled
+  actions, duplicate/invalid batch retention, direct-C NaN/UTF8/flags/version/ID
+  rejection, queue overflow and explicit over-byte-capacity draft diagnostics,
+  repeated replacement, a different model/schema,
+  constructor/session ownership, disposal and engine-first destruction
+- The same fixture verifies failed projections, nested Apply rejection, smaller
+  authored text limits, unrelated-text updates preserving active composition and
+  replacing the composing target safely. A reviewed out-of-order native ID check
+  was fixed before final validation; all registration IDs are validated before
+  any DOM lookup uses them
+- **Zero managed bytes** allocated across 1,000 warmed unchanged inventory Apply
+  calls. Changed lists, caller delegates and the toolkit/render loop are outside
+  that measurement
+- Existing JIT/AOT UI regression suites remain green: composition 41, routed
+  input 28, mission 28, settings 23 and modal room 16
+- **Three captures are byte-identical between JIT and AOT**: initial inventory,
+  mutated inventory and the separately registered roster. Disabled and selected
+  row styling and literal `<north> & compass` rendering were visually inspected
+
+A displayed cloud X11 window was also operated with desktop pointer movement and
+keyboard input: row removal, repeated addition, checkbox changes, disabled button
+behavior, ASCII text editing, range input, rectangular scrolling and clean exit
+were verified. Window-bound synthetic clicking did not consistently update SDL's
+pointer motion state, so this acceptance used the full desktop pointer API. This
+is a cloud software-Vulkan window check, not a physical GPU/high-DPI or real OS
+Chinese IME/candidate-window test. No font, OS setting or dependency was added.
+
+The aggregate stripped AOT test host is **5,737,936 bytes**; the combined optional
+UI/audio/physics native library is **4,041,568 bytes** in the same Release config.
+These are aggregate files, not total package sizes or independently trimmed module
+measurements. The local NuGet proof remains the place to compare consumer roots.
+Ignored logs/readbacks are under `evidence/ui-binding/`.

@@ -3,6 +3,12 @@
 #include "gal_ui.h"
 #include "gal_physics.h"
 #include <stddef.h>
+_Static_assert(sizeof(gal_bound_ui_target)==64, "bound target");
+_Static_assert(sizeof(gal_bound_ui_value)==288, "bound value");
+_Static_assert(sizeof(gal_bound_ui_row)==272, "bound row");
+_Static_assert(sizeof(gal_bound_ui_snapshot)==24, "bound snapshot");
+_Static_assert(sizeof(gal_bound_ui_action)==304, "bound action");
+_Static_assert(offsetof(gal_bound_ui_action,text)==48, "bound action text");
 _Static_assert(sizeof(gal_ui_text_state)==832, "UI text state");
 _Static_assert(offsetof(gal_ui_text_state,value)==64, "UI text payload offset");
 _Static_assert(sizeof(gal_physics_config)==32, "physics config");

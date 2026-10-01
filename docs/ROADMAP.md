@@ -26,8 +26,9 @@ shapes, events and queries with explicit units/ownership. The managed
 [basic TileMap](TILEMAP.md) adds bounded authored grids, chunk-assisted visibility
 culling and optional generated static collision.
 The [UI text-input/ownership follow-on](UI_TEXT_INPUT.md) now validates the
-composition bridge and candidate-coordinate contract synthetically; generic
-typed bindings/dynamic lists and real desktop IME acceptance remain UI follow-ons.
+composition bridge and candidate-coordinate contract synthetically. The
+[typed UI binding/list profile](UI_BINDINGS.md) adds explicit C# projections and
+bounded stable-ID list mutations. Real desktop IME acceptance remains outstanding.
 The advanced-effects group remains deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.

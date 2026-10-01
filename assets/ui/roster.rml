@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head>
+    <title>Team roster / 队伍</title>
+    <link type="text/rcss" href="roster.rcss" />
+  </head>
+  <body>
+    <div id="roster-panel" class="panel">
+      <h1 id="caption">Team roster / 队伍</h1>
+      <p class="hint">A second document using the same binding API / 同一个绑定接口</p>
+      <div class="actions"><button id="add">Add member / 添加成员</button></div>
+      <div id="members"></div>
+    </div>
+  </body>
+</rml>

@@ -402,7 +402,12 @@ internal static class UiAuthoring
 
     internal static void ValidateGameStyle(string source,string file)=>new StyleParser(source,file,true).Parse();
 
-    private sealed class StyleParser(string source, string file, bool gameProfile=false)
+    internal static void ValidateBoundStyle(string source, string file, Func<string, bool> selectors,
+        Func<string, string, string, bool> properties) => new StyleParser(source, file,
+            selectorAllowed: selectors, propertyAllowed: properties).Parse();
+
+    private sealed class StyleParser(string source, string file, bool gameProfile=false,
+        Func<string, bool>? selectorAllowed=null, Func<string, string, string, bool>? propertyAllowed=null)
     {
         private int _position, _line = 1, _column = 1;
         public void Parse()
@@ -414,7 +419,7 @@ internal static class UiAuthoring
                 if (++rules > 128) Fail("UI_LIMIT", "$rcss", "Maximum 128 rules exceeded.");
                 int selectorLine = _line, selectorColumn = _column;
                 string selector = ReadUntil('{', "selector").Trim();
-                if (!(gameProfile?GameUiAuthoring.IsStyleSelector(selector):ValidSelector(selector))) FailAt("UI_SELECTOR", selectorLine, selectorColumn, selector, "Unsupported selector.");
+                if (!(selectorAllowed?.Invoke(selector) ?? (gameProfile?GameUiAuthoring.IsStyleSelector(selector):ValidSelector(selector)))) FailAt("UI_SELECTOR", selectorLine, selectorColumn, selector, "Unsupported selector.");
                 Advance(); SkipTrivia();
                 var properties = new HashSet<string>(StringComparer.Ordinal);
                 while (_position < source.Length && source[_position] != '}')
@@ -424,8 +429,8 @@ internal static class UiAuthoring
                     string value = ReadUntil(';', selector + "/" + property).Trim(); Advance();
                     if (!properties.Add(property)) FailAt("UI_PROPERTY", propertyLine, propertyColumn, selector + "/" + property, "Duplicate property within one rule.");
                     if (properties.Count > 32) Fail("UI_LIMIT", selector, "Maximum 32 declarations per rule exceeded.");
-                    if (!ValidProperty(selector, property, value)) FailAt("UI_PROPERTY", propertyLine, propertyColumn, selector + "/" + property,
-                        "Unknown property or unsupported value in settings style profile v1: " + Clip(value, 80));
+                    if (!(propertyAllowed?.Invoke(selector, property, value) ?? ValidProperty(selector, property, value))) FailAt("UI_PROPERTY", propertyLine, propertyColumn, selector + "/" + property,
+                        "Unknown property or unsupported value in " + (propertyAllowed is null ? "settings" : "bound") + " style profile v1: " + Clip(value, 80));
                     SkipTrivia();
                 }
                 if (_position == source.Length) Fail("UI_RCSS", selector, "Missing closing brace.");
@@ -487,7 +492,7 @@ internal static class UiAuthoring
         return StyleTags.Contains(selector) || selector.StartsWith('#') && RequiredIds.ContainsKey(selector[1..]) ||
             selector.StartsWith('.') && Classes.Contains(selector[1..]);
     }
-    private static bool ValidProperty(string selector, string property, string value)
+    internal static bool ValidProperty(string selector, string property, string value)
     {
         switch (property)
         {

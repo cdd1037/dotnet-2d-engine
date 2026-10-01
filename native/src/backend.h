@@ -1,5 +1,6 @@
 #pragma once
 #include "gal.h"
+#include "gal_ui.h"
 #include <string>
 struct Vertex { float x,y,u,v,r,g,b,a; };
 struct DrawRun { uint64_t texture; uint32_t first,count; };
@@ -18,3 +19,7 @@ void backend_texture_release(Backend*,uint64_t);
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*,int,const void*,void*,std::string&);
 #endif
+
+struct BoundUiOpen { const char* path; const char* font; const gal_bound_ui_target* targets; uint32_t count; };
+struct BoundUiApply { const gal_bound_ui_snapshot* snapshot; const gal_bound_ui_value* values; const gal_bound_ui_row* rows; };
+struct BoundUiTest { uint32_t command; gal_bound_ui_action* value; };

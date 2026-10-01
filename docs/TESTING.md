@@ -68,3 +68,18 @@ and sample UI preflight passed. This is one measured invocation, not a benchmark
 or guarantee. Existing final aggregate evidence is reused rather than duplicated.
 
 UI text-input changes can run `--ui-owner-test` on the headless build and `--ui-text-test` with the prepared RmlUi build/font. The latter queues SDL composition packets; it does not drive a real OS input method. See [text bridge](UI_TEXT_INPUT.md).
+
+## Typed bindings and lists
+
+`bash scripts/test.sh quick bindings` exercises CPU schema/value bounds and owner
+contracts. The full JIT tier includes these checks. With the optional UI build,
+source `scripts/ui-env.sh` and run the host with `--binding-native-test`;
+`--binding-demo` is the interactive inventory consumer. A native/AOT boundary pass
+uses the same `--binding-native-test` on the freshly published executable.
+
+The focused native fixture covers stable row add/remove/reorder, disabled actions,
+copy-only typed edits, duplicate/malformed payload rollback, stale generations and
+revisions, queue overflow, repeated list replacement, engine-first cleanup and
+two-field composition lifetime. `GAL_BOUND_UI_CAPTURE_DIR` selects the three
+readback destinations. Real desktop CUA acceptance and synthetic queued text are
+recorded separately in [validation](validation.md).

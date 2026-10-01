@@ -1,4 +1,5 @@
 #include "ui_rml.h"
+#include "ui_bound.h"
 #include "text_input_geometry.h"
 #include "RmlUi_Platform_SDL.h"
 #include "RmlUi_Renderer_SDL_GPU.h"
@@ -12,7 +13,7 @@
 #include <algorithm>
 #include <limits>
 
-static bool utf8(const char*,size_t,size_t);
+
 struct UiSystem final: SystemInterface_SDL {
  SDL_Window* window;
  explicit UiSystem(SDL_Window*w):SystemInterface_SDL(w),window(w){}
@@ -76,7 +77,7 @@ struct UiIme final: Rml::TextInputHandler {
  }
  bool Edit(const SDL_TextEditingEvent&event,Rml::ElementFormControlInput* focused){
   if(!context||!focused||!system.window_focused||!system.window_visible)return false;
-  if(!utf8(event.text,128,64)){system.TextFailure("Rejected preedit: invalid UTF8/control or more than 127 bytes/64 scalars");return true;}
+  if(!ui_valid_utf8(event.text,128,64)){system.TextFailure("Rejected preedit: invalid UTF8/control or more than 127 bytes/64 scalars");return true;}
   const int length=int(Rml::StringUtilities::LengthUTF8(Rml::String(event.text)));
   if(event.start< -1||event.length< -1||(event.start>=0&&event.length>=0&&(event.start>length||event.length>length-event.start))){system.TextFailure("Rejected preedit selection range");return true;}
   if(length==0){Cancel(true,false);return true;}
@@ -113,6 +114,7 @@ struct UiRml final: Rml::EventListener {
  SDL_GPUDevice* device;SDL_Window* window;UiSystem system;
  std::unique_ptr<RenderInterface_SDL_GPU> renderer;
  UiIme ime;
+ std::unique_ptr<UiBoundDocument> bound,pending_bound;
  Rml::Context* current=nullptr;Rml::Context* pending=nullptr;
  Rml::ElementDocument* document=nullptr;Rml::ElementDocument* candidate=nullptr;
  uint32_t generation=0,serial=0;bool initialized=false;
@@ -143,7 +145,7 @@ struct UiRml final: Rml::EventListener {
   value.volume=std::clamp(std::atoi(volume->GetValue().c_str()),0,100);
   actions[(first+count)%actions.size()]=value;count++;
  }
- void DropCandidate(){if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;}
+ void DropCandidate(){pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;}
 };
 static bool fail(std::string&e,const char*text){e=text;return false;}
 static void remember(UiRml*u,const char*s){std::snprintf(u->diagnostic,sizeof(u->diagnostic),"%s",s);}
@@ -151,6 +153,7 @@ void ui_destroy(UiRml*u) noexcept {
  if(!u)return;
  try {
   u->ime.Cancel(false);u->system.DeactivateKeyboard();discard_queued_text(u->window);
+  u->bound.reset();u->pending_bound.reset();
   if(u->initialized)Rml::Shutdown();
   if(u->renderer){u->renderer->Shutdown();u->renderer.reset();}
   Rml::SetTextInputHandler(nullptr);Rml::SetSystemInterface(nullptr);Rml::SetRenderInterface(nullptr);
@@ -172,7 +175,7 @@ UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  if(u->system.warnings){e=u->system.diagnostic;return nullptr;}
  return u.release();
 }
-bool ui_load(UiRml*u,const char*path,std::string&e,bool game){
+bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count){
  u->pending_game=game;
  u->DropCandidate();Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
  int w=0,h=0;SDL_GetWindowSizeInPixels(u->window,&w,&h);
@@ -181,27 +184,29 @@ bool ui_load(UiRml*u,const char*path,std::string&e,bool game){
  u->pending->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
- if(game){
+ if(targets){
+  if(valid){u->pending_bound=std::make_unique<UiBoundDocument>(u->candidate);valid=u->pending_bound->Configure(targets,count,e);}
+ }else if(game){
   for(const char*id:{"game-panel","game-title","game-objective","game-status","game-time","game-actions","hud","hud-objective","hud-status","hud-time"})if(!u->candidate||!u->candidate->GetElementById(id))valid=false;
   for(uint32_t action=10;action<=16;action++)if(!u->candidate||!u->candidate->GetElementById(game_button(action))||u->candidate->GetElementById(game_button(action))->GetTagName()!="button")valid=false;
  }else{
   for(const char*id:{"player-name","volume","apply","reset","status","item-list"})if(!u->candidate||!u->candidate->GetElementById(id))valid=false;
   if(valid){for(const char*id:{"player-name","volume"})if(!dynamic_cast<Rml::ElementFormControlInput*>(u->candidate->GetElementById(id)))valid=false;}
  }
- if(!valid||u->system.warnings){remember(u,u->system.warnings?u->system.diagnostic:"missing required profile element");u->DropCandidate();return fail(e,u->diagnostic);}
+ if(!valid||u->system.warnings){remember(u,u->system.warnings?u->system.diagnostic:(!e.empty()?e.c_str():"missing required profile element"));u->DropCandidate();return fail(e,u->diagnostic);}
  u->candidate->Show(Rml::ModalFlag::None,Rml::FocusFlag::None);u->pending->Update();
  if(u->system.warnings){remember(u,u->system.diagnostic);u->DropCandidate();return fail(e,u->diagnostic);}
  return true;
 }
-static bool utf8(const char*text,size_t cap,size_t max_scalars){
+bool ui_valid_utf8(const char*text,size_t cap,size_t max_scalars){
  if(!text)return false;
  size_t n=0;while(n<cap&&text[n])n++;if(n==cap)return false;
  size_t scalars=0;for(size_t i=0;i<n;){if(++scalars>max_scalars)return false;unsigned char c=text[i++];if(c<0x20||c==0x7f)return false;if(c<0x80)continue;uint32_t cp;int need;if(c>=0xc2&&c<=0xdf){cp=c&31;need=1;}else if(c>=0xe0&&c<=0xef){cp=c&15;need=2;}else if(c>=0xf0&&c<=0xf4){cp=c&7;need=3;}else return false;int length=need;while(need--){if(i>=n||(static_cast<unsigned char>(text[i])&0xc0)!=0x80)return false;cp=(cp<<6)|(text[i++]&63);}if((length==2&&cp<0x800)||(length==3&&cp<0x10000)||cp>0x10ffff||(cp>=0x80&&cp<=0x9f)||(cp>=0xd800&&cp<=0xdfff))return false;}
  return true;
 }
 bool ui_set_model(UiRml*u,const gal_ui_model&m,std::string&e){
- if(u->game||!u->document||m.generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
- if(m.reserved||m.volume<0||m.volume>100||!utf8(m.name,sizeof(m.name),32)||!utf8(m.status,sizeof(m.status),255))return fail(e,"invalid UI model fields/UTF8");
+ if(u->bound||u->game||!u->document||m.generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
+ if(m.reserved||m.volume<0||m.volume>100||!ui_valid_utf8(m.name,sizeof(m.name),32)||!ui_valid_utf8(m.status,sizeof(m.status),255))return fail(e,"invalid UI model fields/UTF8");
  auto*name=dynamic_cast<Rml::ElementFormControlInput*>(u->document->GetElementById("player-name"));
  auto*volume=dynamic_cast<Rml::ElementFormControlInput*>(u->document->GetElementById("volume"));
  if(!name||!volume)return fail(e,"invalid input element types");
@@ -212,7 +217,7 @@ bool ui_set_model(UiRml*u,const gal_ui_model&m,std::string&e){
 }
 bool ui_set_game_model(UiRml*u,const gal_game_ui_model&m,std::string&e){
  if(!u->game||!u->document||m.generation!=u->generation)return fail(e,"stale game UI generation or wrong profile");
- if(m.screen>4||m.seconds>9999||m.flags>3||m.reserved||!utf8(m.title,sizeof(m.title),127)||!utf8(m.objective,sizeof(m.objective),255)||!utf8(m.status,sizeof(m.status),255))return fail(e,"invalid game UI model fields/UTF8");
+ if(m.screen>4||m.seconds>9999||m.flags>3||m.reserved||!ui_valid_utf8(m.title,sizeof(m.title),127)||!ui_valid_utf8(m.objective,sizeof(m.objective),255)||!ui_valid_utf8(m.status,sizeof(m.status),255))return fail(e,"invalid game UI model fields/UTF8");
  if(m.screen!=u->game_screen||m.flags!=u->game_flags){
   if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
   u->generation=next_generation++;u->first=u->count=u->overflow=0;
@@ -240,7 +245,7 @@ bool ui_game_test_command(UiRml*u,uint32_t generation,uint32_t command,std::stri
  else {element->DispatchEvent("click",{});}
  return true;
 }
-void ui_state(UiRml*u,gal_ui_state&s){s={sizeof(s),u->generation,u->document?1u:0u,u->pending?1u:0u,u->count,u->overflow,ui_keyboard_focus(u)?1u:0u,u->document&&!u->game?u->document->GetElementById("item-list")->GetScrollTop():0,{}};std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->diagnostic);}
+void ui_state(UiRml*u,gal_ui_state&s){s={sizeof(s),u->generation,u->document?1u:0u,u->pending?1u:0u,u->bound?u->bound->Count():u->count,u->bound?u->bound->Overflow():u->overflow,ui_keyboard_focus(u)?1u:0u,u->document&&!u->game&&!u->bound?u->document->GetElementById("item-list")->GetScrollTop():0,{}};std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->bound&&u->bound->Diagnostic()[0]?u->bound->Diagnostic():u->diagnostic);}
 void ui_text_state(UiRml*u,gal_ui_text_state&s){
  s={};s.size=sizeof(s);s.version=1;s.generation=u->generation;
  const char*hint=SDL_GetHint(SDL_HINT_IME_IMPLEMENTED_UI);
@@ -254,9 +259,9 @@ void ui_text_state(UiRml*u,gal_ui_text_state&s){
  }
  std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->system.text_diagnostic);
 }
-bool ui_poll_action(UiRml*u,gal_ui_action&a,std::string&e){if(u->game)return fail(e,"settings UI profile required");a={sizeof(a),u->generation,0,0,{}};if(u->count){a=u->actions[u->first];u->first=(u->first+1)%u->actions.size();u->count--;}return true;}
+bool ui_poll_action(UiRml*u,gal_ui_action&a,std::string&e){if(u->bound||u->game)return fail(e,"settings UI profile required");a={sizeof(a),u->generation,0,0,{}};if(u->count){a=u->actions[u->first];u->first=(u->first+1)%u->actions.size();u->count--;}return true;}
 bool ui_test_command(UiRml*u,uint32_t generation,uint32_t command,std::string&e){
- if(u->game||!u->document||generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
+ if(u->bound||u->game||!u->document||generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
  if(command==GAL_UI_TEST_APPLY||command==GAL_UI_TEST_RESET)u->document->GetElementById(command==GAL_UI_TEST_APPLY?"apply":"reset")->DispatchEvent("click",{});
  else if(command==GAL_UI_TEST_FOCUS)u->document->GetElementById("player-name")->Focus();
  else if(command==GAL_UI_TEST_SCROLL)u->document->GetElementById("item-list")->SetScrollTop(150);
@@ -308,7 +313,7 @@ bool ui_input(UiRml*u,const SDL_Event&e){
  if((!u->system.window_focused||!u->system.window_visible)&&(e.type==SDL_EVENT_TEXT_EDITING||e.type==SDL_EVENT_TEXT_INPUT))return false;
  if(e.type==SDL_EVENT_TEXT_EDITING){auto*focused=dynamic_cast<Rml::ElementFormControlInput*>(u->current->GetFocusElement());return u->ime.Edit(e.edit,focused);}
  if(e.type==SDL_EVENT_TEXT_INPUT){
-  if(!utf8(e.text.text,256,255)){u->system.TextFailure("Rejected committed text: invalid UTF8/control or more than 255 bytes");return u->ime.context!=nullptr;}
+  if(!ui_valid_utf8(e.text.text,256,255)){u->system.TextFailure("Rejected committed text: invalid UTF8/control or more than 255 bytes");return u->ime.context!=nullptr;}
   if(u->ime.composing)u->ime.Cancel(true,false);
  }
  if(u->ime.composing&&(e.type==SDL_EVENT_KEY_DOWN||e.type==SDL_EVENT_KEY_UP)){
@@ -331,11 +336,14 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
   else{
    if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
    u->ime.Cancel(false);u->system.DeactivateKeyboard();discard_queued_text(u->window);
+   u->bound.reset();
    if(u->current)Rml::RemoveContext(u->current->GetName());
    u->current=u->pending;u->document=u->candidate;u->pending=nullptr;u->candidate=nullptr;
+   u->bound=std::move(u->pending_bound);
    u->document->Focus();
    u->generation=next_generation++;u->game=u->pending_game;u->game_screen=0;u->game_flags=0;u->first=u->count=u->overflow=0;u->diagnostic[0]=0;
-   if(u->game){for(uint32_t action=10;action<=16;action++)u->document->GetElementById(game_button(action))->AddEventListener("click",u);}
+   if(u->bound)u->bound->Publish(u->generation);
+   else if(u->game){for(uint32_t action=10;action<=16;action++)u->document->GetElementById(game_button(action))->AddEventListener("click",u);}
    else{
    for(const char*id:{"apply","reset"})u->document->GetElementById(id)->AddEventListener("click",u);
    for(const char*id:{"player-name","volume"})u->document->GetElementById(id)->AddEventListener("change",u);
@@ -344,4 +352,22 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
  }
  if(u->current){u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));u->current->Update();u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}}
  return true;
+}
+
+bool ui_apply_bound(UiRml*u,const gal_bound_ui_snapshot&s,const gal_bound_ui_value*v,const gal_bound_ui_row*r,std::string&e){
+ if(!u->bound)return fail(e,"bound UI profile required");
+ if(!u->bound->Stage(s,v,r,e))return false;
+ if(u->bound->ReplacesInput(u->current->GetFocusElement())){u->ime.Cancel();u->ime.bounds_valid=false;}
+ u->bound->Commit();return true;
+}
+bool ui_poll_bound(UiRml*u,gal_bound_ui_action&a,std::string&e){if(!u->bound)return fail(e,"bound UI profile required");return u->bound->Poll(a,e);}
+bool ui_test_bound(UiRml*u,uint32_t command,gal_bound_ui_action&a,std::string&e){
+ if(!u->bound)return fail(e,"bound UI profile required");
+ if(command==8||command==9||command==10){
+  auto copy=a;if(!u->bound->Test(5,copy,u->current,e))return false;
+  SDL_Event event{};if(command==8){event.type=SDL_EVENT_TEXT_EDITING;event.edit.windowID=SDL_GetWindowID(u->window);event.edit.text="ni";event.edit.start=0;event.edit.length=2;}
+  else{event.type=SDL_EVENT_TEXT_INPUT;event.text.windowID=SDL_GetWindowID(u->window);event.text.text=command==10?"😀":"你";}
+  return SDL_PushEvent(&event)||fail(e,"could not enqueue bound text probe");
+ }
+ return u->bound->Test(command,a,u->current,e);
 }

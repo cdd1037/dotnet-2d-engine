@@ -1,0 +1,88 @@
+/* Schema-driven inventory fixture. Native bindings create the bound-row buttons. */
+body {
+    font-family: "Noto Sans CJK SC";
+    font-size: 16dp;
+    font-weight: normal;
+    color: #edf3fc;
+    width: 100%;
+    height: 100%;
+}
+.panel {
+    position: absolute;
+    left: 24dp;
+    top: 16dp;
+    width: 470dp;
+    padding: 18dp;
+    background-color: #172338;
+    border-width: 1dp;
+    border-color: #4c6486;
+}
+div { display: block; }
+h1 { display: block; font-size: 24dp; margin: 0dp 0dp 6dp; }
+h2 { display: block; font-size: 16dp; margin: 10dp 0dp 8dp; }
+p { display: block; margin: 0dp; line-height: 140%; }
+.hint { color: #b7c8de; font-size: 14dp; }
+label { display: block; margin-top: 10dp; margin-bottom: 4dp; }
+.toggle-label { display: inline-block; width: 140dp; vertical-align: middle; }
+input {
+    display: block;
+    width: 450dp;
+    height: 28dp;
+    padding: 4dp 8dp;
+    color: #edf3fc;
+    background-color: #0e192b;
+    border-width: 1dp;
+    border-color: #6582a6;
+    font-size: 16dp;
+}
+input:focus { border-color: #83c7ff; }
+#enabled { display: inline-block; width: 24dp; height: 24dp; padding: 0dp; vertical-align: middle; }
+#enabled:checked { background-color: #83c7ff; border-color: #d9edff; }
+#enabled:disabled { color: #788ba3; }
+#quantity { height: 24dp; padding: 0dp; border-width: 0dp; background-color: transparent; }
+#quantity slidertrack { height: 8dp; margin-top: 8dp; background-color: #405778; }
+#quantity sliderbar { width: 18dp; height: 24dp; margin-top: 0dp; background-color: #83c7ff; }
+#quantity sliderprogress { background-color: #568fc8; }
+#quantity sliderarrowdec { display: none; }
+#quantity sliderarrowinc { display: none; }
+.actions { margin-top: 10dp; margin-bottom: 8dp; }
+button {
+    display: inline-block;
+    padding: 6dp 18dp;
+    margin-right: 10dp;
+    background-color: #345c87;
+    color: #ffffff;
+    border-width: 1dp;
+    border-color: #7098c5;
+    border-radius: 6dp;
+}
+button:hover { background-color: #4476a9; }
+button:focus { border-color: #d9edff; }
+button:active { background-color: #214465; }
+button:disabled { background-color: #27384d; color: #788ba3; }
+#items {
+    height: 128dp;
+    padding: 4dp;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #0e192b;
+    border-width: 1dp;
+    border-color: #405778;
+}
+.bound-row {
+    display: block;
+    width: 100%;
+    margin: 0dp 0dp 4dp;
+    padding: 6dp 8dp;
+    font-size: 14dp;
+    text-align: left;
+    word-break: break-all;
+    border-radius: 0dp;
+}
+.bound-row:selected { background-color: #496f46; border-color: #b9e6c9; }
+.bound-row:disabled { color: #788ba3; background-color: #192638; }
+#items scrollbarvertical { width: 12dp; }
+#items scrollbarvertical slidertrack { background-color: #243951; }
+#items scrollbarvertical sliderbar { width: 10dp; min-height: 16dp; background-color: #6a91bd; }
+#items scrollbarvertical sliderarrowdec { display: none; }
+#items scrollbarvertical sliderarrowinc { display: none; }

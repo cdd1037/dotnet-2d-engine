@@ -178,6 +178,10 @@ int GAL_CALL gal_game_ui_open(gal_context*c,const char*path,const char*font){con
 int GAL_CALL gal_game_ui_set_model(gal_context*c,const gal_game_ui_model*m){return ui_call(c,11,m,nullptr);}
 int GAL_CALL gal_game_ui_poll_action(gal_context*c,gal_game_ui_action*a){return ui_call(c,12,nullptr,a);}
 int GAL_CALL gal_game_ui_test_command(gal_context*c,uint32_t generation,uint32_t command){uint32_t args[]={generation,command};return ui_call(c,13,args,nullptr);}
+int GAL_CALL gal_bound_ui_open(gal_context*c,const char*p,const char*f,const gal_bound_ui_target*t,uint32_t n){BoundUiOpen r{p,f,t,n};return ui_call(c,20,&r,nullptr);}
+int GAL_CALL gal_bound_ui_apply(gal_context*c,const gal_bound_ui_snapshot*s,const gal_bound_ui_value*v,const gal_bound_ui_row*r){BoundUiApply a{s,v,r};return ui_call(c,21,&a,nullptr);}
+int GAL_CALL gal_bound_ui_poll(gal_context*c,gal_bound_ui_action*a){return ui_call(c,22,nullptr,a);}
+int GAL_CALL gal_bound_ui_test_command(gal_context*c,uint32_t command,gal_bound_ui_action*a){BoundUiTest r{command,a};return ui_call(c,23,&r,nullptr);}
 int GAL_CALL gal_capture_next(gal_context*c,const char*path){return ui_call(c,7,path,nullptr);}
 }
 

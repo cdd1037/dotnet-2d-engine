@@ -9,8 +9,9 @@ HTML/CSS. Myra and an engine-owned implementation remain alternatives.
 
 The game world, scene snapshot JSON and business logic do not depend on RmlUi.
 A build flag will keep the dependency optional. No managed DOM wrapper, embedded
-JavaScript or reflection-based model binding is planned. Managed updates use one
-small typed settings model, native events are copied into a bounded polling queue.
+JavaScript or reflection-based model binding is planned. The original settings adapter uses one small typed model; the later
+[generic binding profile](UI_BINDINGS.md) adds explicit projections and dynamic lists.
+Native events are copied into bounded polling queues.
 Native callbacks never re-enter the non-reentrant public C ABI.
 
 Initial authoring profile: a settings panel, text input, volume controls,
@@ -222,3 +223,10 @@ old package's claimed total.
 ## Text-input and ownership follow-on
 
 The [text-input bridge and owner contract](UI_TEXT_INPUT.md) now cover bounded SDL composition events, cancellation/focus lifecycle, candidate-coordinate conversion and exclusive managed UI ownership. Real OS Chinese-IME acceptance remains unverified; generic bindings and dynamic list mutation are a separate next batch.
+
+## Typed model/list follow-on
+
+[UI_BINDINGS.md](UI_BINDINGS.md) describes the schema-driven profile, stable row
+identity, revision guards and lifecycle. It reuses the strict authoring tokenizer
+and session ownership; inventory and roster are consumers rather than native
+special cases. The original settings list remains authored/static.

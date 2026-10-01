@@ -20,6 +20,9 @@ internal static class Program
                 PrintUsage();
                 return 0;
             }
+            if(args.Contains("--binding-self-test",StringComparer.Ordinal)){BoundUiTests.RunContracts();return 0;}
+            if(args.Contains("--binding-native-test",StringComparer.Ordinal)){BoundUiTests.RunNative();return 0;}
+            if(args.Contains("--binding-demo",StringComparer.Ordinal))return BoundUiDemo.Run(options.Frames);
             if(args.Contains("--ui-owner-test",StringComparer.Ordinal)){UiTextTests.RunContracts();return 0;}
             if(args.Contains("--ui-text-test",StringComparer.Ordinal)){UiTextTests.RunComposition();return 0;}
             if(args.Contains("--tilemap-demo",StringComparer.Ordinal)||args.Contains("--tilemap-scenario",StringComparer.Ordinal)||args.Contains("--tilemap-physics-demo",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal))return TileMapDemo.Run(options.Headless,options.Frames,args.Contains("--tilemap-scenario",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal),args.Contains("--tilemap-physics-demo",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal));
@@ -196,6 +199,7 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: GameAuthoringLab [--room-demo | --scenario] [--headless] [--frames N] [--save-file PATH] [--load-file PATH] | --validate-save PATH | --self-test | --help");
+        Console.WriteLine("UI bindings: --binding-demo | --binding-self-test | --binding-native-test");
         Console.WriteLine("TileMap: --tilemap-demo | --tilemap-scenario | --tilemap-physics-demo | --tilemap-physics-scenario | --tilemap-self-test | --tilemap-physics-test");
         Console.WriteLine("Animation: --animation-demo | --animation-scenario [--headless] | --animation-self-test");
         Console.WriteLine("Physics: --physics-demo | --physics-scenario | --physics-contract-test | --physics-self-test (real solver)");
@@ -228,7 +232,7 @@ internal static class Program
                     case "--ui-demo":uiDemo=true;break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
-                    case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
+                    case "--binding-self-test": case "--binding-native-test": case "--binding-demo": case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;
                     case "--game-ui-self-test": break;
