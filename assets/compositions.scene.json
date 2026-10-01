@@ -1,0 +1,115 @@
+{
+  "kind": "gal-authored-scene",
+  "version": 1,
+  "id": "00000000-0000-4000-8000-000000000002",
+  "persistentScopeId": "00000000-0000-4000-8000-000000000001",
+  "name": "Two authored compositions",
+  "resources": [
+    {
+      "key": "cell",
+      "path": "cell.bmp"
+    }
+  ],
+  "entities": [
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "Cell A",
+      "sceneId": "00000000-0000-4000-8000-000000000002",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 240,
+        "y": 180,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 24,
+        "height": 24,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "cell",
+        "layer": 0
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "Marker",
+      "sceneId": "00000000-0000-4000-8000-000000000002",
+      "parentId": "00000000-0000-4000-8000-000000000010",
+      "ownerId": "00000000-0000-4000-8000-000000000010",
+      "transform": {
+        "x": 4,
+        "y": 4,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 4,
+        "height": 4,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": null,
+        "layer": 1
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000020",
+      "name": "Cell B",
+      "sceneId": "00000000-0000-4000-8000-000000000002",
+      "parentId": null,
+      "ownerId": null,
+      "transform": {
+        "x": 360,
+        "y": 180,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 24,
+        "height": 24,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": "cell",
+        "layer": 0
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": "Marker",
+      "sceneId": "00000000-0000-4000-8000-000000000002",
+      "parentId": "00000000-0000-4000-8000-000000000020",
+      "ownerId": "00000000-0000-4000-8000-000000000020",
+      "transform": {
+        "x": 4,
+        "y": 4,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "shear": 0
+      },
+      "sprite": {
+        "width": 4,
+        "height": 4,
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1,
+        "assetKey": null,
+        "layer": 1
+      }
+    }
+  ]
+}

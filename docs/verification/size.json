@@ -1,0 +1,8 @@
+{
+  "original_same_source_bytes": 5290432,
+  "merged_main_bytes": 4742560,
+  "saving_bytes": 547872,
+  "merged_sha256": "0c46ad8bd5f64ed83c5f21d2244e37d1ced6d0b1ae74ad423276dc16e3e64925",
+  "candidate_exact_byte_match": false,
+  "compiler": "SDK 10.0.401; runtime/compiler packs 10.0.12; Release NativeAOT linux-x64; stripped; invariant globalization; XML default networking false"
+}

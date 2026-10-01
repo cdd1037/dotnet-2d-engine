@@ -1,0 +1,4 @@
+GAL_1 {
+ global: gal_*;
+ local: *;
+};

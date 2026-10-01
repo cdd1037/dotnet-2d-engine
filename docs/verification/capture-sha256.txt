@@ -1,0 +1,5 @@
+99136cd7e21d57b40728b04168931531d9c87eb85f8d0addef74accb728c5c38  evidence/xml-trimming/aot-ui.bmp
+1a815eea7d4ba2d1f513dc378735e7ffd4673d0ee54556de714b053c0ff6c480  evidence/xml-trimming/aot-ui.initial.bmp
+99136cd7e21d57b40728b04168931531d9c87eb85f8d0addef74accb728c5c38  evidence/xml-trimming/jit-ui.bmp
+1a815eea7d4ba2d1f513dc378735e7ffd4673d0ee54556de714b053c0ff6c480  evidence/xml-trimming/jit-ui.initial.bmp
+Final captures also byte-identical to original XDocument validator reference.

@@ -1,0 +1,25 @@
+PASS layouts, CLI parsing, camera, animation
+PASS invalid creation and null handles
+PASS lifecycle, batch state, invalid data, stats, thread ownership, errors
+PASS 32 recreate cycles and managed ownership guards
+PASS frame allocations bytes=0 frames=1000 sprites_per_frame=259 warmup=128
+PASS world IDs, stale/foreign handles, component validation, scene guards
+PASS independent transform/owner/scene relations, world-stable detachment, cycle rejection
+PASS pickup/drop identity and world transforms, persistent player, room unload, atomic rejection
+PASS mixed owner/transform graphs and alternating scene-survivor chains
+PASS transform overflow detection, atomic failures, local-space repair and unload retry
+PASS behavior updates, spawn/destroy during update, exception recovery, reentrancy guard
+PASS world frame allocations bytes=0 frames=1000 entities=259 sprites_per_frame=259 warmup=128
+PASS radians, rotated/nonuniform parents, shear-preserving reparent/detach, 100 affine chains
+PASS runtime IDs versus persistent GUIDs, cross-kind uniqueness and stale lookup
+PASS source-generated JSON, stable GUIDs, distinct runtime IDs, independent references, sprites/state, lifecycle after reload
+PASS malformed/schema/version/data/resource/reference/cycle failures preserve current world and state atomically
+PASS hierarchy numeric overflow rejects load/save without live-world mutation
+PASS 512-level iterative graph checks and explicit depth-limit rejection
+PASS room frame allocations bytes=0 frames=1000 fixed_step=60Hz
+PASS two-room movement/AABB, pickup, transition, drop, persistence, missing assets and bounded fixed-step
+PASS gameplay lifecycle experiments (50 assertions; external subscription cleanup is explicit)
+PASS explicit behavior ownership (49 assertions)
+PASS stable merge sorting (7008 assertions; mixed-layer allocations=0)
+PASS authored scene source/load/edit/save, stable identities/order/resources, diagnostics and failed-write retention (65 checks)
+SELF-TEST PASS assertions=8574 (headless ABI validation; no graphics/audio device exercised)

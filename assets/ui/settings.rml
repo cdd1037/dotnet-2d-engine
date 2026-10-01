@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head>
+    <title>Settings / 设置</title>
+    <link type="text/rcss" href="settings.rcss" />
+  </head>
+  <body>
+    <div id="settings-panel">
+      <h1 id="panel-title">Settings / 设置</h1>
+      <p class="hint">Edit, apply, or reset / 编辑、应用或重置</p>
+      <label id="name-label" for="player-name">Player name / 玩家名称</label>
+      <input id="player-name" type="text" maxlength="32" value="Player / 玩家" />
+      <label id="volume-label" for="volume">Volume / 音量 (0–100)</label>
+      <input id="volume" type="range" min="0" max="100" step="1" value="65" />
+      <div class="actions">
+        <button id="apply">Apply / 应用</button>
+        <button id="reset">Reset / 重置</button>
+      </div>
+      <p id="status">Ready / 就绪</p>
+      <h2 id="list-title">Scroll to explore / 滚动浏览</h2>
+      <div id="item-list">
+        <div class="list-item">01 · Quiet forest / 静谧森林</div>
+        <div class="list-item">02 · River crossing / 河流渡口</div>
+        <div class="list-item">03 · Mountain path / 山间小径</div>
+        <div class="list-item">04 · Lantern courtyard / 灯笼庭院</div>
+        <div class="list-item">05 · Moonlit lake / 月下湖泊</div>
+        <div class="list-item">06 · Autumn garden / 秋日花园</div>
+        <div class="list-item">07 · Old observatory / 古老天文台</div>
+        <div class="list-item">08 · Harbor lights / 港湾灯火</div>
+        <div class="list-item">09 · Windy ridge / 风起山脊</div>
+        <div class="list-item">10 · Home again / 再次归家</div>
+      </div>
+    </div>
+  </body>
+</rml>

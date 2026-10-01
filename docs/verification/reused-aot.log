@@ -1,0 +1,4 @@
+Differential cases=7092 original_accept=2579 differences=0
+Existing UI author tests PASS assertions=203
+original: mean_us=129.972 bytes_per_load=93080.000
+candidate: mean_us=113.000 bytes_per_load=92970.560

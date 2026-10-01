@@ -1,0 +1,191 @@
+#include "backend.h"
+#include "shaders_spv.h"
+#include <SDL3/SDL.h>
+#include <cmath>
+#include <cstring>
+#include <cstdlib>
+#include <memory>
+#include <vector>
+#ifdef GAL_ENABLE_RMLUI
+#include "ui_rml.h"
+#endif
+struct Backend {
+#ifdef GAL_ENABLE_RMLUI
+ UiRml* ui=nullptr;
+#endif
+ SDL_Window* window=nullptr; SDL_GPUDevice* device=nullptr;
+ SDL_GPUShader* vertex_shader=nullptr; SDL_GPUShader* fragment_shader=nullptr;
+ SDL_GPUGraphicsPipeline* pipeline=nullptr; SDL_GPUBuffer* vertices=nullptr;
+ SDL_GPUTransferBuffer* transfer=nullptr; SDL_GPUTexture* texture=nullptr; SDL_GPUSampler* sampler=nullptr;
+ SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false;
+ std::vector<float> tone;
+ std::vector<std::pair<uint64_t,SDL_GPUTexture*>> textures;
+ std::string capture_path; bool captured=false; SDL_GPUTexture* capture_texture=nullptr; SDL_GPUTransferBuffer* readback=nullptr;
+};
+static bool error(std::string& e) { e=SDL_GetError(); return false; }
+void backend_destroy(Backend* b) {
+ if(!b) return;
+ #ifdef GAL_ENABLE_RMLUI
+ ui_destroy(b->ui);b->ui=nullptr;
+#endif
+ if(b->audio) SDL_DestroyAudioStream(b->audio);
+ if(b->device) {
+  SDL_WaitForGPUIdle(b->device);
+  for(auto&item:b->textures)SDL_ReleaseGPUTexture(b->device,item.second);
+  if(b->capture_texture) SDL_ReleaseGPUTexture(b->device,b->capture_texture);
+  if(b->readback) SDL_ReleaseGPUTransferBuffer(b->device,b->readback);
+  if(b->pipeline) SDL_ReleaseGPUGraphicsPipeline(b->device,b->pipeline);
+  if(b->vertex_shader) SDL_ReleaseGPUShader(b->device,b->vertex_shader);
+  if(b->fragment_shader) SDL_ReleaseGPUShader(b->device,b->fragment_shader);
+  if(b->vertices) SDL_ReleaseGPUBuffer(b->device,b->vertices);
+  if(b->transfer) SDL_ReleaseGPUTransferBuffer(b->device,b->transfer);
+  if(b->texture) SDL_ReleaseGPUTexture(b->device,b->texture);
+  if(b->sampler) SDL_ReleaseGPUSampler(b->device,b->sampler);
+  if(b->claimed) SDL_ReleaseWindowFromGPUDevice(b->device,b->window);
+  SDL_DestroyGPUDevice(b->device);
+ }
+ if(b->window) SDL_DestroyWindow(b->window);
+ if(b->init_flags) SDL_QuitSubSystem(b->init_flags);
+ delete b;
+}
+Backend* backend_create(const gal_config& c,std::string& e) {
+ std::unique_ptr<Backend,decltype(&backend_destroy)> ptr(new Backend,&backend_destroy); auto*b=ptr.get(); b->textures.reserve(256);
+ const SDL_InitFlags flags=SDL_INIT_VIDEO | ((c.flags&GAL_AUDIO)?SDL_INIT_AUDIO:0);
+ if(!SDL_InitSubSystem(flags)) { error(e); return nullptr; } b->init_flags=flags;
+ b->window=SDL_CreateWindow("Game Authoring Lab | C# + SDL3 GPU",c.width,c.height,SDL_WINDOW_RESIZABLE);
+ if(!b->window) {error(e);return nullptr;}
+ // Vulkan is the verified shader format in this slice. D3D12 needs offline DXIL assets before enabling.
+ b->device=SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV,true,"vulkan");
+ if(!b->device || !SDL_ClaimWindowForGPUDevice(b->device,b->window)) {error(e);return nullptr;} b->claimed=true;
+ SDL_GPUShaderCreateInfo si{}; si.code=sprite_vert_spv; si.code_size=sizeof(sprite_vert_spv); si.entrypoint="main"; si.format=SDL_GPU_SHADERFORMAT_SPIRV; si.stage=SDL_GPU_SHADERSTAGE_VERTEX;
+ auto*vs=b->vertex_shader=SDL_CreateGPUShader(b->device,&si); if(!vs){error(e);return nullptr;}
+ si.code=sprite_frag_spv; si.code_size=sizeof(sprite_frag_spv); si.stage=SDL_GPU_SHADERSTAGE_FRAGMENT; si.num_samplers=1;
+ auto*fs=b->fragment_shader=SDL_CreateGPUShader(b->device,&si); if(!fs){error(e);return nullptr;}
+ SDL_GPUVertexBufferDescription binding{}; binding.slot=0;binding.pitch=sizeof(Vertex);binding.input_rate=SDL_GPU_VERTEXINPUTRATE_VERTEX;
+ SDL_GPUVertexAttribute attrs[3]{};
+ attrs[0].location=0; attrs[0].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attrs[0].offset=0;
+ attrs[1].location=1; attrs[1].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attrs[1].offset=8;
+ attrs[2].location=2; attrs[2].format=SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; attrs[2].offset=16;
+ SDL_GPUColorTargetDescription color{}; color.format=SDL_GetGPUSwapchainTextureFormat(b->device,b->window);
+ color.blend_state.enable_blend=true; color.blend_state.src_color_blendfactor=SDL_GPU_BLENDFACTOR_SRC_ALPHA; color.blend_state.dst_color_blendfactor=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA; color.blend_state.color_blend_op=SDL_GPU_BLENDOP_ADD;
+ color.blend_state.src_alpha_blendfactor=SDL_GPU_BLENDFACTOR_ONE; color.blend_state.dst_alpha_blendfactor=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA; color.blend_state.alpha_blend_op=SDL_GPU_BLENDOP_ADD;
+ SDL_GPUGraphicsPipelineCreateInfo pi{}; pi.vertex_shader=vs;pi.fragment_shader=fs;pi.vertex_input_state={&binding,1,attrs,3};pi.primitive_type=SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;pi.target_info.color_target_descriptions=&color;pi.target_info.num_color_targets=1;
+ b->pipeline=SDL_CreateGPUGraphicsPipeline(b->device,&pi); if(!b->pipeline)error(e);SDL_ReleaseGPUShader(b->device,vs);b->vertex_shader=nullptr;SDL_ReleaseGPUShader(b->device,fs);b->fragment_shader=nullptr;if(!b->pipeline)return nullptr;
+ SDL_GPUBufferCreateInfo bi{};bi.usage=SDL_GPU_BUFFERUSAGE_VERTEX;bi.size=c.max_sprites*6*sizeof(Vertex); b->vertices=SDL_CreateGPUBuffer(b->device,&bi);if(!b->vertices){error(e);return nullptr;}
+ SDL_GPUTransferBufferCreateInfo ti{};ti.usage=SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;ti.size=bi.size>4096?bi.size:4096;b->transfer=SDL_CreateGPUTransferBuffer(b->device,&ti);if(!b->transfer){error(e);return nullptr;}
+ SDL_GPUTextureCreateInfo tex{};tex.type=SDL_GPU_TEXTURETYPE_2D;tex.format=SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;tex.usage=SDL_GPU_TEXTUREUSAGE_SAMPLER;tex.width=32;tex.height=32;tex.layer_count_or_depth=1;tex.num_levels=1;b->texture=SDL_CreateGPUTexture(b->device,&tex);if(!b->texture){error(e);return nullptr;}
+ SDL_GPUSamplerCreateInfo sam{};sam.min_filter=SDL_GPU_FILTER_LINEAR;sam.mag_filter=SDL_GPU_FILTER_LINEAR;sam.mipmap_mode=SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;sam.address_mode_u=SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;sam.address_mode_v=sam.address_mode_u;sam.address_mode_w=sam.address_mode_u;b->sampler=SDL_CreateGPUSampler(b->device,&sam);if(!b->sampler){error(e);return nullptr;}
+ if(!b->vertices||!b->transfer||!b->texture||!b->sampler){error(e);return nullptr;}
+ auto*p=static_cast<unsigned char*>(SDL_MapGPUTransferBuffer(b->device,b->transfer,false));if(!p){error(e);return nullptr;}
+ for(int y=0;y<32;y++)for(int x=0;x<32;x++){int i=(y*32+x)*4;float dx=(x-15.5f)/15.5f,dy=(y-15.5f)/15.5f;float a=std::fmax(0.f,std::fmin(1.f,(1.f-std::sqrt(dx*dx+dy*dy))*12.f));p[i]=p[i+1]=p[i+2]=255;p[i+3]=static_cast<unsigned char>(a*255);}
+ SDL_UnmapGPUTransferBuffer(b->device,b->transfer);
+ auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd){error(e);return nullptr;}
+ auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTextureTransferInfo source{};source.transfer_buffer=b->transfer;source.pixels_per_row=32;source.rows_per_layer=32;SDL_GPUTextureRegion dest{};dest.texture=b->texture;dest.w=32;dest.h=32;dest.d=1;SDL_UploadToGPUTexture(copy,&source,&dest,false);SDL_EndGPUCopyPass(copy);
+ if(!SDL_SubmitGPUCommandBuffer(cmd)){error(e);return nullptr;}
+ if(c.flags&GAL_AUDIO){SDL_AudioSpec spec{};spec.format=SDL_AUDIO_F32;spec.channels=1;spec.freq=48000;b->audio=SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&spec,nullptr,nullptr);if(!b->audio||!SDL_ResumeAudioStreamDevice(b->audio)){error(e);return nullptr;}
+ b->tone.resize(9600);for(size_t i=0;i<b->tone.size();i++){float t=float(i)/48000.f;float envelope=std::fmin(1.f,t/0.005f)*std::fmin(1.f,(0.2f-t)/0.02f);b->tone[i]=0.15f*envelope*std::sin(6.283185307f*440.f*t);}}
+ if(const char*path=std::getenv("GAL_CAPTURE_BMP")) b->capture_path=path;
+ return ptr.release();
+}
+const char* backend_name(Backend* b){return SDL_GetGPUDeviceDriver(b->device);}
+bool backend_poll(Backend*b,gal_input& input,std::string&e){
+ SDL_Event event;while(SDL_PollEvent(&event)){
+#ifdef GAL_ENABLE_RMLUI
+ if(b->ui)ui_input(b->ui,event);
+#endif
+ if(event.type==SDL_EVENT_QUIT){input.quit=1;}
+ if(event.type==SDL_EVENT_MOUSE_WHEEL){input.wheel+=event.wheel.y;}
+ }
+ auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_LEFT]||k[SDL_SCANCODE_A])input.keys|=GAL_LEFT;if(k[SDL_SCANCODE_RIGHT]||k[SDL_SCANCODE_D])input.keys|=GAL_RIGHT;if(k[SDL_SCANCODE_UP]||k[SDL_SCANCODE_W])input.keys|=GAL_UP;if(k[SDL_SCANCODE_DOWN]||k[SDL_SCANCODE_S])input.keys|=GAL_DOWN;if(k[SDL_SCANCODE_SPACE])input.keys|=GAL_SPACE;if(k[SDL_SCANCODE_ESCAPE])input.keys|=GAL_ESCAPE;if(k[SDL_SCANCODE_E])input.keys|=GAL_INTERACT;if(k[SDL_SCANCODE_F])input.keys|=GAL_DROP;if(k[SDL_SCANCODE_T])input.keys|=GAL_TRANSITION;if(k[SDL_SCANCODE_F5])input.keys|=GAL_SAVE;if(k[SDL_SCANCODE_F9])input.keys|=GAL_LOAD;
+ #ifdef GAL_ENABLE_RMLUI
+ if(b->ui&&ui_keyboard_focus(b->ui)){input.keys&=GAL_ESCAPE;input.wheel=0;}
+#endif
+ SDL_GetMouseState(&input.mouse_x,&input.mouse_y);if(!SDL_GetWindowSizeInPixels(b->window,&input.width,&input.height))return error(e);if(input.width<1)input.width=1;if(input.height<1)input.height=1;return true;
+}
+bool backend_draw(Backend*b,const Vertex*data,uint32_t count,const DrawRun*runs,uint32_t run_count,uint32_t& drawn,std::string&e){
+ drawn=0;
+ // Map before acquiring a swapchain texture: acquired command buffers cannot be cancelled.
+ if(count){void*m=SDL_MapGPUTransferBuffer(b->device,b->transfer,true);if(!m)return error(e);std::memcpy(m,data,count*sizeof(Vertex));SDL_UnmapGPUTransferBuffer(b->device,b->transfer);}
+ auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd)return error(e);
+ SDL_GPUTexture*target=nullptr;Uint32 w=0,h=0;
+ if(!SDL_WaitAndAcquireGPUSwapchainTexture(cmd,b->window,&target,&w,&h)){SDL_CancelGPUCommandBuffer(cmd);return error(e);}
+ if(!target)return SDL_SubmitGPUCommandBuffer(cmd)||error(e);
+ bool capture=!b->capture_path.empty()&&!b->captured;
+ if(capture){
+  // A prior capture failure may be retried; deferred releases are GPU-safe.
+  if(b->capture_texture){SDL_ReleaseGPUTexture(b->device,b->capture_texture);b->capture_texture=nullptr;}
+  if(b->readback){SDL_ReleaseGPUTransferBuffer(b->device,b->readback);b->readback=nullptr;}
+  SDL_GPUTextureCreateInfo info{};info.type=SDL_GPU_TEXTURETYPE_2D;info.format=SDL_GetGPUSwapchainTextureFormat(b->device,b->window);info.usage=SDL_GPU_TEXTUREUSAGE_COLOR_TARGET|SDL_GPU_TEXTUREUSAGE_SAMPLER;info.width=w;info.height=h;info.layer_count_or_depth=1;info.num_levels=1;
+  b->capture_texture=SDL_CreateGPUTexture(b->device,&info);
+  if(!b->capture_texture){SDL_SubmitGPUCommandBuffer(cmd);return error(e);}
+  SDL_GPUTransferBufferCreateInfo transfer{};transfer.usage=SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;transfer.size=w*h*4;b->readback=SDL_CreateGPUTransferBuffer(b->device,&transfer);
+  if(!b->readback){SDL_SubmitGPUCommandBuffer(cmd);return error(e);}
+ }
+ if(count){auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTransferBufferLocation src{};src.transfer_buffer=b->transfer;SDL_GPUBufferRegion dst{};dst.buffer=b->vertices;dst.size=count*sizeof(Vertex);SDL_UploadToGPUBuffer(copy,&src,&dst,true);SDL_EndGPUCopyPass(copy);}
+ SDL_GPUColorTargetInfo color{};color.texture=capture?b->capture_texture:target;color.clear_color={0.035f,0.045f,0.08f,1};color.load_op=SDL_GPU_LOADOP_CLEAR;color.store_op=SDL_GPU_STOREOP_STORE;
+ auto*pass=SDL_BeginGPURenderPass(cmd,&color,1,nullptr);if(count){SDL_BindGPUGraphicsPipeline(pass,b->pipeline);SDL_GPUBufferBinding binding{};binding.buffer=b->vertices;SDL_BindGPUVertexBuffers(pass,0,&binding,1);for(uint32_t i=0;i<run_count;i++){SDL_GPUTexture*texture=b->texture;if(runs[i].texture){for(auto&item:b->textures)if(item.first==runs[i].texture){texture=item.second;break;}}SDL_GPUTextureSamplerBinding sampler{texture,b->sampler};SDL_BindGPUFragmentSamplers(pass,0,&sampler,1);SDL_DrawGPUPrimitives(pass,runs[i].count,1,runs[i].first,0);}}SDL_EndGPURenderPass(pass);
+#ifdef GAL_ENABLE_RMLUI
+ if(b->ui&&!ui_render(b->ui,cmd,color.texture,int(w),int(h),e)){SDL_SubmitGPUCommandBuffer(cmd);return false;}
+#endif
+ if(capture){
+  SDL_GPUBlitInfo blit{};blit.source.texture=b->capture_texture;blit.source.w=w;blit.source.h=h;blit.destination.texture=target;blit.destination.w=w;blit.destination.h=h;blit.load_op=SDL_GPU_LOADOP_DONT_CARE;blit.filter=SDL_GPU_FILTER_NEAREST;SDL_BlitGPUTexture(cmd,&blit);
+  auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTextureRegion source{};source.texture=b->capture_texture;source.w=w;source.h=h;source.d=1;SDL_GPUTextureTransferInfo destination{};destination.transfer_buffer=b->readback;destination.pixels_per_row=w;destination.rows_per_layer=h;SDL_DownloadFromGPUTexture(copy,&source,&destination);SDL_EndGPUCopyPass(copy);
+  SDL_GPUFence*fence=SDL_SubmitGPUCommandBufferAndAcquireFence(cmd);if(!fence)return error(e);
+  bool complete=SDL_WaitForGPUFences(b->device,true,&fence,1);SDL_ReleaseGPUFence(b->device,fence);if(!complete)return error(e);
+  void*pixels=SDL_MapGPUTransferBuffer(b->device,b->readback,false);if(!pixels)return error(e);
+  auto format=SDL_GetGPUSwapchainTextureFormat(b->device,b->window);
+  if(format!=SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM&&format!=SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM){SDL_UnmapGPUTransferBuffer(b->device,b->readback);e="diagnostic capture requires RGBA8 or BGRA8 swapchain";return false;}
+  SDL_PixelFormat pixel_format=format==SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM?SDL_PIXELFORMAT_BGRA32:SDL_PIXELFORMAT_RGBA32;
+  SDL_Surface*surface=SDL_CreateSurfaceFrom(int(w),int(h),pixel_format,pixels,int(w*4));
+  bool saved=surface&&SDL_SaveBMP(surface,b->capture_path.c_str());if(!saved)error(e);if(surface)SDL_DestroySurface(surface);SDL_UnmapGPUTransferBuffer(b->device,b->readback);if(!saved)return false;b->captured=true;
+ }else if(!SDL_SubmitGPUCommandBuffer(cmd))return error(e);
+ drawn=count?run_count:0;return true;
+}
+bool backend_tone(Backend*b,std::string&e){if(!b->audio){e="audio disabled";return false;}int queued=SDL_GetAudioStreamQueued(b->audio);if(queued<0)return error(e);if(queued>48000*4){e="audio queue limit";return false;}return SDL_PutAudioStreamData(b->audio,b->tone.data(),int(b->tone.size()*sizeof(float)))||error(e);}
+
+bool backend_texture_load(Backend*b,const char*path,uint64_t id,std::string&e){
+ // Bound the allocation before SDL decodes user-authored image metadata.
+ {
+  std::unique_ptr<SDL_IOStream,decltype(&SDL_CloseIO)> input(SDL_IOFromFile(path,"rb"),SDL_CloseIO);if(!input)return error(e);
+  unsigned char header[26]{};Sint64 bytes=SDL_GetIOSize(input.get());
+  if(bytes<26||bytes>70*1024*1024||SDL_ReadIO(input.get(),header,sizeof(header))!=sizeof(header)||header[0]!='B'||header[1]!='M'){e="invalid or oversized BMP file";return false;}
+  auto u32=[&](int offset){return uint32_t(header[offset])|(uint32_t(header[offset+1])<<8)|(uint32_t(header[offset+2])<<16)|(uint32_t(header[offset+3])<<24);};
+  uint32_t width=u32(18),raw_height=u32(22);int64_t height=raw_height&0x80000000u?int64_t(raw_height)-0x100000000LL:raw_height;if(height<0)height=-height;
+  if(u32(14)<40||width<1||width>4096||height<1||height>4096){e="BMP requires DIB>=40 and dimensions 1..4096";return false;}
+ }
+ std::unique_ptr<SDL_Surface,decltype(&SDL_DestroySurface)> loaded(SDL_LoadBMP(path),SDL_DestroySurface);
+ if(!loaded)return error(e);
+ if(loaded->w<1||loaded->h<1||loaded->w>4096||loaded->h>4096){e="BMP dimensions must be 1..4096";return false;}
+ std::unique_ptr<SDL_Surface,decltype(&SDL_DestroySurface)> surface(SDL_ConvertSurface(loaded.get(),SDL_PIXELFORMAT_RGBA32),SDL_DestroySurface);
+ if(!surface)return error(e);
+ SDL_GPUTextureCreateInfo info{};info.type=SDL_GPU_TEXTURETYPE_2D;info.format=SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;info.usage=SDL_GPU_TEXTUREUSAGE_SAMPLER;info.width=surface->w;info.height=surface->h;info.layer_count_or_depth=1;info.num_levels=1;
+ SDL_GPUTexture*texture=SDL_CreateGPUTexture(b->device,&info);if(!texture)return error(e);
+ // Register ownership before any error-string allocation can throw.
+ b->textures.push_back({id,texture});
+ SDL_GPUTransferBufferCreateInfo ti{};ti.usage=SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;ti.size=info.width*info.height*4;
+ SDL_GPUTransferBuffer*transfer=SDL_CreateGPUTransferBuffer(b->device,&ti);if(!transfer){backend_texture_release(b,id);return error(e);}
+ void*pixels=SDL_MapGPUTransferBuffer(b->device,transfer,false);if(!pixels){SDL_ReleaseGPUTransferBuffer(b->device,transfer);backend_texture_release(b,id);return error(e);}
+ for(int y=0;y<surface->h;y++)std::memcpy(static_cast<char*>(pixels)+y*surface->w*4,static_cast<char*>(surface->pixels)+y*surface->pitch,surface->w*4);
+ SDL_UnmapGPUTransferBuffer(b->device,transfer);
+ auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd){SDL_ReleaseGPUTransferBuffer(b->device,transfer);backend_texture_release(b,id);return error(e);}
+ auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTextureTransferInfo source{};source.transfer_buffer=transfer;source.pixels_per_row=info.width;source.rows_per_layer=info.height;SDL_GPUTextureRegion dest{};dest.texture=texture;dest.w=info.width;dest.h=info.height;dest.d=1;SDL_UploadToGPUTexture(copy,&source,&dest,false);SDL_EndGPUCopyPass(copy);
+ bool submitted=SDL_SubmitGPUCommandBuffer(cmd);SDL_ReleaseGPUTransferBuffer(b->device,transfer);if(!submitted){backend_texture_release(b,id);return error(e);}return true;
+}
+void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->textures.begin();it!=b->textures.end();++it)if(it->first==id){SDL_ReleaseGPUTexture(b->device,it->second);b->textures.erase(it);return;}}
+
+#ifdef GAL_ENABLE_RMLUI
+bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
+ if(op==1){auto paths=static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
+  if(!b->ui){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;}
+  return ui_load(b->ui,paths[0],e);
+ }
+ if(op==2){ui_destroy(b->ui);b->ui=nullptr;return true;}
+ if(op==7){auto path=static_cast<const char*>(in);if(!path||!path[0]||std::strlen(path)>4096){e="invalid capture path";return false;}b->capture_path=path;b->captured=false;return true;}
+ if(!b->ui){e="UI is not open";return false;}
+ if(op==3){auto*m=static_cast<const gal_ui_model*>(in);if(!m||m->size!=sizeof(*m)){e="invalid UI model size";return false;}return ui_set_model(b->ui,*m,e);}
+ if(op==4){auto*a=static_cast<gal_ui_action*>(out);if(!a||a->size!=sizeof(*a)){e="invalid UI action size";return false;}ui_poll_action(b->ui,*a);return true;}
+ if(op==5){auto*s=static_cast<gal_ui_state*>(out);if(!s||s->size!=sizeof(*s)){e="invalid UI state size";return false;}ui_state(b->ui,*s);return true;}
+ if(op==6){auto args=static_cast<const uint32_t*>(in);return ui_test_command(b->ui,args[0],args[1],e);}
+ e="unknown UI operation";return false;
+}
+#endif

@@ -1,0 +1,2 @@
+c3de01306992bf04ebe935fee437d5d870fc3ada5a5579525489f09bffc60246  managed/UiAuthoring.cs == isolated tested candidate/UiAuthoring.cs
+b553b1788c92f34e264871450325a6e5c2f64bf471012dcd91322c414dbe89de  managed/UiXmlModel.cs == isolated tested candidate/UiXmlModel.cs
