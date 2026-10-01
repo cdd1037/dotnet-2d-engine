@@ -51,10 +51,16 @@ extraction is removed; `build-packages/native-verification.json` retains the res
 and package hash. This verifies loader closure; managed behavior is verified by the
 separate consumer integration tests.
 
-Verified on 2026-10-01 from source base `48d3771`: the eight native DSOs total
-9,514,720 bytes. The produced package is about 4.29 MB, including the manifest,
+Verified on 2026-10-01 from source base `d07a6ab`: the eight native DSOs total
+9,546,224 bytes. The produced package is 4,300,911 bytes, including the manifest,
 README, complete license bundle and 23 provenance-bearing notice files. The
 isolated extraction passed dependency resolution, eager relocation checks and a
 native load. Exact archive bytes/hash are recorded per run in the verification
 report; rebuilding can change NuGet ZIP metadata even when the native inputs do
 not change.
+
+The refreshed independent consumers preserve byte-identical native payloads in
+framework-dependent, trimmed JIT and AOT outputs. Export checks confirm audio,
+physics, world clipping, materials and render-target entry points remain present.
+This confirms the complete prebuilt profile is retained; it does not establish
+hardware behavior or native function trimming.

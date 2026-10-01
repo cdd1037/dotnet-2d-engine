@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Measure produced files; do not equate native package selection with native function trimming."""
-import json, hashlib, sys
+import json, hashlib, subprocess, sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from zipfile import ZipFile
 proof=Path(sys.argv[1]).resolve()
@@ -44,22 +45,47 @@ for sample in ('empty','sprite','ui'):
         assert (directory/'licenses/Dotnet2D.Engine/LICENSE.txt').read_bytes()==managed_notice
         if sample!='empty':assert (directory/'licenses/Dotnet2D.Native.Linux.x64/LICENSE.txt').read_bytes()==native_notice
 records=[json.loads(line) for line in (proof/'logs/managed-types.jsonl').read_text().splitlines() if line.startswith('{')]
-assert len(records)==3
+assert len(records)==4
 assert not records[0]['exists'],'unused engine assembly should trim entirely'
-for record in records[1:]:
+unused_modules=('AudioSession','PhysicsWorld','FrameClip','FramePlayer','Tween','TimingScope','EngineTimer',
+                'TileMap','TileMapInstance','TileMapCollision','FramebufferClip','ClippingNative',
+                'DiagnosticLog','CpuTimings','DebugDrawBuffer','MaterialCache','MaterialLease','MaterialAsset',
+                'MaterialJsonContext','MaterialDraw','MaterialParameters','MaterialNative',
+                'RenderTargetStore','RenderTarget','RenderPass','TargetNative')
+sample_only=('MissionGame','RoomGame','Program','SelfTests','TileMovementClock','TileMovementLevel','TileMovementDemo')
+full_types=set(records[3]['types'])
+assert records[3]['exists'],'untrimmed package assembly missing'
+for name in unused_modules:
+    assert 'GameAuthoringLab.'+name in full_types,('untrimmed package lacks positive control',name)
+for name in sample_only:
+    assert 'GameAuthoringLab.'+name not in full_types,('package includes sample-only code',name)
+with ZipFile(next((proof/'feed').glob('Dotnet2D.Engine.*.nupkg'))) as package:
+    assert package.read('lib/net10.0/Dotnet2D.Engine.dll')==(publish/'empty-fdd/Dotnet2D.Engine.dll').read_bytes(),'full assembly differs from measured package'
+for record in records[1:3]:
     types=set(record['types'])
-    for forbidden in ('GameAuthoringLab.AudioSession','GameAuthoringLab.PhysicsWorld','GameAuthoringLab.MissionGame','GameAuthoringLab.RoomGame','GameAuthoringLab.Program','GameAuthoringLab.SelfTests'):
-        assert forbidden not in types,(record['path'],forbidden,'unexpected managed root')
+    for name in unused_modules+sample_only:
+        forbidden='GameAuthoringLab.'+name
+        assert not any(t==forbidden or t.startswith(forbidden+'`') for t in types),(record['path'],forbidden,'unexpected managed root')
 assert not any('BoundUi' in t or 'UiAuthoring' in t for t in records[1]['types']),'sprite consumer retained UI'
 assert any('BoundUiSession' in t for t in records[2]['types']),'UI consumer lost binding root'
 # AOT symbol maps, unlike text search in stripped executables, identify compiled engine methods.
 aot={}
 for sample in ('empty','sprite','ui'):
     text=(proof/'logs'/f'{sample}-aot-map.xml').read_text()
-    checks={name:(name in text) for name in ('AudioSession','PhysicsWorld','BoundUiSession','AuthoredScene','MissionGame','RoomGame')}
+    checks={name:('GameAuthoringLab_'+name in text or 'GameAuthoringLab.'+name in text) for name in unused_modules+sample_only+('BoundUiSession','AuthoredScene')}
     aot[sample]=checks
-    assert not checks['AudioSession'] and not checks['PhysicsWorld'] and not checks['MissionGame'] and not checks['RoomGame'],(sample,checks)
+    assert not any(checks[name] for name in unused_modules+sample_only),(sample,checks)
+    if sample=='empty':assert 'Dotnet2D_Engine' not in text and 'Dotnet2D.Engine' not in text,'empty AOT contains an engine assembly node'
     if sample!='ui':assert not checks['BoundUiSession'],(sample,checks)
+    if sample=='ui':assert checks['BoundUiSession'],(sample,'missing expected UI AOT root')
+    if sample=='sprite':assert checks['AuthoredScene'],(sample,'missing expected scene AOT root')
+# These native exports remain in the complete prebuilt DSO even though the managed
+# consumers do not root their corresponding modules. Hash checks above establish
+# the same native payload in every nonempty output, including trimmed/AOT modes.
+symbols=subprocess.check_output(['nm','-D','--defined-only',str(publish/'sprite-aot/libgal.so')],text=True)
+native_exports={name:any(line.split()[-1].split('@')[0]==name for line in symbols.splitlines()) for name in
+                ('gal_audio_open','gal_physics_open','gal_submit_draws_clipped_v1','gal_material_create_v1','gal_target_create_v1','gal_render_frame_v1')}
+assert all(native_exports.values()),('full native profile lost expected exports',native_exports)
 # Confirm the independent projects and restore graphs have no source/project references.
 for sample in ('empty','sprite','ui'):
     project=(proof/'consumers'/sample/'Sample.csproj').read_text()
@@ -69,7 +95,14 @@ for sample in ('empty','sprite','ui'):
 captures=[(proof/'logs'/f'ui-{mode}.bmp').read_bytes() for mode in ('fdd','trim','aot')]
 assert captures[0]==captures[1]==captures[2],'UI captures differ between runtime modes'
 packages={p.name:dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in (proof/'feed').glob('Dotnet2D*.nupkg')}
-report=dict(packages=packages,outputs=rows,aot_engine_roots=aot,managed_types=records)
+for name,info in packages.items():
+    with ZipFile(proof/'feed'/name) as package:
+        nuspec=ET.fromstring(package.read(next(n for n in package.namelist() if n.endswith('.nuspec'))))
+        info['repository_commit']=nuspec.find('.//{*}repository').attrib['commit']
+with ZipFile(native_package) as package:native_manifest=json.loads(package.read('manifest.json'))
+commits={info['repository_commit'] for info in packages.values()}
+assert len(commits)==1 and native_manifest['repository_commit'] in commits,'managed/native package source revisions differ'
+report=dict(packages=packages,outputs=rows,aot_engine_roots=aot,managed_types=records,native_full_profile_exports=native_exports,native_profile=native_manifest['profile'],repository_commit=next(iter(commits)))
 (proof/('measurements.json' if publish==proof/'publish' else 'measurements-notices.json')).write_text(json.dumps(report,indent=2)+'\n')
 for row in rows: print(json.dumps(row))
 print('PACKAGE CONTENT/ROOT/DEPENDENCY ASSERTIONS PASS')

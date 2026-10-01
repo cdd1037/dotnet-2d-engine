@@ -779,5 +779,35 @@ There is no runtime API/ABI change or new serialization context.
 The existing external font and software Vulkan driver were reused. No new AOT
 publish was run for this game-only batch; the preceding target ABI milestone
 remains the last engine AOT evidence. This does not establish hardware GPU,
-Windows/macOS, real IME or physical audio acceptance. Package measurements are
-stale relative to recent runtime features and need a separate final local proof.
+Windows/macOS, real IME or physical audio acceptance. Package measurements were still stale at this fixture commit; the separate
+refresh below now covers the current runtime.
+
+
+## Latest local package proof refresh (2026-10-01)
+
+Fresh local packages from runtime/native source `d07a6ab` pass all nine independent
+empty/sprite/UI combinations of framework-dependent, trimmed self-contained JIT
+and NativeAOT. UI captures are byte-identical across modes; no compiler/publish
+warnings were emitted. Required notices match package bytes in every output.
+
+The full managed DLL is **337,920 bytes**. Unused new renderer/diagnostic and
+existing optional module types are present in the untrimmed positive control and
+absent from trimmed/AOT consumer roots. Empty AOT contains no engine assembly
+nodes. Expected authored-scene/UI roots remain in their respective consumers.
+The compiler also rejects direct construction of texture/material caches/leases
+and render-target stores/wrappers.
+
+The eight native DSOs total **9,546,224 bytes**, a **31,504-byte** increase over the
+earlier proof. All nonempty outputs contain byte-identical copies and retain
+audio/physics/clipping/material/target exports. Empty has no native package.
+AOT executable bytes remain **1,147,432 / 2,647,704 / 3,176,744** for empty/sprite/UI;
+complete AOT output totals are **1,148,497 / 12,515,604 / 13,045,585** including
+notices, native dependencies and authored assets as applicable.
+
+The final managed README correction changed only its archive entry; the executed
+assembly was unchanged. Metadata/root/export checks were rerun after strengthening
+the proof. An initial export assertion needed to normalize ELF symbol-version
+suffixes (`@@GAL_1`); this was a measurement-script correction, not a missing API.
+See [full measured categories](NUGET_PROOF.md) and [remaining public APIs](PACKAGE_API_NEXT.md).
+The proof still requires the documented modern Linux baseline, driver and external
+font. It does not test real Chinese IME, hardware GPU, physical audio or other OSes.

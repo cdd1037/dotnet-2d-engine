@@ -80,6 +80,10 @@ using GameAuthoringLab;
 using var engine=EngineHost.Create();
 var cache=new TextureCache(engine);
 var lease=new TextureLease(engine.Textures,"fake",0,default);
+var materials=new MaterialCache(engine);
+var material=new MaterialLease(engine.Materials,"fake",0,default);
+var targets=new RenderTargetStore(engine);
+var target=new RenderTarget(engine.RenderTargets,0,16,16);
 CS
 "$dotnet" restore "$proof/negative-cache/Sample.csproj" --configfile "$proof/NuGet.Config" > "$proof/logs/negative-cache-restore.log" 2>&1
 if "$dotnet" build "$proof/negative-cache/Sample.csproj" --no-restore -p:UseSharedCompilation=false > "$proof/logs/negative-cache-build.log" 2>&1; then
@@ -87,7 +91,10 @@ if "$dotnet" build "$proof/negative-cache/Sample.csproj" --no-restore -p:UseShar
 fi
 rg -q "CS1729.*TextureCache" "$proof/logs/negative-cache-build.log"
 rg -q "CS1729.*TextureLease" "$proof/logs/negative-cache-build.log"
+for owner in MaterialCache MaterialLease RenderTargetStore RenderTarget; do
+ rg -q "CS1729.*$owner" "$proof/logs/negative-cache-build.log"
+done
 "$dotnet" restore "$proof/inspect/PackageInspect.csproj" --configfile "$proof/NuGet.Config" > "$proof/logs/inspect-build.log" 2>&1
-"$dotnet" run --project "$proof/inspect/PackageInspect.csproj" -c Release --no-restore -- "$proof/publish/empty-trim/Dotnet2D.Engine.dll" "$proof/publish/sprite-trim/Dotnet2D.Engine.dll" "$proof/publish/ui-trim/Dotnet2D.Engine.dll" > "$proof/logs/managed-types.jsonl"
+"$dotnet" run --project "$proof/inspect/PackageInspect.csproj" -c Release --no-restore -- "$proof/publish/empty-trim/Dotnet2D.Engine.dll" "$proof/publish/sprite-trim/Dotnet2D.Engine.dll" "$proof/publish/ui-trim/Dotnet2D.Engine.dll" "$proof/publish/empty-fdd/Dotnet2D.Engine.dll" > "$proof/logs/managed-types.jsonl"
 python3 "$root/scripts/measure-packages.py" "$proof"
 echo "PACKAGE PROOF PASS $proof"

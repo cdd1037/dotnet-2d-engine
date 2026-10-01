@@ -5,8 +5,11 @@ cross-platform binary support promise. Namespace remains GameAuthoringLab.
 
 Use EngineHost.Create, World, explicit AssetRoot/AssetCatalog mappings, authored
 scene loading and BoundUiSession<T>. Dispose owners on their creating thread.
-The repository's sample/test executable is a separate assembly. Raw ABI/probes and
-unexercised package surfaces remain internal; this is not a complete SDK release.
+Clipping, diagnostics, materials and render targets also have public experimental
+APIs; their runtime behavior is tested separately from the small package consumers.
+The sample/test executable is a separate assembly. Raw ABI/probes and current
+audio, physics, animation/timing and TileMap entry points remain internal. This is
+not a complete SDK release.
 
 For graphics, reference Dotnet2D.Native.Linux.x64 separately at the same version.
 That local binary profile has specific Linux system prerequisites in its README.

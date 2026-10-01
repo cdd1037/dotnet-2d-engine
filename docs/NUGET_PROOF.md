@@ -35,9 +35,11 @@ loaders; no reflection serializer or assembly-wide root was added.
 Namespace remains `GameAuthoringLab`. The deliberate public proof surface covers
 `EngineHost.Create`, camera/sprite draw data, input snapshots/action maps, ordinary
 World/Entity/Scene behavior, explicit resource mappings/leases, authored-scene
-loading and typed UI bindings. The factory disables legacy tone initialization.
-Raw interop, UI probes and optional feature surfaces not exercised as package APIs
-remain internal. This proof does not make every implemented prototype module a
+loading and typed UI bindings. Clipping, diagnostics, sprite materials and RGBA8
+render targets also expose experimental public APIs; their functionality has
+separate in-repository acceptance evidence. The factory disables legacy tone
+initialization. Raw interop/probes and the current audio, physics, animation/timing
+and TileMap entry points remain internal. This proof does not make every implemented prototype module a
 stable public API. The test host has explicit friend access; independent consumers
 do not. Internal visibility is an API boundary, not a security boundary.
 
@@ -93,6 +95,12 @@ complete selected notices and excluded host dependencies.
 
 ## Measured results
 
+Refreshed on 2026-10-01 from runtime/native source `d07a6ab`, after clipping,
+diagnostics, materials, render targets and movement acceptance. Both package
+source revisions agree. The final managed README correction changed only that
+archive entry; assembly bytes stayed identical and were checked against the
+executed consumer copies. No runtime publish was repeated for that text edit.
+
 All three copied consumers passed `dotnet run`/build, trimmed self-contained JIT
 publish/run, and fresh NativeAOT publish/run. Empty references only the managed
 package and calls no engine API. Sprite loads the explicit source-generated scene,
@@ -106,25 +114,30 @@ complete-machine installation size.
 
 | Consumer | Framework-dependent output | Trimmed JIT output (includes .NET runtime) | AOT executable | Native engine/dependency files | Authored assets | Notices | AOT output total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Empty | 383,023 | 23,792,622 | 1,147,432 | 0 | 0 | 1,065 | 1,148,497 |
-| Sprite | 10,222,303 | 34,096,377 | 2,647,704 | 9,514,720 | 1,415 | 320,261 | 12,484,100 |
-| UI | 10,226,816 | 34,531,132 | 3,176,744 | 9,514,720 | 2,356 | 320,261 | 13,014,081 |
+| Empty | 423,471 | 23,792,622 | 1,147,432 | 0 | 0 | 1,065 | 1,148,497 |
+| Sprite | 10,294,255 | 34,127,881 | 2,647,704 | 9,546,224 | 1,415 | 320,261 | 12,515,604 |
+| UI | 10,298,768 | 34,562,636 | 3,176,744 | 9,546,224 | 2,356 | 320,261 | 13,045,585 |
 
-The full managed runtime DLL is 297,472 bytes. It is absent from the empty trimmed
+The full managed runtime DLL is 337,920 bytes. It is absent from the empty trimmed
 output, 98,816 bytes in the sprite output and 74,752 bytes in the UI output. Sprite
 roots authored-scene JSON/World/resource code; UI instead roots XML/RML validation
 and typed bindings, so these two consumers exercise different graphs. Trimmed
 metadata and NativeAOT symbol maps confirm neither roots AudioSession,
 PhysicsWorld, mission or room gameplay, and sprite does not root UI bindings.
-The empty AOT graph contains no engine methods.
+The empty AOT graph contains no engine assembly nodes. Positive controls inspect
+the full packaged assembly before checking that unused frame/timing/tilemap,
+clipping, diagnostics/debug geometry, material and target types disappear from
+trimmed metadata and AOT maps. Sprite retains authored-scene code and UI retains
+binding code as expected. Native exports independently confirm the full audio,
+physics, clipping, material and render-target profile is still present.
 
-With notice-copy targets, the native archive was **4,287,156 compressed bytes**,
+With notice-copy targets, the native archive was **4,300,911 compressed bytes**,
 with eight DSOs totaling
-**9,514,720 bytes**. Every sprite/UI output contains byte-identical copies of those
+**9,546,224 bytes**. Every sprite/UI output contains byte-identical copies of those
 DSOs. Their unused native functions are still present: managed trimming does not
 rewrite a prebuilt shared library. Empty has no native payload because it does not
 reference the native package. No native function-trimming claim follows from that
-package choice. The managed archive was 122,427 bytes. App totals above include automatically
+package choice. The managed archive was 136,448 bytes. App totals above include automatically
 copied notices. ZIP metadata and
 assembly source-revision stamps may change on rebuild. Per-run hashes are retained
 in the ignored measurements, rather than treating archive byte counts as ABI.
@@ -137,13 +150,15 @@ otherwise nested build directories would falsely double-count native assets.
 
 ## Verification and remaining work
 
-The split retains **10,293 full JIT assertions**, **60 typed UI native checks**,
-**61 offline PCM checks** and **284 real Box2D checks**. The independent package
-proof additionally checks copied assets, no project references, native hashes,
-trimmed/AOT roots, three-mode UI capture equality and compiler rejection of forged
-cache/lease construction. The notice-copy correction was tested with the same
-runtime/native/AOT binaries; UI captures remain identical, and ordinary trimmed
-publishes verify the corrected output totals. The native package's isolated extraction clears library
+The latest in-repository full JIT run passed **10,594 assertions**; separate
+feature milestones established typed UI, offline PCM and Box2D behavior. The
+independent package refresh passes all nine consumer/mode combinations and checks
+copied assets, no project references, matching package source revisions, native
+hashes/exports, full-assembly positive controls, trimmed/AOT roots and three-mode
+UI capture equality. Compiler-negative cases reject constructing texture/material
+caches or leases and render-target owners/wrappers outside their engine factories.
+All nine outputs retain byte-exact required notices. Package publish logs contain
+no warnings or errors. The native package's isolated extraction clears library
 overrides, validates RPATH and all seven nonbaseline dependencies, performs eager
 relocation checks and actually loads the DSO. No new native ABI was required.
 
@@ -153,6 +168,14 @@ remain separate. More public module APIs, feature-specific native packages,
 cross-platform binaries, broader compatibility baselines and SDK conveniences
 require their own measured work. No package was published remotely and no new
 credentials, CI release or public feed were configured.
+
+The fresh native payload grew **31,504 bytes** from the earlier proof. The full
+managed DLL grew **40,448 bytes**, while sprite/UI trimmed managed sizes and all
+three AOT executable sizes stayed unchanged. Those observations apply to these
+consumer roots; they are not a claim about the cost when new modules are used.
+
+See [the next public module boundary](PACKAGE_API_NEXT.md) for the remaining
+distribution work. No new runtime feature is required for that boundary.
 
 Evidence: ignored `evidence/nuget/`, `build-packages/native-verification.json`, and
 the selected external proof directory's `measurements.json` and `logs/`.
