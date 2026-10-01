@@ -82,3 +82,11 @@ metadata on 2026-10-01:
 SDL3_image 3.2.4 and RmlUi 6.3 remain unchanged. Built-in SDL PNG functionality
 does not replace the current image dependency or change accepted authoring formats
 in this upgrade. SDL_mixer integration is a separate subsequent batch.
+
+## Optional audio dependency
+
+[SDL_mixer 3.2.4](AUDIO.md) is pinned, hash-verified and built locally as a static
+PIC library with WAVE and bundled stb_vorbis only. `scripts/build-mixer.sh` is the
+explicit setup entry point; normal builds do not download codecs. Full mixer and
+stb notices are retained. Generated audio fixtures are source-only reproductions
+from `scripts/generate-audio-fixtures.py`, using Python/ffmpeg for authoring only.

@@ -19,6 +19,8 @@ work now includes [texture regions/atlas UVs](TEXTURE_REGIONS.md); basic animati
 and world clipping remain follow-ons. Box2D and SDL_mixer
 evaluation/integration are authorized after version, license, footprint and platform
 validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
+The minimal [SDL_mixer audio module](AUDIO.md) now covers clips, streams, gains and
+explicit lifetimes; Box2D integration remains the next authorized dependency batch.
 The advanced-effects group remains deferred.
 The delivery stages below remain useful acceptance targets, not a replacement for
 this engine-capability order.
@@ -150,3 +152,24 @@ to avoid designing the entire engine around one game.
 - No remote publication, releases or new platform-support claims by implication
 - No full ECS, generic physics framework or editor expansion without a concrete
   need demonstrated by representative game examples
+
+## Local NuGet packaging proof (authorized evaluation)
+
+After the audio/physics foundations and a stable small API boundary, attempt a
+local-feed proof using ordinary NuGet + MSBuild, not a custom full SDK. Separate
+managed API from the aggregate tests/host and package the existing Linux RID native
+payload. An independent sample should restore from the local feed, `dotnet run`,
+and publish/run in JIT and NativeAOT modes with correct native dependencies, assets,
+licenses and missing-file diagnostics. Windows/macOS packages follow their own
+validated native builds; a Linux NativeAOT build does not establish cross-OS support.
+No public NuGet publication, credentials or remote feed upload is authorized by
+this proof.
+
+Include empty-app, sprite-only and UI-enabled dependency/size comparisons to check
+which modules are actually absent. Managed APIs should remain trim-friendly and
+modules opt-in. Publishing a consumer does not retroactively trim the internals of
+a precompiled shared native library; measure that native payload separately.
+Static native linking/direct P/Invoke can be a later measured tradeoff, not an
+immediate architecture rewrite. Reference constraints:
+[prepare libraries for trimming](https://learn.microsoft.com/dotnet/core/deploying/trimming/prepare-libraries-for-trimming)
+and [NativeAOT interop](https://learn.microsoft.com/dotnet/core/deploying/native-aot/interop).

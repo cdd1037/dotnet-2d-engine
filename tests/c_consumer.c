@@ -1,5 +1,10 @@
 #include "gal.h"
+#include "gal_audio.h"
 #include <stddef.h>
+_Static_assert(sizeof(gal_audio_config)==16, "audio config");
+_Static_assert(sizeof(gal_voice_state)==24, "voice state");
+_Static_assert(sizeof(gal_audio_state)==32, "audio state");
+_Static_assert(offsetof(gal_audio_state,decoded_bytes)==16, "PCM accounting offset");
 _Static_assert(sizeof(gal_config)==24, "config");
 _Static_assert(sizeof(gal_camera)==12, "camera");
 _Static_assert(sizeof(gal_sprite)==32, "sprite");

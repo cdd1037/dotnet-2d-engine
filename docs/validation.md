@@ -280,3 +280,56 @@ use offscreen SDL 3.4.16 with Mesa software Vulkan. No new physical GPU, high-DP
 displayed resize, audio hardware or platform acceptance is claimed. World clipping,
 frame animation, atlas packing and pixel-perfect/mipmapped filtering remain outside
 this batch. Image codecs and UI preflight restrictions are unchanged.
+
+## Minimal audio milestone — 2026-10-01
+
+SDL_mixer 3.2.4 is hash-verified against its official release metadata, built
+unmodified with only WAVE + bundled stb_vorbis (plus internal raw PCM), and linked
+statically into the optional SDL build. Full notices and limits are described in
+[the audio contract](AUDIO.md). No codec or system package installation was needed.
+
+Final results:
+
+- Native CTest **4/4**, including the additive audio C11 layouts
+- Full JIT and **fresh NativeAOT: 8,932 CPU assertions each** (10 new managed
+  contract checks; this aggregate does not claim to exercise an audio device)
+- JIT/AOT each pass **61 actual offline PCM checks**: exact WAV samples, Ogg decode
+  and file streaming, layered/independent gains, pause/resume/stop/restart, finite
+  and indefinite looping, ownership retention, 32-voice/64-clip capacity, malformed
+  input and encoded/decoded limits, failed-load retention, source-path confinement,
+  stale/cross-context handles and teardown
+- Three actual world scene unloads release only their audio scopes while a separate
+  persistent voice continues mixing. Final retained clips/voices/PCM accounting is
+  zero. Warmed mix/state queries allocate **zero managed bytes**
+- Dummy-device JIT/AOT tests observe an asynchronously advancing track and verify
+  playback controls and cleanup. The displayed demo runs on software Vulkan and
+  dummy audio, then exits with clips=0/voices=0
+- JIT/AOT region graphics **29**, input **28**, resources **27**, mission **49**
+  pass; all six mission readbacks match both runtime modes and the pre-audio
+  milestone. Existing alpha/camera/resize/legacy-tone software checks still pass
+- The source-only fixture generator was executed in a separate reproduction
+  directory; its WAVs match the existing test inputs exactly and its generated
+  Vorbis passes all **61** offline assertions
+
+Displayed cloud-X11 CUA checks exercised Space pause/resume, gain increase, F stop,
+T restart and Escape exit. The paused/stopped visual colors were corrected and
+rechecked in the final build; the terminal confirms zero final clips/voices.
+The short E action was sent but its transient lamp was not separately captured;
+SFX PCM/replay behavior is established by offline tests. This is virtual desktop
+input and dummy audio, not verified speaker audibility, hardware latency, device
+hotplug, IME or cross-platform acceptance.
+
+Consistent Release Linux x64 unstripped ELF comparison, same final source and
+non-UI configuration: mixer-disabled `libgal.so` **75,176 bytes**, mixer-enabled
+**261,400 bytes**, increment **186,224 bytes**. This includes the adapter and
+selected mixer/decoder code; it is not a whole-package size. The pre-batch non-UI
+library was **74,136 bytes** and UI-enabled library **3,465,944 bytes**; after audio
+they are **261,400** and **3,655,664 bytes**. The static mixer archive is **273,318
+bytes**. SDL stays **4,003,064 bytes** separately. ELF dependencies show no extra
+external codec/encoder runtime. Managed aggregate AOT host: **5,115,456 bytes**,
+excluding native libraries, generated assets and fonts.
+
+Audio WAV/Ogg binaries are ignored rather than committed. Build/publish copies
+locally generated fixtures; generation is explicit and never launches an encoder
+during an ordinary build. Evidence/source/output hashes are under local
+`evidence/audio/`. The separate room-asset preparation commit remains independent.

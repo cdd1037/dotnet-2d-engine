@@ -78,3 +78,13 @@ The additive [texture-region contract](docs/TEXTURE_REGIONS.md) supports shared
 atlas cells, independent asset IDs and sprite flips. `assets/regions.scene.json`
 is the small authored v2 fixture. Run `scripts/test.sh quick regions` for its
 CPU/resource/schema checks; the linked guide covers GPU readback checks.
+
+### Audio
+
+The optional [SDL_mixer audio module](docs/AUDIO.md) provides WAV/Vorbis clips,
+reusable voices, file-streamed music, gain groups and explicit scene cleanup.
+Generate the excluded audio fixtures with `python3 scripts/generate-audio-fixtures.py`
+before `scripts/test.sh quick audio` or the `--audio-demo` sample. Build native audio
+explicitly with `GAL_WITH_MIXER=ON bash scripts/build-ui.sh` after the mixer setup.
+The guide records
+actual offline PCM checks separately from dummy-device and physical audio acceptance.

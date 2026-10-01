@@ -1,6 +1,7 @@
 #include "gal.h"
 #include "gal_ui.h"
 #include "backend.h"
+#include "audio_backend.h"
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -13,6 +14,7 @@
 struct TextureInfo { uint64_t id; int32_t width,height; bool operator==(uint64_t other)const{return id==other;} };
 struct gal_context {
  gal_config config{}; gal_camera camera{}; gal_stats stats{sizeof(gal_stats),0,0,0,0};
+ AudioBackend* audio=nullptr;
  std::thread::id owner; bool frame=false; uint32_t pending=0; Backend* backend=nullptr;
  std::vector<Vertex> vertices; std::vector<DrawRun> runs; std::vector<TextureInfo> textures;
 };
@@ -41,7 +43,7 @@ int GAL_CALL gal_create(const gal_config* cfg, gal_context** out) {
   live=c; *out=c; return 0;
  } catch(...) { if(c) { backend_destroy(c->backend); delete c; } return fail("allocation or backend exception"); }
 }
-int GAL_CALL gal_destroy(gal_context* c) { ENTRY; CHECK; backend_destroy(c->backend); delete c; live=nullptr; return 0; }
+int GAL_CALL gal_destroy(gal_context* c) { ENTRY; CHECK; audio_destroy(c->audio); backend_destroy(c->backend); delete c; live=nullptr; return 0; }
 const char* GAL_CALL gal_backend(gal_context* c) { ENTRY; if(!valid(c)) { fail("invalid context or wrong thread"); return nullptr; } return c->backend?backend_name(c->backend):"headless-validation"; }
 int GAL_CALL gal_poll(gal_context* c,gal_input* input) {
  ENTRY; CHECK; if(c->frame) return fail("poll must occur outside an active frame"); if(!input || input->size!=sizeof(gal_input)) return fail("invalid input size");
@@ -175,4 +177,25 @@ int GAL_CALL gal_game_ui_set_model(gal_context*c,const gal_game_ui_model*m){retu
 int GAL_CALL gal_game_ui_poll_action(gal_context*c,gal_game_ui_action*a){return ui_call(c,12,nullptr,a);}
 int GAL_CALL gal_game_ui_test_command(gal_context*c,uint32_t generation,uint32_t command){uint32_t args[]={generation,command};return ui_call(c,13,args,nullptr);}
 int GAL_CALL gal_capture_next(gal_context*c,const char*path){return ui_call(c,7,path,nullptr);}
+}
+
+static int audio_call(gal_context*c,AudioOp op,const void*in,void*out){
+ ENTRY;CHECK;if(c->frame)return fail("audio operations require no active sprite frame");
+ try{std::string why;if(!audio_dispatch(c->audio,op,in,out,why))return fail(why.c_str());return 0;}
+ catch(const std::exception&e){return fail(e.what());}catch(...){return fail("audio allocation or backend exception");}
+}
+extern "C" {
+int GAL_CALL gal_audio_open(gal_context*c,const gal_audio_config*cfg){return audio_call(c,AudioOp::Open,cfg,nullptr);}
+int GAL_CALL gal_audio_close(gal_context*c){return audio_call(c,AudioOp::Close,nullptr,nullptr);}
+int GAL_CALL gal_audio_load_clip(gal_context*c,const char*path,uint64_t*out){AudioFileRequest r{path,0};return audio_call(c,AudioOp::LoadClip,&r,out);}
+int GAL_CALL gal_audio_release_clip(gal_context*c,uint64_t id){return audio_call(c,AudioOp::ReleaseClip,&id,nullptr);}
+int GAL_CALL gal_audio_create_voice(gal_context*c,uint64_t id,uint32_t group,uint64_t*out){AudioVoiceRequest r{id,group};return audio_call(c,AudioOp::CreateVoice,&r,out);}
+int GAL_CALL gal_audio_open_stream(gal_context*c,const char*path,uint32_t group,uint64_t*out){AudioFileRequest r{path,group};return audio_call(c,AudioOp::OpenStream,&r,out);}
+int GAL_CALL gal_audio_release_voice(gal_context*c,uint64_t id){return audio_call(c,AudioOp::ReleaseVoice,&id,nullptr);}
+int GAL_CALL gal_audio_voice_command(gal_context*c,uint64_t id,uint32_t command,int32_t loops){AudioCommand r{id,command,loops};return audio_call(c,AudioOp::Command,&r,nullptr);}
+int GAL_CALL gal_audio_voice_gain(gal_context*c,uint64_t id,float gain){AudioGain r{id,gain};return audio_call(c,AudioOp::VoiceGain,&r,nullptr);}
+int GAL_CALL gal_audio_group_gain(gal_context*c,uint32_t group,float gain){AudioGain r{group,gain};return audio_call(c,AudioOp::GroupGain,&r,nullptr);}
+int GAL_CALL gal_audio_get_voice(gal_context*c,uint64_t id,gal_voice_state*out){return audio_call(c,AudioOp::VoiceState,&id,out);}
+int GAL_CALL gal_audio_get_state(gal_context*c,gal_audio_state*out){return audio_call(c,AudioOp::State,nullptr,out);}
+int GAL_CALL gal_audio_mix(gal_context*c,float*output,uint32_t frames,uint32_t*mixed){AudioMix r{output,frames};return audio_call(c,AudioOp::Mix,&r,mixed);}
 }

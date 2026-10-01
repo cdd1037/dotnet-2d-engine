@@ -129,3 +129,13 @@ preserved. Native, fresh JIT/AOT and software pixels pass as recorded in
 [validation](validation.md). The approved minimal SDL_mixer integration can proceed
 on the verified SDL 3.4.16 baseline. World clipping and sprite-frame animation stay
 as focused rendering follow-ons.
+
+## Audio follow-on
+
+The optional [SDL_mixer module](AUDIO.md) now provides bounded WAV/Vorbis clips,
+reusable voices, seekable music streams, master/music/SFX gains and explicit
+scene/context cleanup. Offline checks verify actual PCM; dummy-device and displayed
+controls are labeled separately from physical speaker/latency acceptance. Generated
+audio fixtures stay out of Git and have a verified source generator. The native
+module is CMake opt-in and opens no mixer/device until requested. Final verification
+and consistent-build footprint comparisons are recorded in [validation](validation.md).

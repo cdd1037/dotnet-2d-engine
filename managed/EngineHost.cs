@@ -7,6 +7,13 @@ internal sealed unsafe class EngineHost : IDisposable
     private nint _context;
     public bool Headless { get; }
     private TextureCache? _textures;
+    private AudioSession? _audio;
+    public AudioSession OpenAudio(bool offline=false)
+    {
+        AssertAlive();if(_audio is not null)throw new InvalidOperationException("An audio session is already open.");
+        return _audio=new AudioSession(this,offline);
+    }
+    internal void AudioClosed(AudioSession session){if(ReferenceEquals(_audio,session))_audio=null;}
     public TextureCache Textures { get { AssertAlive(); return _textures ??= new TextureCache(this); } }
     internal void AssertThread()
     {
@@ -17,12 +24,13 @@ internal sealed unsafe class EngineHost : IDisposable
     internal nint NativeContext => Context;
     private readonly int _ownerThread = Environment.CurrentManagedThreadId;
 
-    public EngineHost(bool headless, uint maxSprites)
+    public EngineHost(bool headless, uint maxSprites, bool legacyTone = true)
     {
         if (Native.AbiVersion() != 1)
             throw new InvalidOperationException("This host requires gal ABI version 1.");
         Headless = headless;
         var config = Config.Create(headless, maxSprites);
+        if (!legacyTone) config.Flags &= ~Native.Audio;
         nint context = 0;
         Native.Check(Native.Create(&config, &context), "create");
         _context = context;
@@ -136,5 +144,6 @@ internal sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.Destroy(Context), "destroy");
         _context = 0;
         _textures?.EngineDestroyed();
+        _audio?.EngineDestroyed();_audio=null;
     }
 }

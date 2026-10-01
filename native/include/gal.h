@@ -20,7 +20,7 @@ extern "C" {
    Status: 0 success, -1 invalid/state/backend failure. No exception crosses ABI. */
 typedef struct gal_context gal_context;
 typedef struct { uint32_t size, abi_version; int32_t width,height; uint32_t max_sprites,flags; } gal_config;
-enum { GAL_HEADLESS=1, GAL_AUDIO=2 }; /* HEADLESS validates/submits CPU batches only, no rendering/audio. */
+enum { GAL_HEADLESS=1, GAL_AUDIO=2 }; /* HEADLESS disables automatic graphics/legacy tone. Explicit gal_audio.h mixer opening is independent. */
 typedef struct { float x,y,zoom; } gal_camera;
 typedef struct { float x,y,w,h,r,g,b,a; } gal_sprite;
 /* Affine: x_world=m11*x+m21*y+tx; y_world=m12*x+m22*y+ty. Texture0 is builtin. */
