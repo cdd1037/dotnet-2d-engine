@@ -14,9 +14,10 @@ shared root/path validation, stable key mappings and explicit context-owned BMP
 texture leases; see [resource foundation](RESOURCES.md).
 
 The input/viewport batch now adds versioned raw/routed edges, coordinate helpers
-and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Next rendering
-work now includes [texture regions/atlas UVs](TEXTURE_REGIONS.md); basic animation
-and world clipping remain follow-ons. Box2D and SDL_mixer
+and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Rendering
+now includes [texture regions/atlas UVs](TEXTURE_REGIONS.md) and managed
+[frame animation, tweening and timers](ANIMATION_TIMING.md). World clipping
+remains a follow-on. Box2D and SDL_mixer
 evaluation/integration are authorized after version, license, footprint and platform
 validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
 The minimal [SDL_mixer audio module](AUDIO.md) now covers clips, streams, gains and

@@ -62,8 +62,10 @@ internal sealed class AssetCatalog
 /// </summary>
 internal sealed class TextureBank : IDisposable
 {
+    public const int MaximumRetainedKeys = 4096;
     private readonly TextureCache _cache;
     private readonly AssetCatalog _catalog;
+    private readonly string[] _retainedKeys;
     private readonly Dictionary<string, TextureLease> _loaded = new(StringComparer.Ordinal);
     private readonly HashSet<string> _needed = new(StringComparer.Ordinal);
     private readonly List<string> _remove = [];
@@ -72,7 +74,21 @@ internal sealed class TextureBank : IDisposable
     public int LoadedCount => _loaded.Count;
     public int Loads { get; private set; }
     public int Releases { get; private set; }
-    public TextureBank(EngineHost engine, AssetCatalog catalog) { _cache = engine.Textures; _catalog = catalog; }
+    public TextureBank(EngineHost engine, AssetCatalog catalog) : this(engine, catalog, []) { }
+
+    // Pin known animation frames for this bank's lifetime. Copy and validate keys at
+    // setup; actual file/region validation and leasing remain transactional in Sync.
+    public TextureBank(EngineHost engine, AssetCatalog catalog, ReadOnlySpan<string> retainedKeys)
+    {
+        ArgumentNullException.ThrowIfNull(engine); ArgumentNullException.ThrowIfNull(catalog);
+        if (retainedKeys.Length > MaximumRetainedKeys) throw new ArgumentOutOfRangeException(nameof(retainedKeys));
+        foreach (string key in retainedKeys)
+        {
+            if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Retained resource keys must be nonempty.", nameof(retainedKeys));
+            _ = catalog.TextureFor(key);
+        }
+        _cache = engine.Textures; _catalog = catalog; _retainedKeys = retainedKeys.ToArray();
+    }
 
     public ulong Resolve(string key)
     {
@@ -86,7 +102,9 @@ internal sealed class TextureBank : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _cache.CheckAccess();
-        _needed.Clear(); var entities = world.Entities;
+        _needed.Clear();
+        foreach (string key in _retainedKeys) _needed.Add(key);
+        var entities = world.Entities;
         for (int i = 0; i < entities.Count; i++)
             if (entities[i].IsAlive && entities[i].Sprite?.AssetKey is {} key) _needed.Add(key);
         foreach (string key in _needed)

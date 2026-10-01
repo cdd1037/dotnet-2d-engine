@@ -96,3 +96,5 @@ filters, sensors, copied events and bounded ray/AABB queries. Start with
 `scripts/test.sh quick physics`, then `bash scripts/test-physics.sh` for the real
 solver after dependency setup. The source-generated `basics.physics.json` fixture
 and `--physics-demo` show explicit meter/pixel conversion and scene cleanup.
+
+Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use explicit clocks and lifetime ownership. Try `--animation-demo` or run `scripts/test.sh quick animation`.

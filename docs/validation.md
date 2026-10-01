@@ -385,3 +385,47 @@ Evidence, source/output hashes and source-tree verification are local under
 `evidence/physics/`. Only source/JSON/scripts/notices/reports are committed. The
 agreed scope remains basic engine foundations; advanced controller/authoring gaps
 and a broader Godot/Unity comparison are deferred as recorded in the roadmap.
+
+## Managed animation/timing milestone (2026-10-01)
+
+[Frame animation, tweens and timers](ANIMATION_TIMING.md) add three managed runtime
+files (242 lines at this milestone) plus a small retained-key `TextureBank`
+constructor. Their polling API has no native entry point, JSON schema/sourcegen
+root, framework/dependency, property callback or global scheduling registry.
+
+Final-source verification:
+
+- Native headless contracts **4/4**, Release build with **0 warnings/errors**
+- Full JIT **9,075 assertions**, including **127** new timing/animation assertions
+- Boundaries: invalid/NaN/negative/oversized deltas and durations; explicit zero
+  behavior; one-frame/one-shot/loop endpoints; one-day jumps; coalesced repeat counts
+  up to 86.4 billion; float/vector/RGBA easing; separate clock domains and local
+  pause; cancel/restart/dispose/thread/ownership/capacity rules
+- Lifetime checks cover repeated scene unload, behavior replacement, failed
+  attachment rollback and entity destruction without accessing invalid entities
+- Warmed playback, tweens, timers, sprite property updates, retained atlas-key
+  synchronization and extraction: **zero managed bytes** in 1,000 measured ticks
+- The 16-step graphics fixture uses **4 logical-key leases, 1 native texture upload**,
+  releases all textures, and passes **17 software pixel checks**. Paused game values
+  remain identical while real-time tint advances; cancellation retains values and
+  restart reproduces the earlier image byte-for-byte
+- The same fixture runs headlessly with validated cache placeholders and no GPU
+  uploads. Existing real resource graphics **27** and atlas graphics **29** pass
+
+Displayed cloud-X11 CUA additionally observed game-clock pause while real-clock
+frames/timer lamps continue, restart while paused, resume, repeated cancellation
+and Escape exit. The terminal reported **4 key leases, 1 texture upload, 0 live
+textures** after that displayed run. This is still Mesa software Vulkan, not a
+physical-GPU/platform/performance validation. No IME/font changes were made.
+
+Read-only review identified an interrupted scenario issue: non-drawable windows
+could advance the same scripted frame repeatedly. The scenario now waits for a
+drawable frame before advancing its script. Double-second boundary precision is
+explicit and regression-tested: arbitrary decimal-delta partitioning need not
+produce an identical tick count at the exact rounding boundary. No epsilon or
+cross-platform deterministic-timing claim is hidden in the API.
+
+No fresh AOT publication was performed for this managed-only batch. The prior
+physics AOT evidence remains historical evidence for that source revision, not a
+claim that this new animation implementation has already been run under AOT.
+Generated screenshots/logs/hashes remain ignored under `evidence/animation/`.

@@ -148,3 +148,13 @@ bounded closest-ray/broad-phase AABB queries. Units and transform authority are
 explicit; scene ownership uses existing teardown hooks. The strict source-generated
 fixture and tests do not establish a full character controller, rich authoring
 workflow or cross-platform determinism guarantee.
+
+## Animation and timing follow-on
+
+Managed [frame players, typed tweens and polling timers](ANIMATION_TIMING.md) now
+share explicit game/real clock steps and bounded lifetime ownership. Atlas frame
+keys remain independent of physical packing; optional retained keys prevent lease
+churn. The sample and pixel checks cover pause, cancellation, restart and one-shot
+retention. This managed-only batch leaves native ABI and serialization roots
+unchanged; its current evidence is JIT/native contracts/software pixels and a
+displayed cloud-window check, not a fresh AOT milestone.

@@ -35,3 +35,7 @@ The original offline analyzer-only checks are retained under `validation/`. Curr
 ## Test coverage
 
 `--self-test` exercises ABI version/struct layouts, invalid configs and pointers, one-context enforcement, invalid camera/sprite data, begin/submit/end/abort state, empty and split batches, capacity overflow, atomic rejection, batch-abort recovery, cumulative stats, error reporting, same-thread requirements, disposal, and 32 destroy/recreate cycles. Stale native handles are checked only before a new allocation, since raw pointer handles cannot guarantee ABA detection after reuse. It also checks CLI parsing, camera/animation logic, stable managed entity IDs, separate transform/owner/scene graphs, lifetime teardown, pickup/drop and persistent room transitions, behavior mutation, numeric recovery, extraction, and both allocation probes. The managed world IDs do reject stale/cross-world references independently of that native raw-pointer limitation. It does **not** validate a GPU, real keyboard/mouse input, resize behavior, alpha pixels, or audible output; those need a graphical run.
+
+## Animation and timing
+
+`FrameClip`/`FramePlayer`, typed `Tween` factories and `EngineTimer` are polling primitives with explicit `TimingStep` game/real deltas. `TimingScope` owns cancellation; it does not schedule callbacks. See [contracts and sample](../docs/ANIMATION_TIMING.md).
