@@ -1,3 +1,4 @@
+using System.Numerics;
 using GameAuthoringLab;
 
 namespace Dotnet2DStarter;
@@ -20,11 +21,20 @@ internal static class StarterChecks
             throw new InvalidOperationException($"Expected rejection: {name}");
         }
         var loop = new FixedStepInput(.02, .1);
+        Check(loop.InterpolationAlpha == 0, "initial interpolation has no debt");
         loop.BeginFrame(.005, new(1, 1, 0), false);
         Check(!loop.TryTakeStep(out _), "zero-step frame retains edge");
+        Check(Math.Abs(loop.InterpolationAlpha - .25) < 1e-9, "no-step residual fraction");
         loop.BeginFrame(.015, new(0, 0, 1), false);
+        try
+        {
+            _ = loop.InterpolationAlpha;
+            throw new Exception("Interpolation before drain was accepted.");
+        }
+        catch (InvalidOperationException) { checks++; }
         Check(loop.TryTakeStep(out var tap) && tap == new ActionState(0, 1, 1), "press/release survives to one step");
         Check(!loop.TryTakeStep(out _), "one step only");
+        Check(loop.InterpolationAlpha < 1e-9, "exact step leaves zero residual");
         loop.BeginFrame(.06, new(2, 2, 0), false);
         Check(loop.TryTakeStep(out var first) && first == new ActionState(2, 2, 0), "first catch-up step gets edge");
         Check(loop.TryTakeStep(out var second) && second == new ActionState(2, 0, 0), "next step keeps held only");
@@ -61,9 +71,28 @@ internal static class StarterChecks
                 for (int i = 0; i < 60; i++) game.Tick(new(StarterGame.Right, i == 0 ? StarterGame.Pulse : 0, 0));
                 Check(Math.Abs(game.Position.X - 320) < .01 && game.Pulses == 1 && game.Steps == 60,
                     $"movement/one-shot {(physics ? "native physics" : "plain rules")}");
+                Vector2 current = game.Position;
+                Check(Vector2.Distance(game.PresentationPosition(0), current - new Vector2(160 * StarterGame.StepSeconds, 0)) < .001,
+                    "catch-up retains last two poses, not frame-start pose");
+                Check(Vector2.Distance(game.PresentationPosition(.5), (game.PresentationPosition(0) + current) / 2) < .001,
+                    "render midpoint interpolates copied poses");
+                Check(game.PresentationPosition(1) == current && game.Position == current,
+                    "render sampling never mutates authoritative position");
+                Reject(() => game.PresentationPosition(double.NaN), "nonfinite interpolation");
+                Reject(() => game.PresentationPosition(-.1), "negative interpolation");
+                Reject(() => game.PresentationPosition(1.1), "extrapolation rejected");
+                game.SnapPresentation();
+                Check(game.PresentationPosition(0) == current && game.PresentationPosition(.5) == current,
+                    "suspension collapses history, including zero-step resume");
+                game.Paused = true;
                 game.Restart();
+                Check(game.PresentationPosition(0) == game.Position && game.PresentationPosition(1) == game.Position && game.Paused,
+                    "restart snaps both poses and preserves pause");
                 Check(game.Position.X == 160 && game.Position.Y == 120 && game.Steps == 0 && game.Pulses == 0,
                     "restart state/pose/velocity");
+                game.Paused = false;
+                game.Tick(default);
+                Check(game.Position == new Vector2(160, 120), "restart does not retain physics velocity");
             }
             // A new world can open after game disposal; old owner wasn't leaked.
             using var reopened = engine.OpenPhysics();

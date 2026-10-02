@@ -40,14 +40,17 @@ The later authoring sequence reopens these bounded tasks, in order:
 2. Prove [C# composition reuse](CSHARP_COMPOSITION.md) with parameterized typed
    factories, nested instances, rollback and aggregate cleanup. The reusable
    engine addition is destruction-only registration; factories remain game code
-3. Simplify common explicit loop/input/pause and physics-to-display wiring,
-   preserving caller-visible timing, ownership and game rules
+3. Use the [checked explicit loop recipe](GAME_LOOP_RECIPE.md) for input/pause,
+   restart and physics-to-display wiring, preserving caller-visible timing,
+   ownership and game rules; no new loop framework is justified by the examples
 4. Compare pure-code authoring with Godot after those improvements; exclude
    editor and visual-tooling differences from that comparison
 
-The first two are implemented at their documented validation boundaries. The
-remaining steps do not authorize broader deferred engine capabilities or public
-package distribution, and this sequence does not revive prefab inheritance.
+The first three are implemented at their documented validation boundaries. The
+loop stage adds a tested recipe and presentation history, not a measured LOC or
+authoring-speed reduction. The remaining comparison does not authorize broader
+deferred engine capabilities or public package distribution, and this sequence
+does not revive prefab inheritance.
 
 ## 1. Turn the sample into a repeatable small game
 

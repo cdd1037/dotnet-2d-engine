@@ -1,0 +1,11 @@
+body { font-family: "Noto Sans CJK SC"; font-size: 16px; color: #eef2f6; width: 100%; height: 100%; }
+div, h1, p { display: block; }
+#panel { position: absolute; left: 640px; top: 28px; width: 288px; height: 202px; background-color: #202b39; border: 1px #59718b; border-radius: 10px; }
+h1 { font-size: 24px; margin: 16px 20px 4px; }
+p { margin: 0px 20px; font-size: 14px; }
+button { position: absolute; left: 660px; width: 248px; height: 40px; text-align: center; line-height: 40px; color: #eef2f6; background-color: #354d66; border: 1px #7e9cba; border-radius: 5px; }
+button:hover { background-color: #496783; }
+button:active { background-color: #263e55; }
+#toggle { top: 112px; }
+#restart { top: 168px; }
+#hint { position: absolute; left: 24px; top: 480px; font-size: 16px; color: #c5d0db; }

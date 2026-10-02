@@ -8,11 +8,13 @@ internal sealed class StarterGame : IDisposable
 {
     public const uint Left = 1, Right = 2, Up = 4, Down = 8, Pulse = 16, Pause = 32, RestartAction = 64;
     public const float StepSeconds = 1f / 60;
+    private static readonly Vector2 Spawn = new(160, 120);
+    private Vector2 previousPosition = Spawn;
     private readonly PhysicsScale scale = new(64);
     private readonly PhysicsWorld? physics;
     private readonly PhysicsScope? bodies;
     private readonly PhysicsBody? body;
-    public Vector2 Position { get; private set; } = new(160, 120);
+    public Vector2 Position { get; private set; } = Spawn;
     public int Pulses { get; private set; }
     public int Steps { get; private set; }
     public bool Paused { get; set; }
@@ -38,6 +40,7 @@ internal sealed class StarterGame : IDisposable
             ((input.Down & Down) != 0 ? 1 : 0) - ((input.Down & Up) != 0 ? 1 : 0));
         if (direction.LengthSquared() > 1) direction = Vector2.Normalize(direction);
         Vector2 velocity = direction * 160;
+        Vector2 nextPosition;
         if (physics is not null && body is not null)
         {
             body.SetVelocity(scale.ToMeters(velocity.X), scale.ToMeters(velocity.Y));
@@ -45,16 +48,30 @@ internal sealed class StarterGame : IDisposable
             if (step.Dropped != 0) throw new InvalidOperationException("Physics events dropped; completed step must not be retried.");
             // Consume physics.Events here, before another Step/Dispose. Copy to retain.
             var pose = body.State; // Read one copied pose; meters -> pixels once.
-            Position = new(scale.ToPixels(pose.X), scale.ToPixels(pose.Y));
+            nextPosition = new(scale.ToPixels(pose.X), scale.ToPixels(pose.Y));
         }
-        else Position += velocity * StepSeconds;
+        else nextPosition = Position + velocity * StepSeconds;
+        previousPosition = Position;
+        Position = nextPosition;
         if ((input.Pressed & Pulse) != 0) Pulses++;
         Steps++;
     }
 
+    // Presentation only. Rules, queries and following fixed-step behaviors read Position.
+    public Vector2 PresentationPosition(double alpha)
+    {
+        if (!double.IsFinite(alpha) || alpha < 0 || alpha > 1)
+            throw new ArgumentOutOfRangeException(nameof(alpha));
+        return Vector2.Lerp(previousPosition, Position, (float)alpha);
+    }
+
+    // Pause/focus loss/teleport/restart must not interpolate through stale history.
+    public void SnapPresentation() => previousPosition = Position;
+
     public void Restart()
     {
-        Position = new(160, 120);
+        Position = Spawn;
+        SnapPresentation();
         Pulses = Steps = 0;
         body?.Teleport(scale.ToMeters(Position.X), scale.ToMeters(Position.Y));
         body?.SetVelocity(0, 0);

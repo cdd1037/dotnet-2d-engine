@@ -63,6 +63,8 @@ expect_error missing-assets 'ASSET_MISSING.*white.png' "$app" --headless --asset
 cp -a "$output" "$proof/missing-native"
 rm -rf "$proof/missing-native/runtimes"
 expect_error missing-native 'STARTER ERROR:.*shared library.*gal' "$proof/missing-native/Starter.dll" --headless
+# Check the exact copied host statements, including suspension and presentation.
+python3 "$root/scripts/test-loop-recipe.py" --starter-proof "$proof" --dotnet "$dotnet"
 # Optional reuse of an already prepared software Vulkan system environment.
 # This does not replace libgal or any packaged native library.
 if [[ -n "${STARTER_GRAPHICS_SYSROOT:-}" ]]; then
@@ -105,7 +107,7 @@ if (p/'logs/graphics.log').exists():
     assert 'Starter: vulkan;' in graphics and 'STARTER PASS frames=30 ' in graphics
     assert re.search(r'native-frames=30 draw-calls=([1-9][0-9]*)',graphics)
 inputs={str(f.relative_to(root)):hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted((root/'templates/Starter').rglob('*')) if f.is_file() and not any(s in ('bin','obj','packages') for s in f.relative_to(root/'templates/Starter').parts)}
-result={'mode':'independent JIT PackageReference consumer','sdk':(p/'logs/sdk-version.txt').read_text().strip(),'assertions':int(match[1]),'headless_runs':{'plain':120,'physics':120,'explicit_asset_root':3},'negative_exits':{'invalid_option':2,'missing_assets':2,'missing_native':2},'native_libraries_verified':len(native),'graphics_30_frame_smoke':(p/'logs/graphics.log').exists(),'pixel_or_physical_input_acceptance':False,'aot_publishes':0,'packages':{f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in packages},'template_inputs':inputs}
+result={'mode':'independent JIT PackageReference consumer','sdk':(p/'logs/sdk-version.txt').read_text().strip(),'assertions':int(match[1]),'host_policy_checks':json.loads((p/'loop-policy-results.json').read_text())['checks'],'headless_runs':{'plain':120,'physics':120,'explicit_asset_root':3},'negative_exits':{'invalid_option':2,'missing_assets':2,'missing_native':2},'native_libraries_verified':len(native),'graphics_30_frame_smoke':(p/'logs/graphics.log').exists(),'pixel_or_physical_input_acceptance':False,'aot_publishes':0,'packages':{f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in packages},'template_inputs':inputs}
 (p/'results.json').write_text(json.dumps(result,indent=2)+'\n')
 PY
 cat "$proof/logs/self-test.log" "$proof/logs/headless.log" "$proof/logs/physics.log"

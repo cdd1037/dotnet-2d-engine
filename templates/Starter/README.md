@@ -74,10 +74,12 @@ different data; add a versioned save format when your game needs one.
 1. Poll once, map actions once. Gameplay bindings honor UI consumption by default;
    only Escape deliberately bypasses it here
 2. Process pause/restart on the outer frame. Always update the stopwatch baseline
-3. Begin a fixed-step frame, then **drain** `TryTakeStep` before beginning the next
+3. Begin a fixed-step frame; snap display history if suspended, then **drain**
+   `TryTakeStep` before beginning the next
 4. Apply game input, advance exactly one physics step if selected, copy the pose
    from meters to pixels, then update game presentation state
-5. Draw once when drawable; dispose all owners on the creating thread
+5. Interpolate the last two copied positions with `InterpolationAlpha`, then draw
+   once when drawable; dispose all owners on the creating thread
 
 The helper caps each accepted delta at 0.1 seconds and accumulates dropped time in
 `DroppedSeconds`. That intentionally drops excessive hitch time rather than doing
@@ -105,6 +107,15 @@ semantics. Keep simulation and presentation units separate. The example converts
 at explicit boundaries with `PhysicsScale(64)` and uses the same fixed delta in
 the helper and `PhysicsSettings`.
 
+Interpolation deliberately displays one fixed step behind the simulation. Read
+`InterpolationAlpha` only after draining all steps; reading earlier throws.
+`Position` stays authoritative for rules and tests. Rendering may instead use it
+directly when lower input latency is more important than interpolation. Pause,
+focus/no-draw suspension and restart collapse both display poses, preventing a
+rewind at alpha zero or interpolation through a teleport. See the source checkout's
+[complete loop recipe](../../docs/GAME_LOOP_RECIPE.md) for explicit World update
+order, pause-menu polling, transform-parent cautions and restart ownership.
+
 ## Paths and troubleshooting
 
 Assets are rooted at `AppContext.BaseDirectory/assets`, not the shell's current
@@ -125,7 +136,7 @@ no traversal or descendant symlinks. `white.png` is preflighted before rendering
   and glyph coverage; no third-party font is installed or distributed here
 
 `--self-test` checks timing/edge/reset policy, strict options, native physics,
-restart and owner cleanup using the packaged runtime. For an independent-public-
+restart, interpolation history and owner cleanup using the packaged runtime. For an independent-public-
 consumer proof, the source checkout provides `scripts/test-starter.sh`. Daily
 iteration is JIT. Trimming/NativeAOT is a separate milestone validation; nothing
 here invokes an AOT publish or installs a compiler implicitly.

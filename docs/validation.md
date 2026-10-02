@@ -1351,3 +1351,84 @@ event unsubscription. CPU sprite extraction uses zero placeholder handles that
 are never rendered. There is **no fresh full-host AOT, native body/texture,
 graphics/audio/device, performance, authoring-speed or Godot-comparison claim**.
 Packages remain local; no remote push, release or feed publication was performed.
+
+## Explicit loop/pause/presentation recipe (2026-10-02)
+
+The third approved authoring stage uses the [checked recipe](GAME_LOOP_RECIPE.md),
+with no managed runtime/public API or native operation changes. Existing
+`FixedStepInput` remains copyable game code. The starter adds a guarded residual
+fraction and last-two-pose interpolation; suspension/restart collapse display
+history, and rules keep reading the authoritative copied physics pose. The
+optional [pause-menu consumer](../packaging/consumers/loop-ui/) keeps generic RML
+nodes separate from World entities and polls UI before deciding simulation.
+
+Verified with the prepared .NET SDK **10.0.401** / runtime **10.0.12**, Linux x64:
+
+- Independent starter JIT PackageReference consumer: **49 self-check assertions**
+  plus **58 extracted-host checks**, native Box2D and plain movement, fresh local
+  cache, normal 120-frame runs and three expected startup-error exits. Its
+  optional 30-frame software-Vulkan smoke completed with actual draw calls
+- Optional UI/physics PackageReference consumer: **33 scripted assertions**,
+  **10 real RmlUi command packets**, **6 restarts**, and empty physics-world reopen
+  after disposal. Held D and Space during pause cannot change gameplay; Resume
+  and Restart still execute. It also checks zero-step resume, discarded old
+  presses, same-frame restart/action, command-revision retirement and drain order
+- **24 actual-pixel assertions** across three 960×540 captures: moving uses the
+  interpolated center, pause uses the current physics center, restart uses spawn;
+  square extents/colors and visible menu are checked. Paused capture visually
+  inspected. Software rendering/queued SDL input do not establish physical input,
+  OS-focus/minimize behavior or hardware-GPU/game-feel acceptance
+- Existing original/adapted comparison rerun: platformer **13/13** native checks
+  on both scenes, top-down **14/14**, **47 extracted host checks**; **110 original
+  source/data files verified unchanged**. No Godot rerun in this stage
+- One final source aggregate: **11,694 assertions**, all **8/8 native CTest
+  contracts**, zero warnings/errors and retained zero-allocation frame checks.
+  Headless build was incremental with no native compilation/linking. No native
+  dependency rebuild, package repack, fresh NativeAOT publish or remote push
+- Independent read-only review found no blocking implementation defect. It
+  clarified that replacing a game must change projected UI identity or reload:
+  a byte-identical `Apply` does not create a new revision
+
+Counts are physical nonblank lines, including comments/braces/imports. All five
+starter C# files are accounted for in the guide: production grows **227→257**
+(including the helper **54→65**), checks **77→106**. This is a tested recipe and
+correctness improvement, **not a LOC reduction or measured authoring-speed gain**.
+Both compared gameplay/presentation implementations stay unchanged; including
+one full updated helper gives 177 host/helper lines versus 113 original host
+lines (242 with one physical helper copy in each game).
+
+The optional menu adds **108** live C# lines (`Program` 47 + `LoopUiHost` 61),
+plus the copied **143** lines of starter game/helper support, totaling **251**
+production C# lines. Its fixture-only `ScriptedChecks.cs` is **154** lines;
+RML/RCSS **25** lines and project file **15**. The three new proof/validator
+scripts are separate test tooling and are not presented as eliminated game code.
+The files are deliberately ordinary application source, not another runtime loop
+framework, world/UI component hierarchy or generic character controller.
+
+### Reproducible local package selection
+
+The checkout's old default native preview package was found to predate
+`gal_ui_model_open`, despite sharing the same package version. It was preserved.
+The UI script now fails early with a precise selected-feed diagnostic for that
+case; the rejection was tested. A stable sibling `game-loop-package-feed/` was
+assembled by copying already-verified packages, without repacking/rebuilding:
+
+- Current managed package (composition `c7264de`): SHA-256
+  `d301bff503cc05d216deae1f1a4e0e4a9cd9df7795ba7f594cc062ceb6c19358`
+- Refined native package (generic UI `3e3edbe`, SVG OFF): SHA-256
+  `a5b203f64856ed92e98b1a53b3d1544054831caeeed2fe6696e9a2ca2479040c`
+
+Use that feed for subsequent UI/comparison work in this workspace, or prepare
+matching current packages on another machine. Main-feed starter/comparison tests
+used the current managed package above and historical native SHA-256
+`8ad9132d698d7c251c53bc824dbb16340d19e7468804e373054f79add2cfdbf1`;
+those paths do not invoke the generic UI bridge. UI proof uses the consolidated
+feed and verifies copied engine DLL plus all eight native DSOs byte-for-byte.
+
+Raw local evidence: sibling `game-loop-starter-final/`,
+`game-loop-comparison-verified/`, `game-loop-ui-verified/` and
+`evidence/game-loop/`. Each consumer proof records exact source/package hashes.
+Reproduce with `scripts/test-starter.sh`, `scripts/compare-starter-wiring.py` and
+`PACKAGE_FEED=/path/to/matched-feed GAL_UI_FONT=/path/to/compatible-font
+scripts/test-loop-ui.sh`; see the guide for full commands and prerequisites.
+Public package publication and a pure-code Godot comparison remain separate tasks.

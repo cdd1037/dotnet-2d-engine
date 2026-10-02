@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head><title>Explicit game loop</title><link type="text/rcss" href="pause.rcss" /></head>
+  <body data-model="model">
+    <div id="panel">
+      <h1>Game loop</h1>
+      <p data-if="state.paused">Paused: the menu still works</p>
+      <p data-if="!state.paused">Running: WASD / arrows move</p>
+    </div>
+    <button id="toggle" data-event-click="toggle()"><span data-if="!state.paused">Pause</span><span data-if="state.paused">Resume</span></button>
+    <button id="restart" data-event-click="restart()">Restart</button>
+    <div id="hint">Space changes color. Escape pauses. T restarts.</div>
+  </body>
+</rml>

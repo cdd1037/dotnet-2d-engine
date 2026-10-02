@@ -37,6 +37,8 @@ try
         double now = watch.Elapsed.TotalSeconds;
         double elapsed = now - previous;
         previous = now; // Also update while paused; no resume-time catch-up.
+        // Drain/check optional UI commands here, before deciding pause/restart.
+        // Keep UI polling/model updates/drawing outside the fixed-step loop.
         if ((action.Pressed & StarterGame.Pause) != 0) game.Paused = !game.Paused;
         bool restart = (action.Pressed & StarterGame.RestartAction) != 0;
         if (restart) { game.Restart(); fixedInput.Reset(); }
@@ -44,14 +46,16 @@ try
         // Headless is an explicit deterministic CLI test clock, never a live input path.
         if (options.Headless) { elapsed = StarterGame.StepSeconds; suspended = game.Paused || restart; }
         TimingStep frame = fixedInput.BeginFrame(elapsed, action, suspended);
+        if (suspended) game.SnapPresentation();
         while (fixedInput.TryTakeStep(out var stepInput)) game.Tick(stepInput);
         // Optional UI/real-time timers advance with frame.RealSeconds even when paused.
         // Gameplay animations use a fixed TimingStep inside Tick, not both clocks.
         _ = frame;
         if (input.Drawable || options.Headless)
         {
+            var position = game.PresentationPosition(fixedInput.InterpolationAlpha);
             draws[0] = new SpriteDraw {
-                M11 = 1, M22 = 1, X = game.Position.X - 16, Y = game.Position.Y - 16,
+                M11 = 1, M22 = 1, X = position.X - 16, Y = position.Y - 16,
                 Width = 32, Height = 32, Texture = texture.Handle,
                 R = game.Paused ? .4f : 1, G = game.Pulses % 2 == 0 ? .8f : .2f, B = .3f, A = 1
             };

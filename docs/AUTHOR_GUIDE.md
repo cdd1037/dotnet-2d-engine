@@ -52,7 +52,10 @@ The starter keeps the author-visible order in `Program.cs`:
 only reuses the accumulator/edge logic repeated by the platform and top-down
 prototypes. No hidden callback order, reflection, automatic behavior discovery or
 service container was added. See [measured comparison](AUTHOR_ENTRY_COMPARISON.md)
-for exactly what moved and what remains author work.
+for exactly what moved and what remains author work. The
+[fixed-step recipe](GAME_LOOP_RECIPE.md) adds checked presentation interpolation,
+explicit pause-menu order and restart ownership without introducing another loop
+abstraction.
 
 Define action bits and bindings in game code. Use `InputActionMap`, not the sample's
 `CreateSample()` defaults. Gameplay controls respect UI consumption unless an
@@ -131,7 +134,9 @@ owners. The starter demonstrates rollback after physics-body setup failure.
 
 Physics uses meters/seconds/radians; rendering and camera units use framebuffer
 pixels. `--physics` shows one authoritative physics pose copied after `Step`, using
-`PhysicsScale` at the boundary. If projecting onto an entity, map center-based body
+`PhysicsScale` at the boundary. The starter interpolates the last two copied
+positions only for drawing, with one fixed-step display delay; pause/restart snaps
+that history. Rules still read the authoritative current pose. If projecting onto an entity, map center-based body
 coordinates to your sprite's local origin explicitly and write local transforms
 only when appropriate for its transform parent. No implicit entity-body binding
 exists. Never overwrite both poses in competing systems each frame.

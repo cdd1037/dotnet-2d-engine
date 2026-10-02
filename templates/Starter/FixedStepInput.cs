@@ -22,6 +22,18 @@ internal sealed class FixedStepInput
         MaximumFrameSeconds = maximumFrameSeconds;
     }
 
+    // Read only after draining TryTakeStep. Previous -> current presentation is
+    // deliberately one fixed step behind simulation; never feed it into physics.
+    public double InterpolationAlpha
+    {
+        get
+        {
+            if (accumulator + StepSeconds * 1e-9 >= StepSeconds)
+                throw new InvalidOperationException("Drain fixed steps before sampling presentation.");
+            return accumulator / StepSeconds;
+        }
+    }
+
     // suspended is an application choice: pause, focus loss, or no drawable area.
     // Reset also discards queued presses, so they cannot fire after resuming.
     // Returned real time is the capped frame delta, not a wall-clock timestamp.
