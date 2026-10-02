@@ -46,11 +46,65 @@ The later authoring sequence reopens these bounded tasks, in order:
 4. Compare pure-code authoring with Godot after those improvements; exclude
    editor and visual-tooling differences from that comparison
 
-The first three are implemented at their documented validation boundaries. The
-loop stage adds a tested recipe and presentation history, not a measured LOC or
-authoring-speed reduction. The remaining comparison does not authorize broader
-deferred engine capabilities or public package distribution, and this sequence
-does not revive prefab inheritance.
+All four are implemented at their documented validation boundaries, including
+the [pure-code comparison](CODE_AUTHORING_COMPARISON.md). The loop stage adds a tested
+recipe and presentation history, not a measured LOC or authoring-speed reduction.
+The later typed UI command/diagnostic iteration and the [public-package RELAY
+experiment](RELAY_REFERENCE.md) are also delivered as bounded authoring stages.
+RELAY retains its original game/save rules and runs the whole flow outside the
+checkout with ordinary PackageReferences. It remains an experiment; additional
+package identity/version-management work is deferred. None of
+these stages authorizes broader deferred capabilities or public package
+distribution, and the sequence does not revive prefab inheritance.
+
+## Two complementary development tracks
+
+Future work alternates between two evidence-driven tracks:
+
+1. **Real projects reveal necessary engine capabilities.** Build and maintain
+   complete games against the public package boundary. Use actual ownership,
+   interaction, data and validation failures to identify the next useful engine
+   capability; do not turn a one-off game's rules into a generic subsystem
+2. **API, diagnostics and tooling reduce authoring friction.** Remove duplicated
+   facts, hidden change dependencies and easy misuse. Evaluate clear contracts,
+   local change reasoning and actionable errors, rather than file count, shortest
+   code or moving all code into one file
+
+A real project can expose a missing capability or a confusing authoring contract;
+API/tooling work must then be checked in that project and independent consumers.
+Neither track automatically takes priority forever or licenses unrelated feature
+expansion. Preserve explicit timing, ownership, serialization and failure policy.
+
+### Approved next author-API phase, after RELAY closure
+
+The next bounded sequence is approved for compatible, individually verified
+batches. These are **next-stage tasks**, not implemented claims in this RELAY
+migration:
+
+1. Automatically assign UI command IDs on the recommended author path; retain an
+   advanced explicit-ID path and update recommended examples/docs
+2. Make C# declarations the single source for UI registration and build-time RML
+   name/type/command contract checks, with source-aware diagnostics and runtime
+   fallback for dynamic content. Constants alone do not solve this. Bounded
+   generated registration/build checks are now in scope, superseding the earlier
+   general generator deferral only for this contract
+3. Provide safer public rendering/input surfaces and typed resource handles,
+   keeping raw/native representations behind an explicit advanced boundary
+4. Prefer input action tokens over manually allocated action bits on the ordinary
+   author path, while preserving the existing implementation's semantics
+5. Add an explicit UI initialization/publication helper that preserves failed-load
+   or failed-reload retention and caller-visible update/render ownership
+6. Add semantic Circle/Box shape factories so authors do not rely on ambiguous
+   parameter positions or shape-discriminator values
+
+Keep existing consumers working during migration, use targeted negative tests,
+and remeasure package/AOT boundaries when the affected contract demands it.
+This approval does not include a Vue-style component runtime, editor, automatic
+scene lifecycle or broader platform/distribution work.
+
+The numbered stages below preserve the original proposals and exit criteria.
+Use the current status above and linked validation reports when historical wording
+describes work that has since landed; this list is not an automatic work queue.
 
 ## 1. Turn the sample into a repeatable small game
 

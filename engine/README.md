@@ -7,7 +7,11 @@ In the source checkout, start with the [author guide](../docs/AUTHOR_GUIDE.md)
 for the starter, edit/run workflow and public API boundaries.
 
 Use EngineHost.Create, World, explicit AssetRoot/AssetCatalog mappings, authored
-scene loading and BoundUiSession<T>. Dispose owners on their creating thread.
+scene loading and UiModelSession<T> with UiRecord projections and typed
+UiCommands.On handlers. BoundUiSession<T> remains a legacy alternative. Dispose
+owners on their creating thread. The RELAY experiment in the source
+checkout uses only these public packages; its rules/screens/save schema stay
+in application code. See docs/RELAY_REFERENCE.md for the current experiment.
 Reusable C# composition uses ordinary application factories and typed references;
 `World.OnDestroy(entity, cleanup)` explicitly binds instance resources to entity
 destruction, separately from behavior replacement. See the
@@ -23,7 +27,7 @@ sample/test executable, raw interop, probes, source-generation contexts and
 collision planning helpers remain internal or outside this library. This is an
 experimental package API, not a stable SDK release.
 
-For graphics, reference Dotnet2D.Native.Linux.x64 separately at the same version.
+For graphics, reference Dotnet2D.Native.Linux.x64 separately at the same preview version.
 That local binary profile has specific Linux system prerequisites in its README.
 No external font is included. UI requires a separately installed licensed CJK
 font selected with GAL_UI_FONT, as documented in the source project.

@@ -1,5 +1,8 @@
 # .NET 2D Engine — current milestone
 
+Current full-game experiment: [RELAY with public PackageReferences](RELAY_REFERENCE.md).
+The historical milestones below retain their original validation and scope.
+
 Status: experimental independent engine, not a production release. The repository
 name is `dotnet-2d-engine`. Source directories, `GameAuthoringLab`
 managed names and the `gal` native ABI remain unchanged to avoid a disruptive

@@ -4,6 +4,14 @@ Audit begun at the local package proof; current feature-wave closure, 2026-10-02
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
+## Current authoring closure
+
+The later [RELAY experiment](RELAY_REFERENCE.md) runs the full existing game
+outside the checkout with generic typed UI and app-owned rules/save code.
+Older size tables below retain their measured revision scope.
+The [roadmap](ROADMAP.md) records the subsequent approved two-track strategy and
+bounded author-API work separately, after this migration closes.
+
 ## Delivered foundations
 
 The project has a repeatable authored playable loop; stable identities and
@@ -55,7 +63,7 @@ is implied by this audit.
 
 ## Acceptance and portability gates
 
-- **Latest distribution proof:** the [current small-consumer refresh](MILESTONE_PACKAGE_SIZES.md)
+- **Small-consumer distribution evidence:** the [small-consumer refresh](MILESTONE_PACKAGE_SIZES.md)
   measures Sprite/UI trimmed JIT and NativeAOT, with positive full-assembly controls,
   unused managed-module removal checks, byte-identical full native payloads and
   copied notices. Package source stamps and current-byte equivalence are recorded

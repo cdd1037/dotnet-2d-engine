@@ -1,5 +1,9 @@
 # Local NuGet and trimming proof
 
+The [RELAY experiment](RELAY_REFERENCE.md) now exercises the full game through
+ordinary public PackageReferences. The historical matrices below retain their
+original revision/measurement scope.
+
 This is a local-feed experiment, version **0.1.0-preview.1**, using ordinary
 `Microsoft.NET.Sdk` projects. It is not a public NuGet release, stable SDK/API,
 Windows/macOS package or general Linux distribution support claim.

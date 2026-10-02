@@ -2,7 +2,7 @@
 
 An independent, AI-authoring-first 2D engine prototype: .NET 10 main executable + narrow C ABI + C++ SDL3 GPU platform layer. This is not a Godot fork. Repository: `dotnet-2d-engine`; the existing `GameAuthoringLab` assembly, namespace and `gal` ABI names remain stable during this milestone.
 
-Start building a game with the [author guide](docs/AUTHOR_GUIDE.md): the starter, edit/run loop, public APIs and current authoring limits.
+Start building a game with the [author guide](docs/AUTHOR_GUIDE.md): the starter, edit/run loop, public APIs and current authoring limits. The [RELAY development experiment](docs/RELAY_REFERENCE.md) exercises the full game through ordinary public PackageReferences.
 
 See the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. The [closure audit](docs/ROADMAP_CLOSURE.md) distinguishes delivered foundations, remaining original work and deferred expansion.
 
@@ -41,7 +41,7 @@ See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistenc
 
 ## Complete playable loop
 
-`./scripts/run-game.sh` starts **RELAY / Archive Rescue** using the optional RmlUi build: title → start → two-room delivery mission → pause → win/lose → save/load → restart. See [controls, authored mission and verification](docs/PLAYABLE_MISSION.md). The original probes remain available.
+`./scripts/run-game.sh` starts the independent **RELAY / Archive Rescue** public-package app: title → start → two-room delivery mission → pause → win/lose → save/load → restart. See the [current setup, controls and JIT/trim/AOT verification](docs/RELAY_REFERENCE.md). The [original fixed-profile probe](docs/PLAYABLE_MISSION.md) remains available through `scripts/run-legacy-game.sh`.
 
 ## Quick contract test (Linux, no new dependencies)
 
@@ -135,6 +135,10 @@ Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use
 The [basic TileMap](docs/TILEMAP.md) loads bounded source-generated grids, culls atlas cells and optionally generates static Box2D collision. Try `--tilemap-demo` or `--tilemap-physics-demo`.
 
 ## Local package proof
+
+The [RELAY experiment](docs/RELAY_REFERENCE.md) also exercises the full game as
+an outside-checkout application using ordinary PackageReferences.
+
 
 The [experimental NuGet proof](docs/NUGET_PROOF.md) builds a separate reusable
 managed assembly and a Linux x64 native package into a local feed. Independent

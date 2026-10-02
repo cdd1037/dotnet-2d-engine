@@ -1432,3 +1432,37 @@ Reproduce with `scripts/test-starter.sh`, `scripts/compare-starter-wiring.py` an
 `PACKAGE_FEED=/path/to/matched-feed GAL_UI_FONT=/path/to/compatible-font
 scripts/test-loop-ui.sh`; see the guide for full commands and prerequisites.
 Public package publication and a pure-code Godot comparison remain separate tasks.
+
+
+## 2026-10-02: public-package RELAY experiment
+
+The existing RELAY game runs independently in `packaging/consumers/relay`, with
+ordinary public PackageReferences and bundled assets. No engine API/source/native
+change was needed. See [run instructions and functional checks](RELAY_REFERENCE.md).
+Older package and fixed-profile reports above retain their historical scope.
+
+The migration's outside-checkout JIT, trimmed self-contained JIT and NativeAOT
+runs each passed 932 app rules/persistence assertions and 118 real SDL/Rml scenario
+assertions. Six captures matched across modes, with 22 pixel checks. Missing
+font/asset errors, replacement failure retention, focus/neutral/stale and duplicate
+command boundaries, twelve restart cycles and cleanup passed. The separate full
+JIT suite passed 11,726 assertions. There was no native rebuild or publication.
+Physical input/GPU/audio/IME and minimization remain unverified.
+
+The added package-identity helper, lock/profile/hash workflow and associated
+records were subsequently removed at the user's request. Version-management work
+was also deferred: RELAY remains a development experiment. The ordinary launcher
+now restores/builds/runs the project directly. The copied-app test defaults to a
+focused JIT run; trim/AOT remains an opt-in functional check with `full`, rather
+than a required author workflow. Historical verification outputs under
+`/tmp/relay-proof-closed-20261002` are evidence of that run, not setup requirements.
+
+After that removal, the simplified launcher passed its 932 CPU checks and the
+copied-app JIT run passed 932 rules, 118 scenario and 22 pixel checks, including
+missing-font/asset diagnostics. Build completed without warnings/errors. No
+version change, native rebuild/repack or new trim/AOT matrix was performed for
+this cleanup. Logs are in `evidence/relay/simplified-*.log`; the focused output is
+`/tmp/relay-simple-jit-20261002`.
+
+The roadmap records the approved two-track strategy and six next-stage author-API
+improvements separately; none was implemented in the RELAY migration.

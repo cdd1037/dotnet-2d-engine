@@ -3,7 +3,9 @@
 **Start here when making a game.** This page describes the current public author
 path, rather than the order historical experiments were built. Use the checked-in
 [ordinary C# starter](../templates/Starter/README.md), then choose only the modules
-your game needs. Focused links below specify the detailed bounds and contracts.
+your game needs. For a complete title/play/pause/save/load/results loop, use the
+[RELAY public-package experiment](RELAY_REFERENCE.md). Focused links below specify
+the detailed bounds and contracts.
 
 The current runtime is experimental .NET 10 / `0.1.0-preview.1`, namespace
 `GameAuthoringLab`. The API is not stable. The distributable binary proof is Linux
@@ -11,6 +13,11 @@ x64 only, with explicit system prerequisites. Existing source support and past
 AOT/device experiments do not establish support for every target platform.
 
 ## 1. Begin from a real package consumer
+
+The [RELAY experiment](../packaging/consumers/relay/README.md) demonstrates a
+complete game flow with generic typed UI using ordinary PackageReferences.
+The starter below remains intentionally minimal.
+
 
 Copy `templates/Starter` outside the repository. Follow its README to supply the
 two local packages and explicitly restore/build. The project references no sample
@@ -105,7 +112,8 @@ See [lifetime/sorting](LIFECYCLE_SORTING.md) and [World](../managed/WORLD.md).
 Authored scene JSON is immutable author input, with strict versions/unknown-field
 checks and stable IDs. It is **not a player-progress save format**. Sample
 `ScenePersistence`, room/mission saves and sample UI profiles are not public package
-APIs. Own a versioned game save model and explicit validation/migration/restart
+APIs. The RELAY reference demonstrates application-owned source-generated saves
+and public relationship restoration. Own a versioned game save model and explicit validation/migration/restart
 policy; do not serialize native handles. [Scene authoring](AUTHORED_SCENES.md) and
 [resource mapping](RESOURCES.md) show the current source contract.
 
@@ -171,7 +179,9 @@ example, exact limits, command registration and resource authoring rules.
 `session.LoadAsset(assets, path)` validates and stages copied sources. Render once
 to publish the accepted document, call `session.Apply(model)`, then render to
 synchronize its values. `session.Poll()` returns a copied `UiCommandEvent`.
-Check `session.IsCurrent(command)` immediately before applying game behavior,
+Prefer typed `UiCommands.On` handlers and `session.Dispatch(command)`, which checks
+the current packet before invoking the handler. For explicit packet handling,
+check `session.IsCurrent(command)` immediately before applying game behavior,
 accept or reject its draft in C#, then apply the next snapshot. Keys are exact
 `ulong` identities passed through RML expressions as decimal strings, never
 floating-point numbers. Each changed snapshot retires old command packets. Stable

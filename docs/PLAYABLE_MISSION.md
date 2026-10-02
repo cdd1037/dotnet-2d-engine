@@ -1,4 +1,9 @@
-# Phase 1: RELAY / Archive Rescue
+# Phase 1: RELAY / Archive Rescue (historical fixed-profile probe)
+
+The current maintained full-game entry is the [independent public-package RELAY
+app](RELAY_REFERENCE.md). This page preserves the original phase-1 architecture
+and evidence. Its old executable remains runnable with `scripts/run-legacy-game.sh`;
+`scripts/run-game.sh` now selects the public-package application.
 
 A repeatable small game built on the existing two-room sample. Carry the amber
 power cell from the Garden Workshop through the east door to the glowing relay
@@ -9,7 +14,7 @@ cell before the 90-second simulation timer expires.
 
 Build managed Release and the optional native UI build using the prerequisites in
 [UI_PROTOTYPE.md](UI_PROTOTYPE.md). No new dependency is introduced. From the repo
-root, `scripts/run-game.sh` runs the **current** managed/native builds and assets;
+root, `scripts/run-legacy-game.sh` runs the prepared original managed/native builds and assets;
 it does not run an older packaged ZIP. A displayed window runs until closed.
 
 - WASD / arrows: move; E: pick up or deliver; F: drop; T near a door: change rooms

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head><title>RELAY / Archive Rescue</title><link type="text/rcss" href="game.rcss" /></head>
+  <body data-model="model">
+    <div id="hud" data-if="state.playing">
+      <p id="hud-objective">{{state.objective}}</p>
+      <p id="hud-status">{{state.status}}</p>
+      <p id="hud-time">Time / 剩余: {{state.seconds}} s</p>
+      <button id="game-pause" data-event-click="pause()">Pause / 暂停</button>
+    </div>
+    <div id="game-panel" data-if="!state.playing">
+      <h1 id="game-title">{{state.title}}</h1>
+      <p id="game-objective">{{state.objective}}</p>
+      <p id="game-status">{{state.status}}</p>
+      <p id="game-time">Time / 剩余: {{state.seconds}} s</p>
+      <div id="game-actions">
+        <button id="game-start" data-if="state.title_screen" data-event-click="start()">Start / 开始</button>
+        <button id="game-resume" data-if="state.paused" data-event-click="resume()">Resume / 继续</button>
+        <button id="game-save" data-if="state.can_save" data-event-click="save()">Save / 保存</button>
+        <button id="game-load" data-if="state.can_load" data-event-click="load()">Load / 读取</button>
+        <button id="game-restart" data-if="state.paused || state.result" data-event-click="restart()">Restart / 重试</button>
+        <button id="game-menu" data-if="!state.title_screen" data-event-click="menu()">Menu / 主菜单</button>
+      </div>
+    </div>
+  </body>
+</rml>
