@@ -191,8 +191,10 @@ Both factories keep the existing defaults: density `1`, friction `.6`, restituti
 zero material/category/mask/group arguments remain zero. Collision groups retain
 their signed override semantics; sensor density still contributes mass. Factory
 validation uses the same bounds as the original descriptor/native adapter, and
-`AddShape` still validates any later `with` edits. The positional constructor,
-descriptor fields, ownership rules and native ABI remain available and unchanged.
+`AddShape` validates later `with` edits to material, offsets and filters. The
+generic positional constructor and Type/A/B setters are internal; public callers
+create geometry with `Circle`/`Box` and may read the resulting descriptor. Ownership
+rules and native ABI layouts are unchanged.
 The [public package consumer](../packaging/consumers/authoring/README.md) exercises
 these factories without unsafe blocks or internal access.
 

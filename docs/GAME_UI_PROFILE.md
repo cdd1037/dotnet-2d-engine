@@ -1,5 +1,10 @@
 # Fixed mission UI profile
 
+Current API note: this fixed-profile/target-binding implementation is retained for
+internal regression coverage. Public applications use [generic UI models](UI_MODELS.md),
+typed handlers, and `StageAsset` initialization. Historical measurements below
+apply to the implementation/revision stated, not the current public API.
+
 This is a separate closed RmlUi profile for the phase-one playable mission. It
 uses `assets/ui/game.rml` and `game.rcss`; no settings inputs, Apply/Reset aliases,
 hidden dummy controls, arbitrary bindings, or phase-two UI framework were added.

@@ -38,13 +38,13 @@ copied to a replacement. Window resizing does not silently resize offscreen asse
 
 ## Frame/pass contract
 
-Build a reusable `MaterialDraw[]` and `RenderPass[]`, then call
-`EngineHost.RenderFrame(passes, draws, clips)`. A pass is created with target
-handle, camera, first draw, draw count and straight RGBA clear color. Clear channels
+Build reusable `SpriteCommand[]` and `FramePass[]` arrays, then call
+`EngineHost.RenderFrame(passes, draws, clips)`. Use `FramePass.ToTarget(target.Target, camera, first, count, clearColor)` or
+`FramePass.Window(camera, first, count, clearColor)`. Clear channels
 must be finite in [0,1]. Ranges partition the shared draw array contiguously, in
 order, with no omissions or duplicated draws. Empty passes are allowed and clear
 their destination. Every frame has 1..16 passes, with **exactly the final pass
-targeting the window (handle zero)**. The same offscreen target may be written in
+created with `FramePass.Window`**. The same offscreen target may be written in
 different passes; a pass always clears rather than loading previous attachment
 contents.
 
@@ -57,7 +57,7 @@ final window's world pass. The screenshot facility captures that final result.
 
 The native entry point validates the complete pass list, ranges, cameras, clear
 colors, handles, sprites, parameters and clips before executing any pass. Sampling
-the current attachment's public target identity is rejected as feedback, even
+the current attachment's borrowed texture view is rejected as feedback, even
 though the implementation owns two images. Sampling another target or previous
 frame contents is allowed. An invalid later pass cannot clear an earlier target.
 The call is also rejected inside an existing legacy Begin/End frame.

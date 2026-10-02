@@ -1,5 +1,10 @@
 # Starter wiring: two real host adaptations
 
+Archived study: these results and `compare-starter-wiring.py` belong to baseline
+`a6a5a6e`, its original package feed and external comparison inputs. They are not
+a current API validation gate. Reproduce from that revision; do not use the current
+consolidated package or infer a fresh pass from these historical measurements.
+
 Measured 2026-10-02 against the existing sibling `authoring-comparison` fixtures.
 The bounded result is **a reusable, checked input/clock policy**, not fewer total
 application lines or a measured development-speed improvement.

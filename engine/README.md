@@ -11,7 +11,8 @@ scene loading and UiModelSession<T> with UiRecord projections and typed
 UiCommands.On handlers. Opt-in UiContract/UiModel/UiCommand declarations generate
 that same registration and check associated RML AdditionalFiles at build time;
 the bundled analyzer is build-only and NativeAOT needs no reflection. See
-docs/GENERATED_UI_CONTRACTS.md in the source checkout. BoundUiSession<T> remains a legacy alternative. Dispose
+docs/GENERATED_UI_CONTRACTS.md in the source checkout. Initialize with StageAsset
+and publish in the next normal Draw. Dispose
 owners on their creating thread. The RELAY experiment in the source
 checkout uses only these public packages; its rules/screens/save schema stay
 in application code. See docs/RELAY_REFERENCE.md for the current experiment.
@@ -21,7 +22,7 @@ destruction, separately from behavior replacement. See the
 [composition guide](../docs/CSHARP_COMPOSITION.md) and public-package consumer.
 Use `SpriteCommand`, borrowed typed resource views and `FramePass` factories for
 manual drawing, and `PollInputFrame` plus automatically allocated `InputAction`
-tokens for input. Existing ABI-shaped APIs remain compatible. See the
+tokens for input. ABI-shaped drawing/input APIs are internal. See the
 [managed boundary guide](../docs/SAFE_AUTHORING_BOUNDARY.md) in the checkout.
 Clipping, diagnostics, materials and render targets also have public experimental
 APIs; their runtime behavior is tested separately from the small package consumers.

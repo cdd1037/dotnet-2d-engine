@@ -51,7 +51,7 @@ world.AttachBehavior(anchor, behavior, lifetime => lifetime.OnDetach(placed.Disp
 // Draw ordinary entities and map cells in one native frame:
 world.ExtractSprites(batch);
 placed.AppendSprites(batch, TileView.FromCamera(camera, input.Viewport));
-engine.Draw(camera, batch.RegionDraws);
+engine.Draw(camera, batch);
 ```
 
 `TileMapPlacement` is immutable: translation in world pixels and positive uniform

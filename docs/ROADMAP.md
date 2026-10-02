@@ -77,14 +77,13 @@ expansion. Preserve explicit timing, ownership, serialization and failure policy
 
 ### Approved next author-API phase, after RELAY closure
 
-This bounded sequence is approved for compatible, individually verified
-batches. Completed author-API batches are marked below; unmarked items remain
-next-stage work beyond the RELAY migration:
+The six individually verified author-API batches below are complete. A subsequent
+approved consolidation removes superseded public entry points, while retaining
+internal ABI regression coverage; see [the current boundary](SAFE_AUTHORING_BOUNDARY.md).
 
-1. Automatically assign UI command IDs on the recommended author path; retain an
-   advanced explicit-ID path and update recommended examples/docs. **Implemented:**
-   typed `On` overloads reserve explicit IDs before deterministic session-local
-   assignment; runtime/native tests cover mixed registrations and stale dispatch
+1. Automatically assign UI command IDs. **Implemented and consolidated:** typed
+   `On` and generated command methods use deterministic session-local IDs. Explicit
+   numeric registration is internal protocol coverage; stale dispatch remains checked.
 2. Make C# declarations the single source for UI registration and build-time RML
    name/type/command contract checks, with source-aware diagnostics and runtime
    fallback for dynamic content. Constants alone do not solve this. Bounded
@@ -93,19 +92,20 @@ next-stage work beyond the RELAY migration:
    [opted-in C# DTO/handler generation](GENERATED_UI_CONTRACTS.md), shared static
    preflight and source-aware build diagnostics; dynamic proof limits stay explicit
 3. Provide safer public rendering/input surfaces and typed resource handles,
-   keeping raw/native representations behind an explicit advanced boundary. **Implemented:**
+   keeping raw/native representations internal. **Implemented:**
    [managed sprite/pass descriptions, borrowed typed handles and copied input views](SAFE_AUTHORING_BOUNDARY.md);
-   existing ABI-shaped APIs remain compatible
+   native layouts remain unchanged and ABI-shaped managed entries are internal
 4. Prefer input action tokens over manually allocated action bits on the ordinary
    author path, while preserving the existing implementation's semantics. **Implemented:**
    map-allocated tokens, typed queries/rebind and identity-preserving edge helpers;
    starter and its pause-menu use them, with raw/UI/focus policy kept explicit
-5. Add an explicit UI initialization/publication helper that preserves failed-load
-   or failed-reload retention and caller-visible update/render ownership
-6. Add semantic Circle/Box shape factories so authors do not rely on ambiguous
-   parameter positions or shape-discriminator values
+5. Add an explicit UI initialization/publication helper. **Implemented:**
+   `StageAsset(initialModel)` preserves failed-load/reload retention and caller-visible
+   update/render ownership; source-only public initialization is removed.
+6. Add semantic Circle/Box shape factories. **Implemented:** public construction
+   names dimensions; the generic geometry constructor is internal.
 
-Keep existing consumers working during migration, use targeted negative tests,
+Migrate maintained consumers, use targeted negative tests,
 and remeasure package/AOT boundaries when the affected contract demands it.
 This approval does not include a Vue-style component runtime, editor, automatic
 scene lifecycle or broader platform/distribution work.

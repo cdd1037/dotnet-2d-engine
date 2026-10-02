@@ -35,7 +35,7 @@ See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistenc
 
 ## Input and viewport foundation
 
-[Versioned input and viewport contracts](docs/INPUT_VIEWPORT.md) separate window units from framebuffer pixels, preserve short key/button edges, route RmlUi-consumed input and expose configurable managed action maps. The mission uses the new poll path; legacy callers remain compatible.
+[Versioned input and viewport contracts](docs/INPUT_VIEWPORT.md) separate window units from framebuffer pixels, preserve short key/button edges, route RmlUi-consumed input and expose configurable managed action maps. Applications use copied input frames and map-owned action tokens; native wire layouts remain internal.
 
 [Explicit camera follow](docs/CAMERA_FOLLOW.md) adds world-point framing, half-life smoothing, clock selection and zoom-aware world bounds without changing the camera ABI. `scripts/test.sh quick camera` runs its pure managed contracts.
 
@@ -85,10 +85,9 @@ cards, dialogue and grouped settings; `--model-ui-self-test` and
 `--model-ui-native-test` are the focused validation entry points. The guide records
 remaining validation and physical-GPU/real-IME limits.
 
-The [legacy typed binding/list profile](docs/UI_BINDINGS.md) remains a separate
-implementation sharing renderer/staging/resource ownership, not a wrapper over
-the new bridge. Run `scripts/test.sh quick bindings` or `--binding-demo` for its
-plain-value and bounded stable-ID-list contracts.
+The [legacy typed binding/list profile](docs/UI_BINDINGS.md) is retained only as
+an internal regression fixture. Public UI uses the generic model bridge, typed
+handlers and atomic `StageAsset` initialization.
 
 Combined gameplay/menu and lifecycle experiments: [findings and run instructions](docs/GAMEPLAY_UI_LIFECYCLE.md).
 

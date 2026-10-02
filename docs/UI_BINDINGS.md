@@ -1,5 +1,10 @@
 # Legacy typed UI bindings and dynamic lists
 
+Current API note: this fixed-profile/target-binding implementation is retained for
+internal regression coverage. Public applications use [generic UI models](UI_MODELS.md),
+typed handlers, and `StageAsset` initialization. Historical measurements below
+apply to the implementation/revision stated, not the current public API.
+
 For new UI, prefer [generic C# UI models](UI_MODELS.md) with `UiModelSession<T>`:
 explicit scalar/record/array schemas, ordinary nested RML views and typed commands.
 This page documents the retained `BoundUiSession<T>` implementation and its finite

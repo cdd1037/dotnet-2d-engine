@@ -61,17 +61,17 @@ retain their existing independent leases.
 
 ## Drawing and parameters
 
-`MaterialDraw.Create(spriteV2, lease.Handle, parameters)` copies a region sprite,
-material identity and `MaterialParameters(first, second)` into a 136-byte record.
+Set `SpriteCommand.Material = lease.Material` and `Parameters = new(first, second)`.
+The host validates borrowed ownership and converts to its internal 136-byte record.
 Both vectors accept finite floats; their interpretation belongs to the shader.
-There are no reflective property setters or mutable parameter objects. Handle zero
-selects the original default shader and requires all parameters to be zero.
+There are no reflective property setters or mutable parameter objects. A default `MaterialHandle`
+selects the built-in shader and requires all parameters to be zero.
 
-`EngineHost.Draw(camera, materialDraws, clips)` accepts the same optional zero,
+`EngineHost.Draw(camera, commands, clips)` accepts the same optional zero,
 one-broadcast or per-draw framebuffer clips. Per-draw lists must match the final
-sorted draw order. Existing `SpriteBatch.RegionDraws` can be copied into a reusable
-material array by the caller; this slice does not add a material field to the
-authored scene schema or silently change its version.
+sorted draw order. Use reusable `SpriteCommand` arrays for explicit material draws and `DrawWithOverlay`
+for an extracted world plus managed overlay. Authored scene sprites do not have a
+material field; their schema version is unchanged.
 
 The additive C entry point validates the entire submitted batch before mutation.
 The current maximum sprite count covers both old and new submissions. Material

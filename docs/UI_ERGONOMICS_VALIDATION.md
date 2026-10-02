@@ -28,8 +28,9 @@ Vue compiler, component/controller runtime or general lifecycle helper.
 - The maintained [Discard consumer](../packaging/consumers/ui-ergonomics/README.md)
   uses one typed registration per action and shared `.actions button` spacing
 
-The legacy `Add`, `Poll`, and `IsCurrent` workflow remains supported, as does the
-separate `BoundUiSession` implementation. Legacy canonical-text Key arguments
+Typed `On`/`Dispatch` is the public command path. Copied `Poll`/`IsCurrent` remain
+available for inspection and stale-event checks. The former `BoundUiSession`
+implementation is internal regression coverage. Legacy canonical-text Key arguments
 remain accepted; new typed `On` definitions require directly bound identity fields
 to be declared `Key`. Schema methods remain source-compatible but now include
 optional caller-info parameters: rebuild consumers against this experimental

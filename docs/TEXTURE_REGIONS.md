@@ -25,12 +25,12 @@ then checks newly acquired decoded dimensions before committing additions. Failu
 retains the previous usable leases. `ASSET_REGION` and authored
 `$.resources[index].region` diagnostics identify rejected bounds.
 
-`TextureBank.ResolveRegion` returns handle plus region. Set it as
-`SpriteBatch.RegionResolver`, then render `batch.RegionDraws`. `Resolve` and the
-legacy `TextureResolver` are raw/full-texture compatibility surfaces; they do not
-carry a region. `SpriteBatch.Draws` rejects a batch extracted with regions/flips
-instead of silently stripping them. The sample hosts use the new path. A caller
-providing its own resolver is responsible for its resource contract.
+`TextureBank.ResolveRegion` returns a borrowed typed texture plus region. Set it as
+`SpriteBatch.RegionResolver`, extract, then call `engine.Draw(camera, batch)`. A
+custom resolver returns `new TextureBinding(lease.Texture, region)`; target sampling
+uses `target.Binding`. Extraction validates dimensions and submission revalidates
+the exact owner and engine before opening the frame. Raw resolver IDs and batch
+ABI arrays are internal.
 
 `Sprite2D.FlipX`/`FlipY` reverse sampling only. They do not move vertices, change the
 pivot, mutate transforms, affect collision geometry or reorder sprites. Geometric

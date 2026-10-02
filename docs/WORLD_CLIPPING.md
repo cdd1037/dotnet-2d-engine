@@ -7,7 +7,7 @@ RmlUi's own rectangular scrolling/clip state.
 
 ```csharp
 var clip = new FramebufferClip(64, 64, viewport.PixelWidth - 128, viewport.PixelHeight - 128);
-engine.Draw(camera, batch.RegionDraws, clip); // one clip for the whole batch
+engine.Draw(camera, batch, new[] { clip }); // one clip for the whole batch
 
 // Or pass zero clips (all unclipped), one (broadcast), or one per final draw.
 engine.Draw(camera, draws, clips);

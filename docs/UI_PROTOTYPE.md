@@ -1,5 +1,10 @@
 # Optional RmlUi experiment
 
+Current API note: this fixed-profile/target-binding implementation is retained for
+internal regression coverage. Public applications use [generic UI models](UI_MODELS.md),
+typed handlers, and `StageAsset` initialization. Historical measurements below
+apply to the implementation/revision stated, not the current public API.
+
 Status: bounded prototype verified in software Vulkan; see results and limits below.
 
 This page records the original settings profile and its stage-specific evidence.

@@ -101,18 +101,17 @@ This reduces repeated facts and unchecked rename dependencies. It is not a claim
 that all application code is shorter, that game rules are generated, or that
 arbitrary runtime registration can be statically reconstructed.
 
-## IDs and compatibility
+## Session-local IDs
 
-No-ID `On` overloads cover every supported arity. A session freezes registrations,
-reserves all explicit IDs, then assigns the smallest unused positive values in
-ordinal name order. Explicit declarations may appear before or after automatic
-ones. Reordering registrations does not change the mapping; changing the set may.
+`On` overloads cover every supported arity. A session freezes registrations and
+assigns positive IDs in ordinal name order. Reordering registrations does not
+change the mapping; changing the set may.
 Automatic IDs are private to that frozen contract: do not serialize them or use
 them as game-action identities.
 
-Existing `Add(name, id, ...)`, explicit-ID `On`, manual schemas, `Poll`, `IsCurrent`
-and `Dispatch` remain available. `[UiCommand(Id = ...)]` is an advanced explicit
-ID option. Lowercase names keep their meaning. PascalCase requires the current
+Manual schemas, `Poll`, `IsCurrent` and `Dispatch` remain public. Explicit-ID
+registration and `UiCommand.Id` are removed from the public surface. Lowercase
+names keep their meaning. PascalCase requires the current
 native naming gate; managed and native ABI struct layouts are unchanged. Runtime
 strict loading and signature/key/generation/revision checks are retained even for
 built documents, since packaged files and runtime values can change later.
@@ -120,7 +119,7 @@ built documents, since packaged files and runtime values can change later.
 ## Diagnostics and honest proof limits
 
 - `DUI001`: controller shape or generated member-name collision
-- `DUI002`: invalid/duplicate/reserved command name, ID or method signature
+- `DUI002`: invalid/duplicate/reserved command name or method signature
 - `DUI003`: unsupported, cyclic or oversized model shape
 - `DUI004`: associated RML missing, unreadable or ambiguous in AdditionalFiles
 - `DUI005`: original RML line/column, field path and available C# declaration for a

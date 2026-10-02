@@ -14,9 +14,12 @@ WebP remains rejected. GIF, animated PNG and arbitrary formats supported by
 other SDL_image builds are deliberately excluded from this contract. World SVG is
 also excluded; optional bound-UI SVG uses a separate [strict vector profile](UI_SVG.md).
 
-## Static images in bound UI
+## Static UI images
 
-The public `BoundUiSession<T>` profile accepts static images:
+Public `UiModelSession<T>` accepts static images and a declared manifest for dynamic
+image paths; use `StageAsset` with the initial model. See [generic image authoring](UI_MODELS.md).
+The bounded target-binding rules below describe the internal regression profile,
+not a second public UI API. Both implementations share resource ownership:
 
 ```xml
 <img id="badge" src="images/badge.png" width="32" height="32" />

@@ -1,6 +1,7 @@
 # Input and viewport contract
 
-This batch adds `gal_poll_v2` / `EngineHost.PollInput()` while preserving the
+The public `EngineHost.PollInputFrame()` copies the internal `gal_poll_v2` result.
+The native implementation preserves the
 32-byte `gal_input`, `gal_poll`, ABI-1 context creation and existing consumers.
 The new 472-byte snapshot starts with `size` and `version = 2`; a nonzero reserved
 field, wrong size/version, active frame or wrong thread is rejected. Poll **one**
@@ -31,7 +32,7 @@ sprite draw-call count does not.
 
 The legacy v1 adapter keeps its old compatibility behavior: window-unit mouse
 coordinates alongside pixel dimensions, positive-clamped sizes and the small
-fixed sample action mask. New code should use v2 for coordinate conversions.
+fixed sample action mask. Public applications use `InputFrame.Viewport` for coordinate conversions.
 No high-DPI/device support claim follows from the synthetic 1x, 2x and nonuniform
 math tests. The existing SDL window flags are unchanged. The fixed-size sample
 world/UI still needs a separate small-window layout/presentation policy.
@@ -69,12 +70,11 @@ character entry and existing IME handling stay with the UI; they are not key act
 
 ## Managed action mapping
 
-New application code should use [copied input views and automatic action tokens](SAFE_AUTHORING_BOUNDARY.md#poll-copied-views-and-name-actions). The explicit-mask API below remains compatible.
-
-`InputActionMap` copies a bounded array of `InputBinding` records. Action IDs are
-caller-chosen single bits, with any number of key/button alternatives within 128
-bindings. `Update(snapshot)` returns `ActionState(Down, Pressed, Released)`; systems
-read the result directly without registering callbacks on every entity.
+Use [copied input views and automatic action tokens](SAFE_AUTHORING_BOUNDARY.md#poll-copied-views-and-name-actions).
+`InputActionMap.AddAction(InputControl.Key(...), ...)` allocates one of 32 tokens,
+with key/button alternatives within 128 bindings. `Update(frame)` returns a copied
+`ActionState`; query `IsDown`, `IsPressed`, and `IsReleased` with that map's tokens.
+Raw bit construction and ABI snapshots are internal.
 
 Alternative controls combine into one held action. A continuously held alternative
 prevents another binding's tap/release from spuriously ending or retriggering it.
@@ -85,9 +85,9 @@ or replay would need a separate ordered event stream. Rebinding is validated bef
 replacement and waits for all bound raw controls to become neutral. Focus loss uses
 the same neutral gate. A warmed mapping update allocates no managed memory.
 
-`AllowUiConsumed` is an explicit per-binding opt-in to raw input; the sample uses
-it only for Escape. `CreateSample()` defines WASD/arrows, E/F/T, Space/Escape and
-F5/F9 in managed code. Those are sample controls, not native v2 game rules. Runtime
+`allowUiConsumed` is an explicit per-binding opt-in to raw input; the sample uses
+it only for Escape. RELAY declares its controls in application code and explicitly
+converts typed results into its pure simulation's masks. Runtime
 programmatic rebinding exists; a settings editor or serialized binding format does
 not. There is no gamepad, touch, mouse gesture or mobile expansion in this batch.
 

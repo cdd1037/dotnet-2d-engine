@@ -1520,3 +1520,77 @@ create the replacement only after disposing the original. Copied handles from a
 disposed lease fail even when a sibling lease retains the same resource. This is
 borrowed validity checking, not new ownership or implicit retention. Physical input,
 hardware GPU/audio, real high-DPI devices and OS IME remain outside this proof.
+
+## Public API consolidation (2026-10-02)
+
+The final consolidated managed surface passes against the existing Linux x64 native
+package with SDK 10.0.401/runtime 10.0.12. The observed starting checkout was
+`5af33b3`; the tested source changes are committed as `a005789`. No native source,
+C ABI layout, dependency or package-version scheme
+changed. [The removal inventory](PUBLIC_API_CONSOLIDATION.md) lists the exact public
+entries removed and the preserved typed advanced paths.
+
+Final verification on the consolidated runtime:
+
+- Release engine/test-host builds: zero warnings/errors; all **8 native headless
+  CTests** and **11,975 aggregate managed assertions** passed
+- Debug geometry: **136** CPU assertions, including exact basis/corner preservation
+  for very long lines, typed composition and explicit Transform replacement
+- Generator regressions: **28/28**, including removal of generated explicit packet IDs
+- Fresh outside-checkout authoring PackageReference proof: **90 assertions in both
+  JIT and NativeAOT**, **26 intended compile failures**, and zero warmed input/draw
+  allocations. Covers typed batch sorting, offscreen/material/debug composition,
+  disposed exact leases, previous-context handles, empty debug geometry and recovery
+- Fresh generated-UI PackageReference proof: JIT and NativeAOT passed the existing
+  **12 edit/rebuild cases**, pointer/disabled-action/save-load/reorder/shrink checks,
+  **29 source/runtime diagnostic checks** and **14 generated-contract checks**.
+  All eight native libraries and the consumed JIT engine match their local packages
+- All **12 maintained consumer/starter projects** built and ran independently in
+  a fresh package cache: empty, sprite, roster UI, composition, modules, features,
+  character motion, RELAY, loop UI, generic model UI, generated card UI and starter.
+  The copied projects have no engine source/project reference. Engine/native payload
+  hashes were checked against the supplied packages
+- Selected public JIT counts: modules **156**, features **56**, composition **48**,
+  character motion **35**, RELAY pure rules **928**, real SDL-to-token mapping **30**,
+  full RELAY scenario **118**, loop UI **33**, generic model UI **38**, starter **49**
+- Final official starter proof also passed **58** extracted-loop policy checks,
+  120-frame plain/physics runs, missing-native/assets and invalid-option diagnostics.
+  Its generated fixture now uses typed synthetic actions and application window
+  state rather than accessing the engine's input protocol
+- Pixel checks: generic model UI **21**, loop UI **24**, plus the generated-UI
+  consumer's rendered-state checks; the migrated roster capture was inspected
+- Source-linked XML differential harness: clean JIT build with its shared XML
+  parser/diagnostic dependencies; the deep differential corpus was not rerun
+
+Managed package: **238,514 bytes**, runtime DLL **517,120 bytes**. SHA-256:
+`b58b9522f451c57b74ef0dd01c2c9b53155b064bd148a2ff0bfde9871bbac2c4`.
+The reused native package SHA-256 is
+`22cbc0ac4318b74a123aa2893fc3503f66cbd25680a645530ef33fa3b7b9eeb7`.
+These are local proof packages; no remote publication was performed.
+
+Final evidence is outside the checkout in the `proof-consolidation-authoring-verified`,
+`proof-consolidation-generated-verified`, `proof-consolidation-consumers-verified`
+and `proof-consolidation-starter-final` directories under this runner's workspace.
+Source build/aggregate/generator logs use `evidence/consolidation-*`. Earlier failed
+iteration proofs remain diagnostic artifacts, not final results: they caught a
+read-only shape fixture, C# declaration errors masking body-level negative tests,
+and the starter's script-generated legacy input fixture.
+
+Current package-size assertion scripts now expect the generic UI root and reject
+the retired BoundUi root. Typed drawing's core conversion/clipping/material records
+are no longer incorrectly classified as optional modules that must disappear.
+The full minimal-trim/size matrix and historical three-genre comparison study were
+not rerun. That study is explicitly archived against `a6a5a6e` and its original
+external inputs/feed; its old counts are not a current validation claim. The generic
+UI benchmark's maintained initialization path now measures first content at the
+StageAsset publication draw; its initial unchanged check is named separately from
+the retired first-Apply handshake. No new comparative timing claim is made.
+
+Read-only review found and prompted fixes for the standalone XML dependency boundary,
+typed debug pass composition, empty-buffer resource validation, and float-angle
+round-trip drift in long debug lines. The final review found no remaining concrete
+issue. Raw ABI and explicit numeric UI fixtures remain internal only. Semantic
+command storage adds capacity memory; ownership remains borrowed, and zero warmed
+allocations do not imply zero CPU/memory cost. Graphics evidence remains offscreen
+software Vulkan; physical GPU/input/audio, real OS IME and other platforms remain
+separate acceptance gates.

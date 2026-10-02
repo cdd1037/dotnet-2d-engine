@@ -11,7 +11,7 @@ reference to these modules.
 `DebugDrawBuffer(capacity, whiteTexture)` preallocates up to 65,536 line quads.
 `whiteTexture` is a borrowed `TextureBinding` for a solid white texture or atlas
 region. Keep its lease alive through submission, and use its owning engine.
-Handle zero is useful for headless contract tests; the graphical fallback texture
+A default texture binding is useful for headless contract tests; the graphical fallback texture
 is a soft round sprite and is unsuitable for solid debug lines. The sample reuses
 the white texel at `(7,7,1,1)` in the existing `regions.bmp`.
 
@@ -28,11 +28,12 @@ Disabled calls skip validation and geometry work. Disabling discards queued
 geometry; `Clear` also resets the per-frame drop counter. The buffer owns no native
 resources and needs no disposal. Like sprite extraction, mutate it on one thread.
 
-`RegionDraws` borrows the buffer until its next mutation. Submit it by itself with
-`EngineHost.Draw`, or after scene geometry using
-`EngineHost.DrawWithOverlay(camera, scene, overlay)`. The latter uses one frame,
-the same camera, and no scissor. Both spans share the engine's total sprite budget;
-an invalid second submission aborts the whole frame and permits a later draw.
+Submit the buffer with `engine.Draw(camera, debug, clips)` or after an extracted
+`SpriteBatch` using `engine.DrawWithOverlay(camera, scene, debug)`. The latter uses
+one frame, the same camera, and no scissor. Both buffers share the total sprite
+budget; borrowed resources are validated before opening the frame. Raw geometry
+storage is internal. `debug.Commands` supplies a borrowed semantic view for
+explicit passes or copying into reusable custom-material command storage.
 This is an ordered geometry pass, not an independent screen-space UI layer.
 
 ## Structured log queue

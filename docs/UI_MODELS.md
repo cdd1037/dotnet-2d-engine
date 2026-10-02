@@ -5,10 +5,9 @@ schema, author nested views in RmlUi 6.3 RML/RCSS, and poll typed commands back 
 your game. C# remains authoritative. There is no managed DOM, reflection mapper,
 runtime JavaScript, runtime code generation or engine-owned game-rule layer.
 
-`BoundUiSession<T>` remains available as a separate legacy target/list mapping
-implementation. It does **not** forward to this model bridge. Both paths share
-native rendering, source staging, image resources and exclusive UI ownership;
-their authoring, update and focus contracts differ. See [legacy bindings](UI_BINDINGS.md).
+The former `BoundUiSession<T>` target/list mapping is internal regression coverage.
+The public path uses this model bridge with generated or handwritten projections,
+typed handlers and `StageAsset` initialization.
 
 ## Describe data, then author the view
 
@@ -54,21 +53,21 @@ var item = new UiRecord<Item>()
 var schema = new UiRecord<Kit>()
     .Text("title", static x => x.Title)
     .Array("items", static x => x.Items, item, maximum: 32);
-var commands = new UiCommands().Add("equip", 1, UiValueKind.Key);
 var model = new Kit();
+var commands = new UiCommands().On("equip", UiArgs.Key, (ulong id) =>
+{
+    var selected = model.Items.Find(x => x.Id == id);
+    if (selected is not null) selected.Equipped = !selected.Equipped;
+});
 using var ui = new UiModelSession<Kit>(engine, schema, commands);
 ui.StageAsset(assets, "ui/kit.rml", model); // copied candidate, no rendering
 engine.Draw(camera, ReadOnlySpan<SpriteCommand>.Empty); // publish source + initial model
 
-// In each outer update, after the ordinary engine.PollInput():
+// In each outer update, after the ordinary engine.PollInputFrame():
 bool changed = false;
 for (var command = ui.Poll(); !command.IsEmpty; command = ui.Poll())
 {
-    if (command.CommandId != 1 || !ui.IsCurrent(command)) continue;
-    var selected = model.Items.Find(x => x.Id == command[0].Key);
-    if (selected is null) continue;
-    selected.Equipped = !selected.Equipped; // this policy belongs to the game
-    changed = true;
+    changed |= ui.Dispatch(command);
 }
 if (changed) ui.Apply(model); // drain this revision before retiring its queue
 // The next normal Draw synchronizes the accepted snapshot before more commands.
@@ -133,15 +132,12 @@ if (dispatched) ui.Apply(model); // once, after this revision's queue is drained
 ```
 
 Automatic IDs belong to one frozen session contract. Do not save them or use them
-as game-action identities. Mixed automatic and explicit registrations are supported:
-all explicit IDs are reserved before automatic IDs are assigned in ordinal name
-order. Reordering declarations does not change the mapping; adding/removing names
-may do so. Use the existing explicit-ID `On(name, id, ...)` or `Add` overload when
-an application intentionally needs a stable packet protocol.
+as game-action identities. Registration order does not change the mapping; adding
+or removing names may do so. Numeric registration is internal protocol machinery.
 
 
 `On` supports zero through four explicitly typed arguments (`Text`, `Boolean`,
-`Number`, `Key`). Explicit IDs are an advanced compatibility option. `Dispatch` checks `IsCurrent` immediately before each managed
+`Number`, `Key`). `Dispatch` checks `IsCurrent` immediately before each managed
 handler, including when an earlier handler applied a snapshot or reloaded the
 document. It returns whether a handler ran, not whether its game rule succeeded.
 It does not poll, apply, or swallow handler exceptions. Native code still only
@@ -151,14 +147,11 @@ Session disposal releases its frozen handler captures, just as it releases
 projection delegates. A separately retained `UiCommands` builder still owns its
 own captures, so keep builders short-lived when their handlers capture an owner.
 
-`UiCommands.Add(name, id, argumentKinds...)` declares one nonzero application ID
-and zero to four scalar arguments. `data-event-<event>` must invoke exactly one
-registered command, such as `choose(choice.id, choice.text)`. Assignment and
-statement sequencing are rejected. This legacy packet API remains available;
-registrations made with `Add` have no handler for `Dispatch`. Load-time preflight
-checks provable command arity/types, and native code still checks every payload
-when the event fires; an invalid payload is dropped with a diagnostic, not coerced
-into a different command. `Poll()` returns a copied `UiCommandEvent`; command ID 0
+`data-event-<event>` invokes exactly one registered command, such as
+`choose(choice.id, choice.text)`. Assignment and statement sequencing are rejected.
+Load-time preflight checks provable command arity/types, and native code checks
+every payload when the event fires; invalid payloads are dropped with diagnostics.
+`Poll()` returns a copied `UiCommandEvent`; command ID 0
 means empty. Read `command[i].Text`, `.Boolean`, `.Number` or `.Key` according to
 the registered kind.
 
@@ -343,7 +336,7 @@ validated manifest as existing UI, not unrestricted file access.
 
 Static `src`, `image()`/`svg()` and `fill-image` references are collected into that
 manifest. Dynamic `data-attr-src` requires a nonempty explicit list passed to
-`LoadAsset(assets, path, declaredImages)`; list every possible image using paths
+`StageAsset(assets, path, initialModel, declaredImages)`; list every possible image using paths
 relative to the RML file. Only validated manifest images may load. Dynamic styles
 cannot introduce resource declarations or CSS variables. SVG requires the optional
 SVG-enabled build; it remains off in the default native package. The host-selected

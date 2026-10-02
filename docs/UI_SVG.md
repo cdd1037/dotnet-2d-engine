@@ -1,6 +1,8 @@
-# Optional static SVG in bound UI
+# Optional static SVG in UI
 
-SVG is an explicit, optional addition to `BoundUiSession<T>`. It uses the pinned
+SVG is an explicit, optional UI resource supported by the generic model bridge.
+Use `UiModelSession<T>.StageAsset` for public authoring; the former target-binding
+profile remains internal regression coverage. It uses the pinned
 RmlUi 6.3 official SVG plugin with LunaSVG 3.5.0 and its bundled PlutoVG 1.3.1.
 The world image API remains BMP/PNG/JPEG-only. Settings and game UI retain their
 fixed contracts. This is a profile for trusted, authored project assets with

@@ -1,10 +1,12 @@
 # Managed drawing and input entry
 
-These additive experimental APIs avoid native ABI headers and interchangeable
-resource integers in ordinary application code. The original `SpriteDraw`,
-`SpriteDrawV2`, `MaterialDraw`, `RenderPass`, `InputSnapshot`, `InputBinding` and
-mask-based `ActionState` APIs remain available and ABI-compatible for existing
-applications and low-level tests. No renderer or native input routing changed.
+See [the consolidation inventory](PUBLIC_API_CONSOLIDATION.md) for the exact removed
+public surface, preserved advanced composition paths, and verification scope.
+
+These are the public drawing/input APIs. Native ABI headers, interchangeable
+resource integers, raw draw buffers and explicit action masks are internal. The
+C ABI and internal protocol regression fixtures retain their layouts; the public
+preview intentionally removes superseded authoring entry points.
 
 ## Draw ordinary descriptions
 
@@ -65,9 +67,17 @@ largest submitted size, conversion/submission allocates no managed memory.
 For an extracted world, call `engine.Draw(camera, batch)` directly. To append managed
 sprites without exposing/copying the batch ABI array, use
 `engine.DrawWithOverlay(camera, batch, overlay)`. This reuses the existing batch and
-stable order. Its legacy resource resolver continues to use its existing ownership
-and native validation; it is not a second resource system. Compatible adjacent
-scene/overlay runs can still batch together.
+stable order. `TextureBank.ResolveRegion` returns a typed `TextureBinding`; custom
+resolvers return borrowed `TextureHandle` plus optional region. Batch extraction
+retains those borrowed views and validates them again before frame begin, including
+a disposed exact lease or previous context. Compatible adjacent runs still batch.
+`Draw(camera, batch, clips)` preserves clipped extraction. `batch.Commands` is a
+borrowed sorted semantic view, valid until extraction/mutation; use it with
+`RenderFrame`, or copy into reusable caller storage to customize materials. `DebugDrawBuffer` uses
+the same typed bindings and can be drawn directly or as a batch overlay without
+exposing native arrays. `debug.Commands` retains explicit pass/material composition.
+These checks allocate nothing after capacity warm-up; extraction now also retains
+semantic commands alongside internal ABI arrays, increasing per-capacity storage.
 
 ## Poll copied views and name actions
 
@@ -98,8 +108,7 @@ map's state. Empty default `ActionState` is useful idle input and returns false 
 a valid token. Rebinding an action retains its token identity and deliberately
 uses the existing map-wide raw-neutral gate; focus loss still releases held actions
 and waits for neutral. Previously copied states remain snapshots of their original
-map. The legacy explicit-mask API remains available; avoid mixing it into new
-application code.
+map. Explicit masks and mask-only state construction are internal.
 
 `pending = pending.Accumulate(next)` keeps the latest held actions and coalesces
 pending pressed/released edges. After one fixed step, use
@@ -111,7 +120,8 @@ released: [...])` creates validated typed synthetic states for pure-rule tests.
 
 The starter uses these drawing/input entries and keeps its visible fixed-step
 application policy. RELAY uses the copied input frame and managed overlay entry;
-its established game-owned rule masks and historical low-level fixtures remain.
+it translates typed actions into its game-owned rule masks. Internal low-level
+fixtures continue to verify the protocol without exposing it to consumers.
 
 
 ## Stage a complete UI and name physics geometry
@@ -152,8 +162,7 @@ The stages 3–4 baseline prepared managed package grew from **229,744 B** at `5
 native package is reused without rebuilding or changing its renderer/input ABI.
 The draw adapter adds a linear conversion/validation pass and reusable native
 storage (136 bytes per peak submitted sprite and 16 × 56 bytes for pass storage).
-Zero warmed allocations do not imply zero CPU overhead; callers that deliberately
-need the original ABI-shaped path retain it. Batch/world extraction is reused.
+Zero warmed allocations do not imply zero CPU overhead; the original ABI-shaped path is now internal. Batch/world extraction is reused.
 
 Source checks cover copied views, key/button alternatives, mixed filtered/raw
 bindings, focus/rebind neutral gates, prior-state identity, default/foreign tokens,

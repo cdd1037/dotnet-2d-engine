@@ -182,9 +182,9 @@ no reflection, runtime JavaScript, runtime code generation or component runtime.
 the model and game rules. [Generic UI models](UI_MODELS.md) includes a small card
 example, exact limits, command registration and resource authoring rules.
 
-`session.LoadAsset(assets, path)` validates and stages copied sources. Render once
-to publish the accepted document, call `session.Apply(model)`, then render to
-synchronize its values. `session.Poll()` returns a copied `UiCommandEvent`.
+`session.StageAsset(assets, path, initialModel)` validates and stages copied source
+and initial data together. The next normal Draw publishes both at revision 1;
+check `Status` afterward for deferred failure. Later changes use `Apply(model)`. `session.Poll()` returns a copied `UiCommandEvent`.
 Generated commands and manual no-ID `UiCommands.On` handlers use
 `session.Dispatch(command)`, which checks
 the current packet before invoking the handler. For explicit packet handling,
@@ -197,11 +197,10 @@ a revision's commands before one Apply. A gesture interrupted by a snapshot chan
 cannot act on a positionally reused row. `data-for` is positional, and `data-if`
 hides rather than unmounts. Vue-style compilation, props and slots are deferred.
 
-`BoundUiSession<T>` remains a separate legacy mapping implementation, not a wrapper
-around the generic bridge. Its 32-target/64-total-row limits and narrower draft/
-focus behavior remain documented in [legacy bindings/lists](UI_BINDINGS.md).
+The former `BoundUiSession<T>` mapping implementation is internal regression
+coverage; it is not a public authoring alternative.
 `GameUiSession`, settings profiles and `UiModelExamples` belong to examples, not a
-reusable game-rule SDK. Both UI paths share rendering, staged resources and one
+reusable game-rule SDK. UI uses rendering, staged resources and one
 exclusive owner per engine. [Text input](UI_TEXT_INPUT.md) describes the shared
 composition bridge; use the generic guide for its explicit draft, focus and identity policy.
 Optional [SVG](UI_SVG.md) needs an SVG-on native build and remains off in the default

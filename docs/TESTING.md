@@ -305,8 +305,9 @@ path remains independent of graphics drivers and fonts.
 otherwise the script creates one under the system temporary directory. Results
 include exact template/package hashes. The script exits on any failed check.
 
-The optional `scripts/compare-starter-wiring.py` requires the separately prepared
-three-genre comparison inputs and never edits them. It adapts isolated copies of
+The archived `scripts/compare-starter-wiring.py` requires baseline `a6a5a6e`, its
+original feed and separately prepared three-genre comparison inputs, and never
+edits them. It is not a current API validation gate. It adapts isolated copies of
 two hosts, records all source/helper line counts, builds/runs their existing native
 checks and validates extracted host-policy statements with synthetic input. See
 [the measured result and caveats](AUTHOR_ENTRY_COMPARISON.md).
