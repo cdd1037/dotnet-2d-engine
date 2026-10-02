@@ -18,6 +18,7 @@ Every entry point prints elapsed wall time and its exit status.
 | Camera follow edit | `scripts/test.sh quick camera` | Default plus pure managed framing, half-life/clock, zoom/bounds and numeric/allocation contracts |
 | Tile movement sample edit | `scripts/test.sh quick movement` | Input/clock boundaries; follow with `--movement-physics-test` on the Box2D build and the [rendered scenario](TILE_MOVEMENT.md) when movement changes |
 | TileMap data/culling edit | `scripts/test.sh quick tilemap` | Default plus strict sourcegen data, atomic cell edits/residency, chunk order/culling, lifetime, CPU collision plans and warmed allocations |
+| Copied public-package starter | `DOTNET=/path/to/dotnet bash scripts/test-starter.sh` | Fresh external consumer/cache, fixed-step input/reset, real Box2D, owner cleanup, copied assets and startup failures; optional prepared software Vulkan smoke; no AOT |
 | Combined feature-authoring integration | `bash scripts/test-author-smoke.sh` | Existing PackageReference fixture; one default headless JIT run plus three actual-pixel phases with the explicitly prepared SVG-on source runtime; no AOT republish |
 | Feature batch | `scripts/test.sh jit` | Native contracts, compile, complete JIT self-test |
 | Interop/trimming/serialization/publish change | `AOT_APP=/absolute/path/to/fresh/app scripts/test.sh aot` | Native contracts and full self-test of the explicitly selected NativeAOT binary |
@@ -265,3 +266,32 @@ scripts/test-package-features.sh`. It uses one ordinary external PackageReferenc
 consumer for camera follow, animation events/clip selection, transactional tile
 edits and capsule/exact queries, in JIT and one fresh NativeAOT publish. It does
 not repeat the earlier negative-compile, minimal-trim or graphics/device matrices.
+
+## Author-entry starter
+
+[The current author guide](AUTHOR_GUIDE.md) leads to `templates/Starter`, an ordinary
+SDK project using only the two public preview packages. The independent
+`scripts/test-starter.sh` proof needs an existing .NET 10 SDK and prepared local
+feed (default `build-packages/feed`, override `PACKAGE_FEED`). It copies the
+starter to a fresh directory outside the checkout, restores a fresh package cache
+with a local-only config, and checks JIT lifecycle/timing/input/reset, actual
+Box2D motion, PNG metadata/managed lease ownership, asset copying and diagnostics.
+It verifies the consumed managed DLL and eight native libraries against the actual
+packages, plus redistributed license files. It does not pack/rebuild the runtime.
+
+Optionally set `STARTER_GRAPHICS_SYSROOT` to an already prepared software Vulkan
+sysroot containing `usr/share/vulkan/icd.d/lvp_icd.json` and its system libraries.
+This adds 30 offscreen rendered frames using the unchanged native package. No
+engine-library overlay or native rebuild is performed; this smoke checks successful
+render submissions, not pixels or human keyboard/device acceptance. The default
+path remains independent of graphics drivers and fonts.
+
+`STARTER_PROOF_ROOT` may select a fresh evidence directory outside the checkout;
+otherwise the script creates one under the system temporary directory. Results
+include exact template/package hashes. The script exits on any failed check.
+
+The optional `scripts/compare-starter-wiring.py` requires the separately prepared
+three-genre comparison inputs and never edits them. It adapts isolated copies of
+two hosts, records all source/helper line counts, builds/runs their existing native
+checks and validates extracted host-policy statements with synthetic input. See
+[the measured result and caveats](AUTHOR_ENTRY_COMPARISON.md).

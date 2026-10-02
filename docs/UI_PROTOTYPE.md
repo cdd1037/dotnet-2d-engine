@@ -2,13 +2,18 @@
 
 Status: bounded prototype verified in software Vulkan; see results and limits below.
 
+This page records the original settings profile and its stage-specific evidence.
+The current public [bound-UI profile](UI_BINDINGS.md) separately supports typed
+models, lists, [raster images](UI_IMAGES.md) and optional [SVG](UI_SVG.md).
+Current aggregate and displayed-window results are in [validation](validation.md).
+
 This reversible experiment uses upstream RmlUi 6.3 (commit
 ba95ffe8bfb6370efb2cdcca927eaad4710c5413), with a separate premultiplied-alpha
 SDL_GPU pipeline after world sprites. RML/RCSS are RmlUi formats, not browser
 HTML/CSS. Myra and an engine-owned implementation remain alternatives.
 
 The game world, scene snapshot JSON and business logic do not depend on RmlUi.
-A build flag will keep the dependency optional. No managed DOM wrapper, embedded
+A build flag keeps the dependency optional. No managed DOM wrapper, embedded
 JavaScript or reflection-based model binding is planned. The original settings adapter uses one small typed model; the later
 [generic binding profile](UI_BINDINGS.md) adds explicit projections and dynamic lists.
 Native events are copied into bounded polling queues.

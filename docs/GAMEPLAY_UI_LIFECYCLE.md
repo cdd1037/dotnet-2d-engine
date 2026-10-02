@@ -1,5 +1,10 @@
 # Gameplay/UI and lifecycle experiments
 
+This page preserves the original experiment and its verification. The later
+[owned-attachment API](LIFECYCLE_SORTING.md) implements the explicit cleanup
+boundary proposed below; plain `Behavior` assignment remains non-owning.
+For current input routing, see [input and viewport contracts](INPUT_VIEWPORT.md).
+
 ## Result and scope
 
 A small combined host now runs the existing two-room game with the existing RmlUi
@@ -45,7 +50,7 @@ does not expose F5/F9 save/load; those remain in the original room demo.
    stale-generation commands. The scene-switch scenario retires UI before
    unloading the old room, then opens a fresh UI without an old action leaking in.
 
-## Minimal next design
+## Original next-design findings
 
 Keep ordinary entities and typed C# objects. A game can compose several small
 behavior objects in an explicit order without adopting a general ECS. Before

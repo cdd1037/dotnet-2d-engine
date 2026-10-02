@@ -2,7 +2,9 @@
 
 An independent, AI-authoring-first 2D engine prototype: .NET 10 main executable + narrow C ABI + C++ SDL3 GPU platform layer. This is not a Godot fork. Repository: `dotnet-2d-engine`; the existing `GameAuthoringLab` assembly, namespace and `gal` ABI names remain stable during this milestone.
 
-Start with the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. The [closure audit](docs/ROADMAP_CLOSURE.md) distinguishes delivered foundations, remaining original work and deferred expansion.
+Start building a game with the [author guide](docs/AUTHOR_GUIDE.md): the starter, edit/run loop, public APIs and current authoring limits.
+
+See the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. The [closure audit](docs/ROADMAP_CLOSURE.md) distinguishes delivered foundations, remaining original work and deferred expansion.
 
 The approved basic feature wave is now closed. The [combined author smoke](docs/AUTHOR_SMOKE.md)
 exercises camera follow, animation markers, live tile/collision edits and UI images/SVG;
@@ -66,7 +68,7 @@ SDL3_PREFIX=/path/to/sdl3/install ./scripts/build-sdl.sh
 LD_LIBRARY_PATH="$PWD/build:/path/to/sdl3/install/lib" dotnet managed/bin/Release/net10.0/GameAuthoringLab.dll --frames 600
 ```
 
-The pinned SDL3 3.4.16 runtime and rollback details are in [the upgrade report](docs/SDL_UPGRADE.md). The real SDL_GPU backend compiles/links and native tests pass. Mesa software Vulkan renders through an SDL offscreen surface, with GPU readback and pixel assertions for alpha/camera/resize. Displayed-window UI checks have also been exercised separately, with an intermittent first Reset after scrolling still open; physical-GPU validation is not claimed. Full build/visual validation status is recorded in [validation](docs/validation.md). Vulkan is selected explicitly and startup failure is visible; there is no automatic software/backend fallback. Windows D3D12 and Metal remain unvalidated extension work (HLSL source provided but no DXIL wired yet).
+The pinned SDL3 3.4.16 runtime and rollback details are in [the upgrade report](docs/SDL_UPGRADE.md). The real SDL_GPU backend compiles/links and native tests pass. Mesa software Vulkan renders through an SDL offscreen surface, with GPU readback and pixel assertions for alpha/camera/resize. Displayed-window UI checks have also been exercised separately; the targeted first Reset after scrolling check passed with explicit pointer motion. Real IME, target-device input and physical-GPU acceptance remain open. Full build/visual validation status is recorded in [validation](docs/validation.md). Vulkan is selected explicitly and startup failure is visible; there is no automatic software/backend fallback. Windows D3D12 and Metal remain unvalidated extension work (HLSL source provided but no DXIL wired yet).
 
 See [world model](managed/WORLD.md), [dependency checklist](docs/dependencies.md), [architecture](docs/architecture.md), [managed usage](managed/README.md), and [validation](docs/validation.md). Existing compiled shader blobs can be rebuilt offline on a Linux machine with libshaderc installed using `python3 scripts/compile_shaders.py`.
 

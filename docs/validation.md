@@ -1238,3 +1238,53 @@ Evidence: `evidence/milestone-closure/final-jit.log`, the source/hashes in
 proof `/tmp/dotnet2d-small-milestone-20261002`. The roadmap and closure audit now
 point to this status instead of treating historical feature follow-ons as a new
 work queue.
+
+## Current author entry and starter (2026-10-02)
+
+A unified [author guide](AUTHOR_GUIDE.md) now leads to a copyable ordinary .NET/C#
+[starter](../templates/Starter/README.md). It uses public package APIs for explicit
+input/fixed-step/pause/restart, resource ownership and optional physics-pose
+presentation. The small clock/input helper is application-owned template code;
+no runtime API, native ABI, serialized schema or trimming roots changed. Existing
+source-built/packaged runtime identity evidence in
+[MILESTONE_PACKAGE_SIZES.md](MILESTONE_PACKAGE_SIZES.md) is reused, not replaced by
+the cached packages' older repository metadata stamps.
+
+Verified on the existing Linux x64/.NET SDK 10.0.401 runner:
+
+- Fresh external copy and isolated local-only package cache; Release build has
+  zero warnings/errors, no ProjectReference/source links or friend assembly name
+- **27 starter checks** cover queued input, catch-up edges, capped time, pause and
+  restart resets, invalid options, actual Box2D movement/restart, module reopen
+  after disposal, and headless metadata/managed texture-lease ownership
+- **120 deterministic headless frames/steps** each with plain state and optional
+  physics, plus three frames with an explicit asset root. Runs use an unrelated
+  working directory, confirming built-output-based asset lookup
+- Invalid frame argument, missing assets and missing native runtime each return
+  exit 2 with the specific diagnostic; the native check matches the loader error,
+  not a generic troubleshooting hint
+- The consumed managed DLL and **eight native libraries** match the actual local
+  packages byte-for-byte; copied asset and redistributed licenses are checked
+- Optional unchanged-package software Vulkan smoke completes **30 frames and 30
+  draw calls**, with the supplied PNG and physics path. It reuses prepared system
+  graphics dependencies, without rebuilding or overlaying the engine library
+- Existing `scripts/test.sh quick input` passes all **eight native CPU contracts**,
+  zero-warning Release build, three CPU frames and **52 input assertions**
+- The two actual genre-host adaptations pass baseline/adapted Release builds and
+  native game checks, plus **47 synthetic host-policy checks**. Platformer host
+  counts are 57→53; top-down 56→59; the helper adds 54 nonblank lines per copy.
+  See [measurement](AUTHOR_ENTRY_COMPARISON.md) for moved work, behavior changes,
+  counted helper cost and the event-driven card UI counterexample
+
+The starter proof is repeatable with `scripts/test-starter.sh`; `results.json`
+records exact template/package hashes. Raw evidence lives in generated temporary
+proof directories and local `evidence/author-entry/`, outside tracked deliverables.
+A review caught and corrected a draft guide reference to internal BoundUiAuthoring
+and the distinction between copied bound-UI actions and borrowed physics events.
+
+This is JIT/headless-contract/software-render submission evidence. It does not
+claim pixel assertions, human keyboard/minimize/focus acceptance, font/real-IME
+coverage, physical GPU/audio acceptance or a fresh trimmed/NativeAOT publish.
+No new native/dependency build or AOT publication was needed for this template/
+documentation-only batch. Original comparison fixtures, production game code and
+the frozen Godot fork were not changed.

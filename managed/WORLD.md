@@ -131,7 +131,7 @@ Repair local data or explicitly detach keep-local before retrying a failed teard
 ## Sprites and behavior/render loop
 
 `Sprite2D` stores finite nonnegative width/height, RGBA in [0, 1], an optional
-`AssetKey`, and integer `Layer`. A null sprite means no visual. A null asset key
+`AssetKey`, integer `Layer`, and optional `FlipX`/`FlipY`. A null sprite means no visual. A null asset key
 uses the engine's built-in circle; a nonnull key must be nonempty and resolves
 through the caller's texture registry. Saves contain stable asset keys, never
 native texture handles or machine-dependent paths. Higher layers render later;
@@ -141,15 +141,16 @@ model itself.
 `World.Update(dt)` invokes behaviors in creation order with finite nonnegative dt.
 New entities start on the next tick, destroyed entries are skipped, and compaction
 waits until the pass ends. Exceptions propagate but recover the update guard and
-pending compaction. Recursive updates are rejected. There are no automatic
-start/destroy callbacks or native resource-disposal hooks. Clearing a Behavior
-does not unsubscribe its delegates from external publishers or call IDisposable.
+pending compaction. Recursive updates are rejected. There are no inferred
+start/destroy callbacks, subscription discovery or `IDisposable` scans.
 Use explicit `World.AttachBehavior(entity, behavior, attach)` and register cleanup
 with `BehaviorLifetime.OnDetach` to bind subscriptions/resources to the attachment.
-Plain Behavior assignment still does not infer resource ownership. Replacing an
-owned attachment, destruction and unload retire registered cleanup once; callbacks
+Plain `Behavior` assignment creates no ownership. Clearing or replacing a previously
+owned attachment does retire its registered cleanup; assigning the identical
+behavior instance through the property is a no-op. Destruction and unload also
+retire registered cleanup once; callbacks
 run after commit with mutation blocked and failures aggregated. See
-`docs/LIFECYCLE_SORTING.md` for exact setup/rollback/exception/order semantics.
+[ownership and sorting](../docs/LIFECYCLE_SORTING.md) for exact setup/rollback/exception/order semantics.
 
 ```csharp
 var batch = new SpriteBatch(capacity: 1024) { TextureResolver = ResolveTexture };
@@ -177,15 +178,21 @@ the established warmed behavior/extract/draw loop still tests zero managed bytes
 
 ## Versioned JSON save/load
 
-`ScenePersistence` uses .NET's source-generated `System.Text.Json` metadata, not
+`ScenePersistence` is the demo/test executable's internal runtime-save example,
+not a public `Dotnet2D.Engine` API. Independent games own their progress format;
+the public [authored-scene loader](../docs/AUTHORED_SCENES.md) loads source defaults
+instead. The example uses .NET's source-generated `System.Text.Json` metadata, not
 runtime reflection. The serializer has no added packages and works with reflection
-serialization disabled. The explicit version-1 schema contains:
+serialization disabled. The base version-1 schema contains:
 
 - Scenes: GUID, name, persistent-scope flag
 - Entities in creation/draw order: GUID, name, scene GUID, separate optional parent
   and owner GUIDs, all six local transform values, and optional complete sprite
 - Optional `GameSaveState`: player, active scene, held item, and item GUIDs;
   room index, item room index (`-1` while held), transition count, pickup count
+
+The example also accepts version 2 and writes it when a sprite uses a flip;
+version 1 rejects nondefault flips. Neither version serializes behavior or native resources.
 
 ```csharp
 string json = ScenePersistence.Save(world, new GameSaveState
@@ -236,7 +243,9 @@ responsibility; JSON construction/loading itself performs no filesystem operatio
 This is an inspectable semantic baseline, not a scalability claim. Ownership uses
 explicit graph scans and may be quadratic. World transforms are recomputed on
 extraction. There is no ECS, generic serializer/plugin registry, reflection-based
-behavior resurrection, hot reload, editor integration, physics, or UI framework.
+behavior resurrection, automatic hot reload or editor integration. Optional
+[physics](../docs/PHYSICS.md) and [typed UI](../docs/UI_BINDINGS.md) are separate
+modules; `World` does not implicitly step physics or own a UI session.
 
 `WorldSelfTests.Run()` retains the original lifecycle/allocation regressions.
 `WorldPersistenceTests.Run()` adds independent affine point evaluation across 100

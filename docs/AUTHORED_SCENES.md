@@ -22,12 +22,12 @@ To try an AI/manual edit, copy the JSON to another filename in the same assets d
 
 ## Contract
 
-- Required root fields: `kind: "gal-authored-scene"`, `version: 1`, `id`, `persistentScopeId`, `name`, `resources`, `entities`
+- Required root fields: `kind: "gal-authored-scene"`, `version: 1` or `2`, `id`, `persistentScopeId`, `name`, `resources`, `entities`. Regions and nondefault sprite flips require version 2
 - `id`, `persistentScopeId` and every entity `id` are nonempty GUIDs and globally unique within this document. Names are labels, not identity. Instantiation retains authored IDs; merging multiple copies into a single world is outside this slice
 - Each entity uses the existing explicit snapshot entity shape: `id`, `name`, `sceneId`, nullable `parentId`/`ownerId`, `transform`, nullable `sprite`. Every `sceneId` must equal the authored scene ID. Parent and lifetime owner are independently resolved within this file; no external references
 - `transform` uses finite x/y, positive scaleX/scaleY, rotation in radians, and shear. Sprite fields are width/height, RGBA, nullable logical `assetKey`, and integer `layer`
 - A resource record maps stable case-sensitive `key` to `path`. Paths are relative to the scene file and use `/`; absolute paths, URI/drive syntax, empty/dot/traversal segments and symbolic-link resource entries are rejected. Keep scene copies beside their resources, or update mappings explicitly. Renaming a physical resource only changes its mapping
-- Only BMP resources are supported. Every declared file must exist with a plausible 54-byte BMP header and dimensions 1..4096. This is preflight, not a complete image decoder; native upload may still reject corrupt pixel data. Texture IDs are runtime-only and never serialized
+- Resources support BMP, PNG and JPEG (`.bmp`, `.png`, `.jpg`, `.jpeg`) with matching signatures. Every declared file must exist, use at most 16 MiB encoded bytes and have dimensions 1..4096 with at most 64 MiB decoded RGBA. These are bounded metadata checks, not complete image decoding; native upload may still reject corrupt pixel data. See [common image formats and limits](UI_IMAGES.md), including excluded formats. Texture IDs are runtime-only and never serialized
 - Maximum 1 MiB UTF-8 source, 128 resources, 4096 entities, 512 levels per relation. Unknown properties, duplicate JSON keys, null records, missing required fields, dangling references and cycles are rejected
 - Entity array order is meaningful. Equal-layer sprites preserve it; writers do not sort by GUID. Template expansion must emit a deterministic intended order
 - No game-progress state, arbitrary CLR type names, script execution, extension metadata or hidden editor state. Unknown fields fail loudly rather than being lost on save. Whitespace and formatting are normalized by `Write`; arbitrary textual lossless editing is not claimed

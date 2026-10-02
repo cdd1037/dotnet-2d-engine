@@ -104,7 +104,7 @@ cannot close a newer owner. No managed callbacks run from native input or render
 with registered IDs, static layout IDs/classes and scoped range/list generated
 selectors. Each RML file links only its exact same-basename sibling RCSS. The
 profile permits no scripts, inline handlers/styles, data bindings, interpolation,
-external resources, imports or namespaces. Bounded static BMP/PNG/JPEG images and image decorators are now allowed; see [image resources](UI_IMAGES.md). Generated `bound-row` and
+external resources, imports or namespaces. Bounded static BMP/PNG/JPEG images and image decorators are allowed; see [image resources](UI_IMAGES.md). Optional [static SVG](UI_SVG.md) has a separate strict project-asset profile and requires an SVG-enabled native build; the default native package keeps SVG off. Generated `bound-row` and
 `bound-items` classes belong to native code. Limits remain 64 KiB per source file,
 256 elements/depth 16, 128 rules and 32 declarations per rule. Strict snapshots are
 staged from an owned temporary directory retained through candidate/live ownership and removed at retirement.

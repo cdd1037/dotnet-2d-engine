@@ -3,6 +3,9 @@
 Experimental net10.0 managed runtime, version 0.1.0-preview.1. No stable API or
 cross-platform binary support promise. Namespace remains GameAuthoringLab.
 
+In the source checkout, start with the [author guide](../docs/AUTHOR_GUIDE.md)
+for the starter, edit/run workflow and public API boundaries.
+
 Use EngineHost.Create, World, explicit AssetRoot/AssetCatalog mappings, authored
 scene loading and BoundUiSession<T>. Dispose owners on their creating thread.
 Clipping, diagnostics, materials and render targets also have public experimental
