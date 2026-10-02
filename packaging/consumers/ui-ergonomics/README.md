@@ -5,7 +5,7 @@ This maintained package consumer replays the bounded inventory Discard task from
 historical baseline, attempt, evaluator and measurements were read without edits.
 This is an API migration and edit-surface comparison, not another AI trial.
 
-The application declares each stable wire ID, argument codec and managed handler
+The application declares each command name, argument codec and managed handler
 once in `CardUi.cs`. Inspect is 1, Use 2, Pause 3, Restart 4, Save 5, Load 6,
 Reverse 7, Remove empty 8, and Discard 9, matching the accepted historical task.
 `UiArgs.Key` delivers an exact `ulong`, never a floating-point number. There is
@@ -76,7 +76,7 @@ change's verification report.
 `checks/Smoke.cs` retains all 26 original native regression assertions, with
 only capture/save-path plumbing adapted for the self-contained consumer.
 `checks/DiscardChecks.cs` retains the accepted Discard behavioral checks and adds
-native wire-ID and explicit-drain checks:
+native command routing and explicit-drain checks:
 
 - Discard returns true only for an unpaused, visible item with positive stock,
   decrements exactly one, and leaves every other persisted property unchanged
@@ -86,7 +86,7 @@ native wire-ID and explicit-drain checks:
   discards; save/load retains counts and pause; Restart restores initial counts
 - Model rules exercise `ulong.MaxValue`; real SDL pointer events route exact keys
   9007199254740993 through 9007199254740996, including reorder and array shrink
-- Native clicks hit both columns and rows, retain command IDs 1–9, and preserve
+- Native clicks hit both columns and rows, verify distinct session-assigned command IDs, and preserve
   Inspect, Use, toolbar, invalid-load atomicity, reload and empty-list behavior
 - Depleted and paused Discard buttons emit no native command; captured native
   pixels are the enabled `(122,211,181)` and disabled `(41,62,77)` fills
@@ -121,7 +121,7 @@ The historical addition touched six production files: domain/view/command enum,
 schema plus registration, dispatch switch, RML, and per-button RCSS. With this
 maintained starting pattern, replaying the same feature touches four: the domain
 method and projected availability, its schema field, one typed `On` declaration,
-and the appended RML button. The command ID remains explicit at that declaration.
+and the appended RML button. The session assigns the command ID automatically.
 Tests still need updating in either workflow. These are source edit locations,
 not measured editing turns, elapsed time, token use, or a speedup ratio.
 

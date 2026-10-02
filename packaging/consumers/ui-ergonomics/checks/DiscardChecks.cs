@@ -75,6 +75,15 @@ internal static class DiscardChecks
         ui.Game.Restart();
         ui.Refresh();
         ui.Draw();
+        var observedCommands = new Dictionary<string, uint>(StringComparer.Ordinal);
+        bool SameCommand(string name)
+        {
+            uint id = ui.LastCommand.CommandId;
+            if (id == 0) return false;
+            if (observedCommands.TryGetValue(name, out uint prior)) return id == prior;
+            if (observedCommands.Values.Contains(id)) return false;
+            observedCommands.Add(name, id); return true;
+        }
         void Click(float x, float y) { SdlInput.Click(x, y); ui.Frame(); }
         void NativeDiscard(float x, float y, ulong id, string label)
         {
@@ -84,7 +93,7 @@ internal static class DiscardChecks
             ulong selected = ui.Game.SelectedId;
             var visible = ui.Game.View(false, "").Sections.SelectMany(s => s.Items).Select(i => i.Id).ToArray();
             Click(x, y);
-            Check(ui.Commands == before + 1 && ui.LastCommand.CommandId == 9 &&
+            Check(ui.Commands == before + 1 && SameCommand("Discard") &&
                 ui.LastCommand[0].Key == id, label + " dispatches exact typed key");
             Check(ui.Game.Count(id) == count - 1 && ui.Game.Health == health && ui.Game.Gold == gold &&
                 ui.Game.SelectedId == selected && visible.SequenceEqual(ui.Game.View(false, "").Sections.SelectMany(s => s.Items).Select(i => i.Id)),
@@ -102,7 +111,7 @@ internal static class DiscardChecks
         Check(ui.Status.Loaded && !ui.Status.Pending && ui.Status.Diagnostic.Length == 0, "native document loaded");
         ui.Capture(Path.Combine(outputDirectory, "discard-enabled.bmp"));
         Click(104, 228);
-        Check(ui.LastCommand.CommandId == 1, "Inspect keeps wire ID 1");
+        Check(SameCommand("Inspect"), "Inspect has a distinct session-assigned command ID");
         NativeDiscard(338, 228, potion, "first row Discard");
         NativeDiscard(338, 228, potion, "depleting selected card");
         Disabled(338, 228, "depleted Discard");
@@ -111,33 +120,33 @@ internal static class DiscardChecks
         Check(ui.Game.SelectedId == empty, "empty Inspect unchanged");
         NativeDiscard(788, 228, coin, "other section Discard");
         Click(100, 460);
-        Check(ui.LastCommand.CommandId == 3, "Pause keeps wire ID 3");
+        Check(SameCommand("Pause"), "Pause has a distinct session-assigned command ID");
         Disabled(338, 378, "paused positive-stock Discard");
         Disabled(338, 228, "paused depleted Discard");
         ui.Capture(Path.Combine(outputDirectory, "discard-disabled.bmp"));
         Click(350, 460);
-        Check(ui.LastCommand.CommandId == 5, "Save keeps wire ID 5");
+        Check(SameCommand("Save"), "Save has a distinct session-assigned command ID");
         string nativeSave = File.ReadAllText(savePath);
         Click(230, 460);
-        Check(ui.LastCommand.CommandId == 4, "Restart keeps wire ID 4");
+        Check(SameCommand("Restart"), "Restart has a distinct session-assigned command ID");
         Check(ui.Game.Count(potion) == 2 && ui.Game.Count(coin) == 1 && !ui.Game.Paused, "native Restart initial counts");
         Click(480, 460);
-        Check(ui.LastCommand.CommandId == 6, "Load keeps wire ID 6");
+        Check(SameCommand("Load"), "Load has a distinct session-assigned command ID");
         Check(ui.Game.Save() == nativeSave, "native Save/Load retains discarded stock, selection and pause");
         Click(100, 460);
         NativeDiscard(338, 378, snack, "resumed Discard");
         Click(230, 460);
         Click(600, 460);
-        Check(ui.LastCommand.CommandId == 7, "Reverse keeps wire ID 7");
+        Check(SameCommand("Reverse"), "Reverse has a distinct session-assigned command ID");
         NativeDiscard(338, 228, snack, "reordered first row key");
         Disabled(788, 228, "reordered empty first row");
         NativeDiscard(788, 378, coin, "reordered second section key");
         Click(750, 460);
-        Check(ui.LastCommand.CommandId == 8, "Remove empty keeps wire ID 8");
+        Check(SameCommand("Remove empty"), "Remove empty has a distinct session-assigned command ID");
         Check(!ui.Game.IsVisible(snack) && !ui.Game.IsVisible(coin) && !ui.Game.IsVisible(empty), "native Remove empty shrinks arrays");
         NativeDiscard(338, 228, potion, "remaining post-shrink row key");
         Click(220, 228);
-        Check(ui.LastCommand.CommandId == 2, "Use keeps wire ID 2");
+        Check(SameCommand("Use"), "Use has a distinct session-assigned command ID");
         Check(ui.Game.Health == 75 && ui.Game.Count(potion) == 0, "existing Use after Discard and shrink");
         Disabled(338, 228, "Use-depleted Discard");
         Click(750, 460);

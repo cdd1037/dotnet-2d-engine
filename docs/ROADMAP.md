@@ -82,7 +82,9 @@ batches. These are **next-stage tasks**, not implemented claims in this RELAY
 migration:
 
 1. Automatically assign UI command IDs on the recommended author path; retain an
-   advanced explicit-ID path and update recommended examples/docs
+   advanced explicit-ID path and update recommended examples/docs. **Implemented:**
+   typed `On` overloads reserve explicit IDs before deterministic session-local
+   assignment; runtime/native tests cover mixed registrations and stale dispatch
 2. Make C# declarations the single source for UI registration and build-time RML
    name/type/command contract checks, with source-aware diagnostics and runtime
    fallback for dynamic content. Constants alone do not solve this. Bounded

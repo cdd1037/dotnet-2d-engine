@@ -117,14 +117,14 @@ document, including populated arrays and conditional states.
 
 ## Commands, keys and drafts
 
-For new code, put the native signature, stable wire ID and managed handler in one
-typed definition. `UiArgs` supplies explicit AOT-safe codecs; no reflection,
+For new code, put the native signature and managed handler in one typed
+definition; the session assigns command IDs automatically. `UiArgs` supplies explicit AOT-safe codecs; no reflection,
 JavaScript or UI source generator is involved:
 
 ```csharp
 var commands = new UiCommands()
-    .On("discard", 9, UiArgs.Key, (ulong id) => { game.Discard(id); })
-    .On("rename", 10, UiArgs.Text, (string name) => { model.Name = name; });
+    .On("discard", UiArgs.Key, (ulong id) => { game.Discard(id); })
+    .On("rename", UiArgs.Text, (string name) => { model.Name = name; });
 using var ui = new UiModelSession<View>(engine, schema, commands);
 // After the normal LoadAsset / Draw / Apply / Draw setup:
 bool dispatched = false;
@@ -133,9 +133,16 @@ for (var packet = ui.Poll(); !packet.IsEmpty; packet = ui.Poll())
 if (dispatched) ui.Apply(model); // once, after this revision's queue is drained
 ```
 
+Automatic IDs belong to one frozen session contract. Do not save them or use them
+as game-action identities. Mixed automatic and explicit registrations are supported:
+all explicit IDs are reserved before automatic IDs are assigned in ordinal name
+order. Reordering declarations does not change the mapping; adding/removing names
+may do so. Use the existing explicit-ID `On(name, id, ...)` or `Add` overload when
+an application intentionally needs a stable packet protocol.
+
+
 `On` supports zero through four explicitly typed arguments (`Text`, `Boolean`,
-`Number`, `Key`). IDs remain explicit and stable; they are not inferred from
-registration order. `Dispatch` checks `IsCurrent` immediately before each managed
+`Number`, `Key`). Explicit IDs are an advanced compatibility option. `Dispatch` checks `IsCurrent` immediately before each managed
 handler, including when an earlier handler applied a snapshot or reloaded the
 document. It returns whether a handler ran, not whether its game rule succeeded.
 It does not poll, apply, or swallow handler exceptions. Native code still only

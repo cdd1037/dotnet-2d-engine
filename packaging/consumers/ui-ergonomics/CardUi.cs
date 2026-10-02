@@ -22,17 +22,17 @@ public sealed class CardUi : IDisposable
         _assets = assets;
         _savePath = savePath;
         Game = new CardGame(File.ReadAllText(assets.Resolve("catalog.json")));
-        // Stable wire IDs live beside the name, typed arguments and handler, once.
+        // Handlers and scalar codecs define commands; the session assigns private wire IDs.
         var commands = new UiCommands()
-            .On("inspect", 1, UiArgs.Key, (ulong id) => { Game.Inspect(id); })
-            .On("use", 2, UiArgs.Key, (ulong id) => { Game.Use(id); })
-            .On("pause", 3, Game.TogglePause)
-            .On("restart", 4, () => { Game.Restart(); Message = "Restarted"; })
-            .On("save", 5, () => { File.WriteAllText(_savePath, Game.Save()); Message = "Saved"; })
-            .On("load", 6, () => { Game.Load(File.ReadAllText(_savePath)); Message = "Loaded"; })
-            .On("reverse", 7, () => { Game.Reverse(); Message = "Order reversed"; })
-            .On("remove_empty", 8, () => { Game.RemoveEmpty(); Message = "Empty cards removed"; })
-            .On("discard", 9, UiArgs.Key, (ulong id) => { Game.Discard(id); });
+            .On("inspect", UiArgs.Key, (ulong id) => { Game.Inspect(id); })
+            .On("use", UiArgs.Key, (ulong id) => { Game.Use(id); })
+            .On("pause", Game.TogglePause)
+            .On("restart", () => { Game.Restart(); Message = "Restarted"; })
+            .On("save", () => { File.WriteAllText(_savePath, Game.Save()); Message = "Saved"; })
+            .On("load", () => { Game.Load(File.ReadAllText(_savePath)); Message = "Loaded"; })
+            .On("reverse", () => { Game.Reverse(); Message = "Order reversed"; })
+            .On("remove_empty", () => { Game.RemoveEmpty(); Message = "Empty cards removed"; })
+            .On("discard", UiArgs.Key, (ulong id) => { Game.Discard(id); });
         _ui = new UiModelSession<InventoryView>(engine, InventorySchema.Create(), commands);
         try { Reload(); }
         catch { _ui.Dispose(); throw; }

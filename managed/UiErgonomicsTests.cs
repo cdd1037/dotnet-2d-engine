@@ -87,6 +87,28 @@ internal static class UiErgonomicsTests
         UiCommandArgument key = new(UiValueKind.Key, "", 0, ulong.MaxValue), text = new(UiValueKind.Text, "text", 0, 0), boolean = new(UiValueKind.Boolean, "", 1, 0), number = new(UiValueKind.Number, "", 2, 0);
         frozen[4].Handler!(new(1, 1, 5, 4, key, text, boolean, number));
         Check(result == ulong.MaxValue + "textTrue2", "typed decoding retains exact ulong and argument order");
+        var automatic = new UiCommands().On("z", () => { }).On("a", UiArgs.Key, _ => { })
+            .Add("explicit_one", 1).On("explicit_max", uint.MaxValue, () => { }).On("middle", UiArgs.Text, UiArgs.Boolean, (_, _) => { });
+        var allocated = automatic.Freeze();
+        Check(allocated.Select(c => c.Id).Distinct().Count() == 5 && allocated.All(c => c.Id != 0), "automatic IDs avoid all explicit IDs");
+        Check(allocated.Single(c => c.Name == "a").Id == 2 && allocated.Single(c => c.Name == "middle").Id == 3 && allocated.Single(c => c.Name == "z").Id == 4, "automatic IDs use ordinal names and reserve later explicit declarations");
+        Check(allocated.Single(c => c.Name == "explicit_max").Id == uint.MaxValue, "explicit maximum ID preserved");
+        Check(automatic.Freeze().Select(c => c.Id).SequenceEqual(allocated.Select(c => c.Id)), "repeated freeze stable and nonmutating");
+        automatic.On("new", UiArgs.Number, UiArgs.Boolean, UiArgs.Text, (_, _, _) => { });
+        Check(allocated.Length == 5 && automatic.Freeze().Length == 6, "automatic command freeze retains snapshot isolation");
+        var reordered = new UiCommands().On("middle", UiArgs.Text, UiArgs.Boolean, (_, _) => { }).On("a", UiArgs.Key, _ => { })
+            .On("explicit_max", uint.MaxValue, () => { }).On("z", () => { }).Add("explicit_one", 1).Freeze();
+        Check(reordered.All(c => allocated.Single(a => a.Name == c.Name).Id == c.Id), "automatic allocation independent of insertion order");
+        Check(Error(() => new UiCommands().On("same", () => { }).On("same", 1, () => { })).Code == "UI_SCHEMA", "mixed duplicate name rejected");
+        Check(Error(() => new UiCommands().On("one", 3, () => { }).On("two", 3, () => { })).Code == "UI_SCHEMA", "explicit duplicate ID still rejected");
+        Check(Error(() => new UiCommands().On("zero", 0, () => { })).Code == "UI_SCHEMA", "explicit zero remains invalid");
+        var capacity = new UiCommands(); for (int i = 0; i < 32; i++) capacity.On("action_" + i, () => { });
+        Check(capacity.Freeze().Select(c => c.Id).Distinct().Count() == 32, "all 32 automatic IDs distinct");
+        Check(Error(() => capacity.On("overflow", () => { })).Code == "UI_SCHEMA", "automatic count still bounded");
+        string autoResult = "";
+        var autoFour = new UiCommands().On("four", UiArgs.Key, UiArgs.Text, UiArgs.Boolean, UiArgs.Number, (k, t, b, n) => autoResult = k + t + b + n).Freeze()[0];
+        autoFour.Handler!(new(1, 1, autoFour.Id, 4, key, text, boolean, number));
+        Check(autoResult == result, "automatic four-argument typed decoding unchanged");
         Console.WriteLine($"UI ERGONOMICS CONTRACT PASS assertions={count}"); return count;
     }
     public static int RunNative(EngineHost engine)
@@ -101,9 +123,9 @@ internal static class UiErgonomicsTests
             var assets = new AssetRoot(root); var model = new Model(); ulong selected = 0; bool publishInsideHandler = false;
             UiModelSession<Model>? owner = null;
             using (var ui = owner = new UiModelSession<Model>(engine, Schema(), new UiCommands()
-                .On("choose", 1, UiArgs.Key, key => selected = key)
-                .On("edit", 2, UiArgs.Text, title => { model.Title = title; if (publishInsideHandler) owner!.Apply(model); })
-                .On("act", 3, () => model.Title = "acted")))
+                .On("choose", UiArgs.Key, key => selected = key)
+                .On("edit", UiArgs.Text, title => { model.Title = title; if (publishInsideHandler) owner!.Apply(model); })
+                .On("act", () => model.Title = "acted")))
             {
                 ui.LoadAsset(assets, "typed.rml"); Render(); ui.Apply(model); Render();
                 ui.Probe(2, "choose"); var packet = ui.Poll();
@@ -137,7 +159,7 @@ internal static class UiErgonomicsTests
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static (UiModelSession<Model>, WeakReference) CapturedSession(EngineHost engine)
     {
-        var capture = new Model(); var commands = new UiCommands().On("capture", 1, () => capture.Title = "used");
+        var capture = new Model(); var commands = new UiCommands().On("capture", () => capture.Title = "used");
         return (new(engine, Schema(), commands), new(capture));
     }
 }

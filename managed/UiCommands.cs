@@ -35,20 +35,53 @@ public sealed class UiCommands
     /// <summary>Legacy explicit packet registration; use Poll/IsCurrent and application dispatch.</summary>
     public UiCommands Add(string name, uint id, params UiValueKind[] arguments) => Register(name, id, arguments, null, null);
 
-    private UiCommands Register(string name, uint id, UiValueKind[] arguments, Action<UiCommandEvent>? handler, UiDeclaration? origin)
+    private UiCommands Register(string name, uint id, UiValueKind[] arguments, Action<UiCommandEvent>? handler, UiDeclaration? origin, bool automatic = false)
     {
         try
         {
             UiModelContract.Name(name); ArgumentNullException.ThrowIfNull(arguments);
-            if (id == 0 || arguments.Length > 4 || arguments.Any(k => k is < UiValueKind.Text or > UiValueKind.Key))
+            if (id == 0 && !automatic || arguments.Length > 4 || arguments.Any(k => k is < UiValueKind.Text or > UiValueKind.Key))
                 throw new ArgumentException("Commands require a nonzero ID and up to four scalar argument types.");
-            if (_commands.Count == 32 || _commands.Any(c => c.Name == name || c.Id == id))
+            if (_commands.Count == 32 || _commands.Any(c => c.Name == name || id != 0 && c.Id == id))
                 throw new ArgumentException("At most 32 unique command names/IDs are supported.");
             _commands.Add(new(name, id, (UiValueKind[])arguments.Clone(), handler, origin));
             return this;
         }
         catch (ArgumentException e) when (origin is { })
         { throw origin.Value.Error("UI_SCHEMA", "commands." + name, e.Message, e); }
+    }
+
+    /// <summary>Register a typed handler without allocating a wire ID. IDs are assigned when a session freezes this builder.
+    /// Automatic IDs are local to that frozen contract; do not persist them or use them as application action identifiers.</summary>
+    public UiCommands On(string name, Action handler,
+        [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return Register(name, 0, [], _ => handler(), new(file, line), automatic: true);
+    }
+    public UiCommands On<A>(string name, UiArgument<A> a, Action<A> handler,
+        [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(handler);
+        return Register(name, 0, [a.Kind], p => handler(a.Read(p[0])), new(file, line), automatic: true);
+    }
+    public UiCommands On<A, B>(string name, UiArgument<A> a, UiArgument<B> b, Action<A, B> handler,
+        [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(handler);
+        return Register(name, 0, [a.Kind, b.Kind], p => handler(a.Read(p[0]), b.Read(p[1])), new(file, line), automatic: true);
+    }
+    public UiCommands On<A, B, C>(string name, UiArgument<A> a, UiArgument<B> b, UiArgument<C> c, Action<A, B, C> handler,
+        [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(c); ArgumentNullException.ThrowIfNull(handler);
+        return Register(name, 0, [a.Kind, b.Kind, c.Kind], p => handler(a.Read(p[0]), b.Read(p[1]), c.Read(p[2])), new(file, line), automatic: true);
+    }
+    public UiCommands On<A, B, C, D>(string name, UiArgument<A> a, UiArgument<B> b, UiArgument<C> c, UiArgument<D> d, Action<A, B, C, D> handler,
+        [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(c); ArgumentNullException.ThrowIfNull(d); ArgumentNullException.ThrowIfNull(handler);
+        return Register(name, 0, [a.Kind, b.Kind, c.Kind, d.Kind], p => handler(a.Read(p[0]), b.Read(p[1]), c.Read(p[2]), d.Read(p[3])), new(file, line), automatic: true);
     }
 
     public UiCommands On(string name, uint id, Action handler,
@@ -81,5 +114,23 @@ public sealed class UiCommands
         ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(c); ArgumentNullException.ThrowIfNull(d); ArgumentNullException.ThrowIfNull(handler);
         return Register(name, id, [a.Kind, b.Kind, c.Kind, d.Kind], p => handler(a.Read(p[0]), b.Read(p[1]), c.Read(p[2]), d.Read(p[3])), new(file, line));
     }
-    internal Command[] Freeze() => _commands.Select(c => c with { Arguments = (UiValueKind[])c.Arguments.Clone() }).ToArray();
+    internal Command[] Freeze()
+    {
+        // Reserve all explicit IDs first, including declarations added after automatic ones.
+        // Sorting names makes allocation independent of registration order, without promising
+        // protocol stability when the contract itself changes. Never mutate the retained builder.
+        var assigned = new Dictionary<string, uint>(StringComparer.Ordinal);
+        var used = _commands.Where(c => c.Id != 0).Select(c => c.Id).ToHashSet();
+        uint next = 1;
+        foreach (var command in _commands.Where(c => c.Id == 0).OrderBy(c => c.Name, StringComparer.Ordinal))
+        {
+            while (used.Contains(next)) next++;
+            assigned.Add(command.Name, next); used.Add(next++);
+        }
+        return _commands.Select(c => c with
+        {
+            Id = c.Id == 0 ? assigned[c.Name] : c.Id,
+            Arguments = (UiValueKind[])c.Arguments.Clone()
+        }).ToArray();
+    }
 }
