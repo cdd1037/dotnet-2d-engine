@@ -16,11 +16,18 @@ typedef struct { uint32_t size,version,generation,revision,count,reserved; } gal
 typedef struct { uint32_t kind,reserved; double number; uint64_t key; char text[256]; } gal_ui_argument;
 typedef struct { uint32_t size,generation,revision,command,count,reserved; gal_ui_argument arguments[4]; } gal_ui_event;
 GAL_API int GAL_CALL gal_ui_model_open(gal_context*,const char* path,const char* font,const char* stylesheet,const gal_ui_data_schema*,uint32_t schema_count,const gal_ui_command*,uint32_t command_count,const char*const* images,uint32_t image_count);
+/* Additive initialized staging. Snapshot generation must be 0 and revision 1.
+   Copies source/schema/initial values into one candidate; never draws. The next
+   normal frame validates the candidate renderer before replacing the live document.
+   State.pending reports staging, State.loaded/generation retain the old live document.
+   Deferred failure clears pending and records a diagnostic while retaining live UI. */
+GAL_API int GAL_CALL gal_ui_model_stage(gal_context*,const char* path,const char* font,const char* stylesheet,const gal_ui_data_schema*,uint32_t schema_count,const gal_ui_command*,uint32_t command_count,const char*const* images,uint32_t image_count,const gal_ui_data_snapshot*,const gal_ui_data_value*);
 GAL_API int GAL_CALL gal_ui_model_apply(gal_context*,const gal_ui_data_snapshot*,const gal_ui_data_value*);
 GAL_API int GAL_CALL gal_ui_model_poll(gal_context*,gal_ui_event*);
 /* Probe-only exact ID + occurrence among cloned nodes. 1=dispatch click, 2=hit test
    click, 3=pointer down, 4=pointer up, 5=read text, 6=set value/change, 7=focus, 8=queued preedit, 9=queued CJK commit, 10=scroll into view,
-   11=caret to end, 12=queued ASCII commit without refocusing.
+   11=caret to end, 12=queued ASCII commit without refocusing,
+   13=live+candidate file texture count, 14=reject next candidate render (one-shot fault).
    Packet generation/revision are checked before touching the element. */
 GAL_API int GAL_CALL gal_ui_model_test(gal_context*,uint32_t command,const char* id,uint32_t occurrence,gal_ui_event*);
 #ifdef __cplusplus

@@ -40,10 +40,8 @@ public sealed partial class CardUi : IDisposable
 
     public void Reload()
     {
-        _ui.LoadAsset(_assets, "ui/cards.rml");
-        Draw(); // Publish staged source, then project and synchronize values.
-        Refresh();
-        Draw();
+        _ui.StageAsset(_assets, "ui/cards.rml", Game.View(File.Exists(_savePath), Message));
+        Draw(); // The ordinary frame publishes the validated source and initial model together.
     }
 
     public void Refresh() => _ui.Apply(Game.View(File.Exists(_savePath), Message));

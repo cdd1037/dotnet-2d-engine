@@ -267,7 +267,7 @@ void UiModelDocument::Attach(Rml::ElementDocument* d)
 void UiModelDocument::Publish(uint32_t g)
 {
     generation = g;
-    revision = 0;
+    // Source-only opens remain revision 0; initialized candidates already own revision 1.
     ready = false;
     first = count = overflow = 0;
     pressed = suppress_events = false;

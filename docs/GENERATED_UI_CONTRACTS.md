@@ -49,8 +49,11 @@ public sealed partial class InventoryUi
 The containing controller is partial; handlers are ordinary implemented methods.
 The generator adds private `CreateUiCommands()` and private static
 `CreateUiSchema()` helpers. It does not create a session or load/apply/render for
-the application. Keep the existing `LoadAsset` → render → `Apply` → render order,
-and explicitly drain/dispatch the current queue before applying a changed model.
+the application. Use `ui.StageAsset(assets, path, initialModel)` and the next
+ordinary engine draw to publish the copied source and model together. Check
+`Status.Pending`, `Loaded` and `Diagnostic` afterward; no hidden frame is drawn.
+Explicitly drain/dispatch the current queue before applying a changed model.
+See [initialization and replacement](UI_MODELS.md#initialization-and-replacement).
 The document path in the attribute is relative to the project and must resolve to
 exactly one `AdditionalFiles` item; it is not an `AssetRoot`-relative runtime path.
 

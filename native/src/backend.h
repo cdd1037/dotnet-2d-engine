@@ -32,5 +32,6 @@ struct BoundUiApply { const gal_bound_ui_snapshot* snapshot; const gal_bound_ui_
 struct BoundUiTest { uint32_t command; gal_bound_ui_action* value; };
 
 struct ModelUiOpen { const char* path;const char* font;const char* stylesheet;const gal_ui_data_schema* schema;uint32_t schema_count;const gal_ui_command* commands;uint32_t command_count;const char*const* images;uint32_t image_count; };
+struct ModelUiStage { ModelUiOpen source;const gal_ui_data_snapshot* snapshot;const gal_ui_data_value* values; };
 struct ModelUiApply { const gal_ui_data_snapshot* snapshot;const gal_ui_data_value* values; };
 struct ModelUiTest { uint32_t command;const char* id;uint32_t occurrence;gal_ui_event* packet; };

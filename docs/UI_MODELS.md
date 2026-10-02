@@ -20,7 +20,7 @@ nonempty record; it is exposed as `state` inside `data-model="model"`.
 
 The session freezes the schema, projection delegates and command registrations
 at construction. Later edits to those builders do not change the session.
-Delegates execute synchronously in managed code during `Apply`; keep them pure,
+Delegates execute synchronously in managed code during `StageAsset` and `Apply`; keep them pure,
 bounded and free of session re-entry. This is an explicit AOT-safe projection,
 not automatic discovery of CLR properties. The native side receives copied
 schema/value/command records and never calls managed delegates.
@@ -57,10 +57,8 @@ var schema = new UiRecord<Kit>()
 var commands = new UiCommands().Add("equip", 1, UiValueKind.Key);
 var model = new Kit();
 using var ui = new UiModelSession<Kit>(engine, schema, commands);
-ui.LoadAsset(assets, "ui/kit.rml");
-engine.Draw(camera, ReadOnlySpan<SpriteDraw>.Empty); // publish accepted source
-ui.Apply(model);
-engine.Draw(camera, ReadOnlySpan<SpriteDraw>.Empty); // synchronize model/view
+ui.StageAsset(assets, "ui/kit.rml", model); // copied candidate, no rendering
+engine.Draw(camera, ReadOnlySpan<SpriteCommand>.Empty); // publish source + initial model
 
 // In each outer update, after the ordinary engine.PollInput():
 bool changed = false;
@@ -127,7 +125,7 @@ var commands = new UiCommands()
     .On("discard", UiArgs.Key, (ulong id) => { game.Discard(id); })
     .On("rename", UiArgs.Text, (string name) => { model.Name = name; });
 using var ui = new UiModelSession<View>(engine, schema, commands);
-// After the normal LoadAsset / Draw / Apply / Draw setup:
+// After StageAsset and the next normal Draw:
 bool dispatched = false;
 for (var packet = ui.Poll(); !packet.IsEmpty; packet = ui.Poll())
     dispatched |= ui.Dispatch(packet);
@@ -244,6 +242,47 @@ accepted publication changes generation and retires old events and text state.
 Retained native state is one bounded current model plus bounded staging/event
 storage, not a history of snapshots. No managed model pointers or callbacks are
 retained by native UI; managed projection references are released on disposal.
+
+## Initialization and replacement
+
+`StageAsset(assets, path, initialModel, declaredImages: ...)` is the recommended
+first-load and replacement operation. It synchronously validates the entire
+projection, copies its values, and prepares the source, images and initial model
+in an isolated native candidate. It does not draw, poll input, select a camera,
+present a frame or retain the supplied model object.
+
+The application's next normal `EngineHost.Draw`, `DrawWithOverlay` or final
+window `RenderFrame` validates the candidate's renderer and publishes the source
+and initial model together at revision **1**. This removes the empty-model
+publication handshake. Later changes still use `Apply` followed by a normal
+frame; queue draining and game rules stay in application code.
+
+- Before the first draw: `Status.Pending` is true, `Loaded` is false, revision is 0
+- During replacement: `Pending` is true while `Loaded`, generation, revision and
+  command polling/dispatch still describe the old live document
+- `Apply` rejects a pending candidate rather than choosing a generation implicitly
+- Successful publication clears `Pending`, changes generation, establishes the
+  copied revision-1 baseline and retires the old queue, gestures and input state
+- An equal `Apply` after publication returns false with no native snapshot call;
+  warmed unchanged applies still allocate zero managed bytes
+- Model/source validation failures throw before staging. Native image/parse/update
+  failures throw during staging. Deferred candidate render rejection is reported
+  by `Status.Diagnostic` after drawing; `Pending` clears and the old live document,
+  revision, commands and renderer resources remain usable. First-load rejection
+  leaves no live document and permits retry on the same session
+- A later successful stage replaces the prior pending candidate. Managed
+  preflight failures preserve that prior candidate; native staging failures may
+  discard it. Neither case replaces the live document
+- Dispose or engine-first destruction releases current and pending sources and
+  renderer resources. Projection getters cannot re-enter any session operation
+
+`Status` only observes native state and reconciles the managed snapshot/resource
+bookkeeping after publication or rejection; it never publishes, applies or draws.
+An application must inspect status after a draw before treating a candidate as
+accepted. This is candidate-publication rollback, not a promise to roll back a
+GPU/device or presentation failure after publication, nor arbitrary later
+`Apply`/render failures. Existing source-only `LoadAsset` remains available with
+its original `LoadAsset` → draw → `Apply` → draw sequence.
 
 ### Pinned RmlUi ordering and draft hooks
 

@@ -370,16 +370,18 @@ void backend_material_release(Backend*b,uint64_t id){
 
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
- if(op==1||op==10||op==20||op==30){
-  const auto*model=op==30?static_cast<const ModelUiOpen*>(in):nullptr;
+ if(op==1||op==10||op==20||op==30||op==34){
+  const auto*initial=op==34?static_cast<const ModelUiStage*>(in):nullptr;
+  const auto*model=initial?&initial->source:op==30?static_cast<const ModelUiOpen*>(in):nullptr;
+  if(op==34&&(!initial||!initial->snapshot||!initial->values)){e="initial generic snapshot required";return false;}
   const auto*bound=op==20?static_cast<const BoundUiOpen*>(in):nullptr;
   const char*bound_paths[]={model?model->path:bound?bound->path:nullptr,model?model->font:bound?bound->font:nullptr};
-  auto paths=(op==20||op==30)?bound_paths:static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
-  if(op==30&&(!model||!model->stylesheet||!model->stylesheet[0]||!model->schema||!model->schema_count||model->schema_count>128||model->command_count>32||(model->command_count&&!model->commands))){e="generic schema/command pointers or counts invalid";return false;}
+  auto paths=(op==20||op==30||op==34)?bound_paths:static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
+  if((op==30||op==34)&&(!model||!model->stylesheet||!model->stylesheet[0]||!model->schema||!model->schema_count||model->schema_count>128||model->command_count>32||(model->command_count&&!model->commands))){e="generic schema/command pointers or counts invalid";return false;}
   const bool created=!b->ui;
   if(created){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;ui_window_state(b->ui,b->input.focused,!b->minimized);}
   if(op==20&&(!bound||!bound->targets||!bound->count||bound->count>32)){e="binding targets required (1..32)";if(created){ui_destroy(b->ui);b->ui=nullptr;}return false;}
-  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0,model?model->images:bound?bound->images:nullptr,model?model->image_count:bound?bound->image_count:0,model?model->schema:nullptr,model?model->schema_count:0,model?model->commands:nullptr,model?model->command_count:0,model?model->stylesheet:nullptr))return true;
+  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0,model?model->images:bound?bound->images:nullptr,model?model->image_count:bound?bound->image_count:0,model?model->schema:nullptr,model?model->schema_count:0,model?model->commands:nullptr,model?model->command_count:0,model?model->stylesheet:nullptr,initial?initial->snapshot:nullptr,initial?initial->values:nullptr))return true;
   if(created){ui_destroy(b->ui);b->ui=nullptr;}
   return false;
  }

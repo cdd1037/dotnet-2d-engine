@@ -327,6 +327,7 @@ int GAL_CALL gal_bound_ui_apply(gal_context*c,const gal_bound_ui_snapshot*s,cons
 int GAL_CALL gal_bound_ui_poll(gal_context*c,gal_bound_ui_action*a){return ui_call(c,22,nullptr,a);}
 int GAL_CALL gal_bound_ui_test_command(gal_context*c,uint32_t command,gal_bound_ui_action*a){BoundUiTest r{command,a};return ui_call(c,23,&r,nullptr);}
 int GAL_CALL gal_ui_model_open(gal_context*c,const char*p,const char*f,const char*css,const gal_ui_data_schema*s,uint32_t n,const gal_ui_command*commands,uint32_t nc,const char*const*images,uint32_t ni){ModelUiOpen r{p,f,css,s,n,commands,nc,images,ni};return ui_call(c,30,&r,nullptr);}
+int GAL_CALL gal_ui_model_stage(gal_context*c,const char*p,const char*f,const char*css,const gal_ui_data_schema*s,uint32_t n,const gal_ui_command*commands,uint32_t nc,const char*const*images,uint32_t ni,const gal_ui_data_snapshot*snapshot,const gal_ui_data_value*values){ModelUiStage r{{p,f,css,s,n,commands,nc,images,ni},snapshot,values};return ui_call(c,34,&r,nullptr);}
 int GAL_CALL gal_ui_model_apply(gal_context*c,const gal_ui_data_snapshot*s,const gal_ui_data_value*v){ModelUiApply r{s,v};return ui_call(c,31,&r,nullptr);}
 int GAL_CALL gal_ui_model_poll(gal_context*c,gal_ui_event*e){return ui_call(c,32,nullptr,e);}
 int GAL_CALL gal_ui_model_test(gal_context*c,uint32_t command,const char*id,uint32_t occurrence,gal_ui_event*e){ModelUiTest r{command,id,occurrence,e};return ui_call(c,33,&r,nullptr);}

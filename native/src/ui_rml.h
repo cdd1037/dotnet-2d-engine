@@ -6,7 +6,7 @@
 struct UiRml;
 UiRml* ui_create(SDL_GPUDevice*,SDL_Window*,const char*,std::string&);
 void ui_destroy(UiRml*) noexcept;
-bool ui_load(UiRml*,const char*,std::string&,bool game=false,const gal_bound_ui_target* targets=nullptr,uint32_t count=0,const char*const* images=nullptr,uint32_t image_count=0,const gal_ui_data_schema* schema=nullptr,uint32_t schema_count=0,const gal_ui_command* commands=nullptr,uint32_t command_count=0,const char* stylesheet=nullptr);
+bool ui_load(UiRml*,const char*,std::string&,bool game=false,const gal_bound_ui_target* targets=nullptr,uint32_t count=0,const char*const* images=nullptr,uint32_t image_count=0,const gal_ui_data_schema* schema=nullptr,uint32_t schema_count=0,const gal_ui_command* commands=nullptr,uint32_t command_count=0,const char* stylesheet=nullptr,const gal_ui_data_snapshot* initial=nullptr,const gal_ui_data_value* values=nullptr);
 bool ui_set_game_model(UiRml*,const gal_game_ui_model&,std::string&);
 bool ui_poll_game_action(UiRml*,gal_game_ui_action&,std::string&);
 bool ui_game_test_command(UiRml*,uint32_t,uint32_t,std::string&);

@@ -177,6 +177,7 @@ internal sealed unsafe class UiModelWriter
 internal static unsafe partial class UiModelNative
 {
     [LibraryImport("gal",EntryPoint="gal_ui_model_open",StringMarshalling=StringMarshalling.Utf8)] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Open(nint context,string path,string font,string stylesheet,ModelSchema* schema,uint schemaCount,ModelCommand* commands,uint commandCount,byte** images,uint imageCount);
+    [LibraryImport("gal",EntryPoint="gal_ui_model_stage",StringMarshalling=StringMarshalling.Utf8)] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Stage(nint context,string path,string font,string stylesheet,ModelSchema* schema,uint schemaCount,ModelCommand* commands,uint commandCount,byte** images,uint imageCount,ModelSnapshot* snapshot,ModelValue* values);
     [LibraryImport("gal",EntryPoint="gal_ui_model_apply")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Apply(nint context,ModelSnapshot* snapshot,ModelValue* values);
     [LibraryImport("gal",EntryPoint="gal_ui_model_poll")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Poll(nint context,ModelEvent* packet);
     [LibraryImport("gal",EntryPoint="gal_ui_model_test",StringMarshalling=StringMarshalling.Utf8)] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Test(nint context,uint command,string id,uint occurrence,ModelEvent* packet);

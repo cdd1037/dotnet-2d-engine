@@ -25,7 +25,7 @@ internal static unsafe class UiModelTests
         Check(sizeof(ModelSchema)==64&&sizeof(ModelCommand)==72&&sizeof(ModelValue)==288&&sizeof(ModelSnapshot)==24&&sizeof(ModelArgument)==280&&sizeof(ModelEvent)==1144,"ABI sizes");
         Check(Marshal.OffsetOf<ModelValue>(nameof(ModelValue.Text))==32&&Marshal.OffsetOf<ModelEvent>(nameof(ModelEvent.Arguments))==24,"ABI offsets");
         using var engine=new EngineHost(true,8);var schema=Schema();using var ui=new UiModelSession<Model>(engine,schema,Commands());var model=new Model();
-        Check(ui.Project(model)==13,"nested full projection");schema.Text("later",m=>"ignored");Check(ui.Project(model)==13,"schema frozen");
+        Check(!ui.IsCurrent(default),"empty packet rejected before first load");Check(!ui.IsCurrent(new(1,1,1,1,new(UiValueKind.Key,"",0,1),default,default,default)),"copied packet rejected before first load");Check(ui.Project(model)==13,"nested full projection");schema.Text("later",m=>"ignored");Check(ui.Project(model)==13,"schema frozen");
         Reject<InvalidOperationException>(()=>new UiSession(engine),"exclusive UI ownership");
         model.Items[1].Id=model.Items[0].Id;Reject<UiAuthoringException>(()=>ui.Project(model),"duplicate identity");model.Items[1].Id=9007199254740993;
         model.Items[1].Id=0;Reject<UiAuthoringException>(()=>ui.Project(model),"zero identity");model.Items[1].Id=9007199254740993;
@@ -40,7 +40,7 @@ internal static unsafe class UiModelTests
         UiModelSession<Model>? reentrant=null;
         using(var busy=reentrant=new UiModelSession<Model>(engine,new UiRecord<Model>().Text("title",m=>{reentrant!.Apply(m);return m.Title;})))Reject<InvalidOperationException>(()=>busy.Apply(new Model()),"projection reentry rejected");
         using(var busy=reentrant=new UiModelSession<Model>(engine,new UiRecord<Model>().Text("title",m=>{reentrant!.Dispose();return m.Title;}))){Reject<InvalidOperationException>(()=>busy.Apply(new Model()),"projection cannot dispose active owner");Check(!busy.IsDisposed,"reentrant disposal leaves owner alive");}
-        using(var scalar=new UiModelSession<IReadOnlyList<string>>(engine,new UiRecord<IReadOnlyList<string>>().Array("words",m=>m,UiData.Text,4))){Check(scalar.Project(new[]{"one","two"})==4,"scalar array projection");Reject<InvalidOperationException>(()=>Task.Run(()=>scalar.Apply(new[]{"one"})).GetAwaiter().GetResult(),"owning thread");}
+        using(var scalar=new UiModelSession<IReadOnlyList<string>>(engine,new UiRecord<IReadOnlyList<string>>().Array("words",m=>m,UiData.Text,4))){Check(scalar.Project(new[]{"one","two"})==4,"scalar array projection");Reject<InvalidOperationException>(()=>Task.Run(()=>scalar.Apply(new[]{"one"})).GetAwaiter().GetResult(),"owning thread");Reject<InvalidOperationException>(()=>Task.Run(()=>scalar.StageAsset(null!,"ignored",new[]{"one"})).GetAwaiter().GetResult(),"staging owning thread before asset access");}
         using var after=new UiSession(engine);Check(!after.IsDisposed,"ownership after failed schema");
         count+=UiErgonomicsTests.RunContracts();
         Console.WriteLine($"UI MODEL CONTRACT PASS assertions={count}");return count;
@@ -97,8 +97,8 @@ internal static unsafe class UiModelTests
         ui.Probe(8,"input");engine.PollInput();model.Number=99;ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"disabled ancestor retires input focus/preedit");model.Number=4;ui.Apply(model);Render();
         ui.Probe(8,"input");engine.PollInput();model.Items.Reverse();ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"identity reorder cancels preedit and focus");
 
-        ui.Dispose();count+=RunExamples(engine);count+=RunUnkeyedParent(engine);count+=UiErgonomicsTests.RunNative(engine);
-        using var late=new UiModelSession<Model>(engine,Schema(),Commands());fixture.Write(Rml);late.LoadAsset(fixture.Assets,"model.rml");Render();late.Apply(model);Render();
+        ui.Dispose();count+=RunExamples(engine);count+=RunUnkeyedParent(engine);count+=UiErgonomicsTests.RunNative(engine);count+=UiModelStagingTests.RunNative(engine);
+        using var late=new UiModelSession<Model>(engine,Schema(),Commands());fixture.Write(Rml);late.StageAsset(fixture.Assets,"model.rml",model);
         engine.Dispose();Check(late.IsDisposed,"engine-first invalidates owner");ui.Dispose();Console.WriteLine($"UI MODEL NATIVE PASS assertions={count} unchanged_bytes={allocations}");return count;
     }
     private static int RunExamples(EngineHost engine)

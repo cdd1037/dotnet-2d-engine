@@ -126,6 +126,7 @@ struct UiRml final: Rml::EventListener {
  Rml::ElementDocument* document=nullptr;Rml::ElementDocument* candidate=nullptr;
  uint32_t generation=0,serial=0;bool initialized=false;float test_density=0;
  float Density()const{return test_density>0?test_density:SDL_GetWindowDisplayScale(window);}
+ bool test_candidate_render_failure=false;
  bool game=false,pending_game=false;uint32_t game_screen=0,game_flags=0;
  bool GameAllowed(uint32_t action)const{
   switch(action){case 10:return game_screen==0;case 11:return game_screen==2;case 12:return game_screen==2&&(game_flags&1);case 13:return (game_screen==0||game_screen==2)&&(game_flags&2);case 14:case 15:return game_screen>=2;case 16:return game_screen==1;default:return false;}
@@ -154,7 +155,7 @@ struct UiRml final: Rml::EventListener {
   actions[(first+count)%actions.size()]=value;count++;
  }
  void DropCandidate(){
-  files.Drop();pending_model.reset();pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;
+  test_candidate_render_failure=false;files.Drop();pending_model.reset();pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;
   if(pending_renderer){Rml::ReleaseRenderManagers();pending_renderer->Shutdown();pending_renderer.reset();}
  }
 };
@@ -189,7 +190,7 @@ UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  if(u->system.warnings){e=u->system.diagnostic;return nullptr;}
  return u.release();
 }
-bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count,const char*const*images,uint32_t image_count,const gal_ui_data_schema*schema,uint32_t schema_count,const gal_ui_command*commands,uint32_t command_count,const char*stylesheet){
+bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count,const char*const*images,uint32_t image_count,const gal_ui_data_schema*schema,uint32_t schema_count,const gal_ui_command*commands,uint32_t command_count,const char*stylesheet,const gal_ui_data_snapshot*initial,const gal_ui_data_value*values){
  u->pending_game=game;
  u->DropCandidate();u->files.Stage(path,stylesheet);Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
  u->pending_renderer=std::make_unique<UiImageRenderer>(u->device,u->window);
@@ -202,7 +203,10 @@ bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_
  if(!u->pending_renderer->Preload(u->pending,e)){remember(u,e.c_str());u->DropCandidate();return false;}
  if(schema){u->pending_model=std::make_unique<UiModelDocument>(u->pending,
   [u](Rml::Element*element,const Rml::String&){if(u->ime.composing&&u->ime.input==element){u->ime.Cancel();u->ime.bounds_valid=false;}},
-  [u](Rml::Event&event){return !u->ime.composing||event.GetCurrentElement()!=u->ime.input||event.GetId()!=Rml::EventId::Change;});if(!u->pending_model->Configure(schema,schema_count,commands,command_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}}
+  [u](Rml::Event&event){return !u->ime.composing||event.GetCurrentElement()!=u->ime.input||event.GetId()!=Rml::EventId::Change;});if(!u->pending_model->Configure(schema,schema_count,commands,command_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}
+  // Seed only the isolated candidate before its bindings, layout or renderer run.
+  // The initial revision survives publication; no live model/queue is touched here.
+  if(initial){if(!u->pending_model->Stage(*initial,values,e)){remember(u,e.c_str());u->DropCandidate();return false;}u->pending_model->Commit();}}
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
  if(schema){if(valid)u->pending_model->Attach(u->candidate);}
@@ -353,6 +357,7 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
   SDL_GPUColorTargetInfo clear{};clear.texture=stage;clear.load_op=SDL_GPU_LOADOP_CLEAR;clear.store_op=SDL_GPU_STOREOP_STORE;
   auto*pass=SDL_BeginGPURenderPass(cmd,&clear,1,nullptr);SDL_EndGPURenderPass(pass);
   u->pending_renderer->BeginFrame(cmd,stage,w,h);u->pending->Render();u->pending_renderer->EndFrame();SDL_ReleaseGPUTexture(u->device,stage);
+  if(u->test_candidate_render_failure){u->test_candidate_render_failure=false;Rml::Log::Message(Rml::Log::LT_ERROR,"Injected candidate render failure (test probe)");}
   if(u->system.warnings){remember(u,u->system.diagnostic);u->DropCandidate();}
   else{
    if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
@@ -413,6 +418,16 @@ bool ui_apply_model(UiRml*u,const gal_ui_data_snapshot&s,const gal_ui_data_value
 }
 bool ui_poll_model(UiRml*u,gal_ui_event&v,std::string&e){if(!u->model)return fail(e,"generic UI profile required");return u->model->Poll(v,e);}
 bool ui_test_model(UiRml*u,uint32_t command,const char*id,uint32_t occurrence,gal_ui_event&v,std::string&e){
+ // Probe-only renderer ownership inspection and one-shot candidate failure injection.
+ // They do not enter the author-facing managed API or modify a published model.
+ if(command==13||command==14){
+  if(v.size!=sizeof(v)||v.generation!=u->generation)return fail(e,"stale renderer probe");
+  if(u->model){auto copy=v;if(!u->model->Test(5,id,occurrence,copy,e))return false;}
+  else if(!u->pending_model||v.revision)return fail(e,"generic candidate required");
+  if(command==14){if(!u->pending)return fail(e,"pending candidate required");u->test_candidate_render_failure=true;}
+  else v.arguments[0].number=double((u->renderer?u->renderer->FileTextureCount():0)+(u->pending_renderer?u->pending_renderer->FileTextureCount():0));
+  return true;
+ }
  if(!u->model)return fail(e,"generic UI profile required");
  if(command==8||command==9||command==12){
   if(command==12){auto copy=v;if(!u->model->Test(5,id,occurrence,copy,e))return false;}

@@ -114,9 +114,40 @@ application policy. RELAY uses the copied input frame and managed overlay entry;
 its established game-owned rule masks and historical low-level fixtures remain.
 
 
+## Stage a complete UI and name physics geometry
+
+First load and replacement now use the same explicit deferred operation:
+
+```csharp
+ui.StageAsset(assets, "ui/inventory.rml", initialModel);
+engine.Draw(camera, scene); // The normal application frame validates and publishes it.
+```
+
+This copies and validates the source **and initial model** in an isolated native
+candidate. It does not draw or introduce a loop. `Status.Pending` distinguishes a
+candidate from the still-live document; inspect status after the normal frame for
+acceptance or a deferred diagnostic. The old model, commands and renderer resources
+survive candidate rejection. See [the precise publication contract](UI_MODELS.md#initialization-and-replacement).
+Generated and handwritten schemas use the same entry; the recommended public card
+consumer now needs one stage plus one normal draw. The additive native staging
+entry requires the matching current native runtime; previous ABI records retain
+their layouts.
+
+Physics callers can describe geometry without generic `Type/A/B` fields:
+
+```csharp
+body.AddShape(PhysicsShapeDefinition.Circle(radius: .5f));
+ground.AddShape(PhysicsShapeDefinition.Box(halfWidth: 10, halfHeight: .5f));
+```
+
+Factories validate immediately, preserve meter/radian units and the existing
+material/filter defaults, and return the existing descriptor. Circle fixes its
+unused B/angle to zero; Box names both **half** extents. Explicit zero category or
+mask, signed groups and sensors keep their existing semantics. See [physics](PHYSICS.md).
+
 ## Cost and verification boundary
 
-The prepared managed package grows from **229,744 B** at `598a8b1` to
+The stages 3–4 baseline prepared managed package grew from **229,744 B** at `598a8b1` to
 **236,424 B**; its runtime DLL grows from **497,152 B** to **512,512 B**. The
 native package is reused without rebuilding or changing its renderer/input ABI.
 The draw adapter adds a linear conversion/validation pass and reusable native
@@ -129,7 +160,7 @@ bindings, focus/rebind neutral gates, prior-state identity, default/foreign toke
 failed changes, one-shot pending edges, borrowed lifetime, replacement contexts,
 empty passes, feedback rejection and batching. The native runtime currently allows
 only one live context, so replacement-context tests first dispose the old engine.
-The independent public consumer passes 59 checks in both JIT and NativeAOT,
+The stages 3–4 independent public consumer passed 59 checks in both JIT and NativeAOT,
 forbids unsafe blocks and compiles eight misuse fixtures to confirm resource kinds and numeric IDs cannot cross the safe surface.
 
 Reproduce with the prepared SDK/native package (no implicit native rebuild):
@@ -152,3 +183,43 @@ prerequisites. Use a filesystem with room for temporary runtime packs; the proof
 path is configurable. These checks establish Linux package/JIT/AOT and software
 rendering behavior, not hardware input, GPU, audio, high-DPI device or OS IME
 acceptance. No public feed publication or stable API/platform promise is added.
+
+## Initialization and shape-factory verification (2026-10-02)
+
+The stages 5–6 source and package checks passed with SDK 10.0.401/runtime 10.0.12:
+
+- Final Release build: zero warnings/errors; eight native headless CTests and
+  **11,951** aggregate managed assertions passed
+- Generic UI graphics case: **159** assertions, including **62** initialized-stage
+  checks. Those cover copied initial data, first-load failures/retry, empty arrays,
+  successive pending candidates, invalid projections and image decoding, live
+  and queued command retention, retired generations, disposal/reentrancy,
+  unchanged zero-allocation applies, source cleanup and bounded image residency
+- Candidate render rollback was checked with a one-shot fault in the existing
+  probe-only native API, plus equality of actual before/after GPU-readback pixels.
+  Real truncated-image decoding failure exercises native resource rejection
+  independently; this does not claim real GPU/device failure recovery
+- Physics: **156** contract assertions and **403** native simulation assertions,
+  including factory defaults, bounds, byte-equivalent ABI records, offsets,
+  rotated boxes, sensors, zero filters and collision groups
+- Fresh external authoring PackageReference consumer: **80** assertions in both
+  JIT and NativeAOT, eight expected misuse compilation failures, and zero warm
+  input/draw allocations
+- Fresh external generated-UI PackageReference consumer: JIT and NativeAOT pass
+  the existing pointer-routing, disabled-command, save/load, reorder/shrink and
+  pixel checks; **14** generated-contract checks include one-draw initialization,
+  failed replacement and fresh-owner stale-packet rejection. All **12** real
+  edit/rebuild cases and the packaged-runtime provenance checks pass
+
+The final proof directories were outside the checkout, with isolated package
+caches; temporary files were placed on workspace storage after `/tmp` filled
+on an earlier incomplete attempt. The corrected final proofs both pass against
+matching managed/native packages. No package identity or version scheme changed.
+Native packaging reused the already rebuilt runtime without recompiling it.
+A focused read-only review found and prompted correction of a fresh-owner stale
+packet check; the added source and public JIT/AOT regressions pass.
+
+Graphical evidence is offscreen software Vulkan on Linux x64, including an
+inspected initial-card capture. Physical GPU, real OS IME and other-platform
+acceptance remain separate gates. There is no new component runtime, controller,
+render loop, binding language or automatic physics/render synchronization.
