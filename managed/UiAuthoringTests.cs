@@ -136,12 +136,12 @@ internal static class UiAuthoringTests
         RejectStyle(string.Concat(Enumerable.Repeat("body { color: #ffffff; }", 129)), "UI_LIMIT", "rule count bounded");
         Parse(ValidRml, "button:focus { border-radius: 0dp; }\n#item-list { overflow-y: scroll; }\nbody { width: 100%; font-size: 20px; }");
         check(true, "UI safe button radius, rectangular scrolling, percentages and px supported");
-        try { Parse(ValidRml, "body {\n  colro: #ffffff;\n}"); }
-        catch (UiAuthoringException e)
-        { check(e.Line == 2 && e.Column == 3 && e.Field == "body/colro" && e.FilePath == "fixture.rcss", "UI style diagnostic has exact declaration file/line/column/field"); }
-        try { Parse(ValidRml.Replace("id=\"status\"", "id=\"status\" data-oops=\"x\"", StringComparison.Ordinal), ValidRcss); }
-        catch (UiAuthoringException e)
-        { check(e.Line == 11 && e.Field.EndsWith("p#status@data-oops", StringComparison.Ordinal), "UI markup diagnostic has exact source line and field"); }
+        var styleError = Throws(() => Parse(ValidRml, "body {\n  colro: #ffffff;\n}"), "style declaration location");
+        check(styleError.Code == "UI_PROPERTY" && styleError.Line == 2 && styleError.Column == 3 && styleError.Field == "body/colro" && styleError.FilePath == "fixture.rcss",
+            "UI style diagnostic has exact declaration file/line/column/field");
+        var markupError = Throws(() => Parse(ValidRml.Replace("id=\"status\"", "id=\"status\" data-oops=\"x\"", StringComparison.Ordinal), ValidRcss), "markup attribute location");
+        check(markupError.Code == "UI_BINDING" && markupError.Line == 11 && markupError.Field.EndsWith("p#status@data-oops", StringComparison.Ordinal),
+            "UI markup diagnostic has exact source line and field");
 
         UiSettingsContract.ValidateModel(new string('名', 32), 100, new string('x', 255), Array.Empty<string>());
         UiSettingsContract.ValidateModel(string.Concat(Enumerable.Repeat("😀", 31)), 0, "就绪", new[] { "<& literal text>" });
@@ -179,16 +179,18 @@ internal static class UiAuthoringTests
         void RejectStyle(string style, string code, string label) => Reject(() => Parse(ValidRml, style), code, label);
         void Reject(Action action, string code, string label)
         {
-            try { action(); }
-            catch (UiAuthoringException e)
-            {
-                check(e.Code == code, "UI " + label + " (" + e.Code + ")");
-                check(e.Line >= 1 && e.Column >= 1 && e.FilePath.Length > 0 && e.Field.Length > 0 && e.Cause.Length > 0,
-                    "UI structured diagnostic includes file/line/column/field/cause: " + label);
-                return;
-            }
-            check(false, "UI expected rejection: " + label);
+            UiAuthoringException e = Throws(action, label);
+            check(e.Code == code, "UI " + label + " (" + e.Code + ")");
+            check(e.Line >= 1 && e.Column >= 1 && e.FilePath.Length > 0 && e.Field.Length > 0 && e.Cause.Length > 0,
+                "UI structured diagnostic includes file/line/column/field/cause: " + label);
         }
+    }
+
+    private static UiAuthoringException Throws(Action action, string label)
+    {
+        try { action(); }
+        catch (UiAuthoringException e) { return e; }
+        throw new Exception("UI expected UiAuthoringException: " + label);
     }
 
     private static string WithoutDeclaration() => ValidRml[(ValidRml.IndexOf("?>", StringComparison.Ordinal) + 2)..];

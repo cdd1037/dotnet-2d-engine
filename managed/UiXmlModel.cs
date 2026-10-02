@@ -48,3 +48,15 @@ internal sealed class UiXmlElement(UiXmlName name, int line, int column) : UiXml
     private void AppendText(StringBuilder text) { foreach(var node in _nodes) { if(node is UiXmlText t) text.Append(t.Value); else if(node is UiXmlElement e) e.AppendText(text); } }
 }
 internal sealed class UiXmlDocument { public UiXmlElement? Root { get; internal set; } }
+
+// Shared structural predicate; each closed profile owns its allowed names and diagnostics.
+internal static class UiXmlStructure
+{
+    internal static bool HasOrderedChildren(UiXmlElement node,ReadOnlySpan<string> names)
+    {
+        int index=0;
+        foreach(var child in node.Elements())
+            if(index>=names.Length||child.Name!=names[index++])return false;
+        return index==names.Length&&node.Nodes().OfType<UiXmlText>().All(text=>string.IsNullOrWhiteSpace(text.Value));
+    }
+}

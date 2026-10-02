@@ -1,5 +1,18 @@
 # Game Authoring Lab: isolated first slice
 
+This is a **historical design note for the first slice**, not the current feature
+inventory. The ownership split and explicit ABI remain useful background, but the
+extension boundaries below describe what had not been implemented at that time.
+
+For the current independent runtime and public API, start with
+[the engine package](../engine/README.md). Subsequent slices added
+[texture regions](TEXTURE_REGIONS.md), [materials](MATERIALS.md),
+[render targets](RENDER_TARGETS.md), [audio](AUDIO.md), [physics](PHYSICS.md),
+[tilemaps](TILEMAP.md) and [typed UI bindings](UI_BINDINGS.md).
+[Testing](TESTING.md) describes which validation tier covers each boundary;
+[validation results](validation.md) distinguish source, software-rendered and
+device evidence.
+
 ## Ownership
 
 C# is the executable and owns the main thread, game loop, timing, world state, reusable sprite command storage and camera controls. C++ owns SDL initialization, window, input sampling, GPU objects, submission and audio. No native callbacks into managed code, no runtime embedding, no reflection dependency. The production Godot tree is unrelated and untouched.

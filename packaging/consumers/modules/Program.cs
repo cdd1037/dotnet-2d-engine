@@ -60,13 +60,22 @@ Check(engine.GetStats().Frames==3,"headless draw submission through packaged nat
 using var audio=engine.OpenAudio(offline:true);
 using var sounds=new AudioScope(audio);
 var pcm=sounds.LoadClip(assets,"pcm.wav");var voice=sounds.CreateVoice(pcm);
-float[] samples=new float[512];voice.Play(-1);audio.Mix(samples);
-Check(samples.All(float.IsFinite)&&samples.Where((v,i)=>Math.Abs(v-(i%2==0?.25f:-.25f))>1e-5f).Any()==false,"packaged offline mixer produces actual stereo PCM");
-var snapshot=voice.State;voice.Pause();audio.Mix(samples);
-Check(voice.State.Paused&&voice.State.Position==snapshot.Position&&samples.All(v=>v==0)&&snapshot.Playing,"voice pause and copied immutable state");
-voice.Resume();voice.SetGain(.5f);audio.SetGain(AudioGroup.Sfx,.5f);audio.SetGain(AudioGroup.Master,.5f);audio.Mix(samples);
-Check(samples.Where((v,i)=>Math.Abs(v-(i%2==0?.03125f:-.03125f))>1e-5f).Any()==false,"voice and group gains");
-voice.Stop();var stream=sounds.OpenStream(assets,"pcm.wav");stream.Play(-1);audio.Mix(samples);
+float[] samples=new float[512];
+// Keep this tiny oracle local: copied package consumers do not reference test sources.
+bool SamplesMatch(float left,float right,float tolerance=1e-5f)
+{
+    for(int i=0;i<samples.Length;i++)
+        if(!float.IsFinite(samples[i])||!(Math.Abs(samples[i]-(i%2==0?left:right))<=tolerance))return false;
+    return true;
+}
+void Mix(){Array.Fill(samples,float.NaN);audio.Mix(samples);}
+voice.Play(-1);Mix();
+Check(SamplesMatch(.25f,-.25f),"packaged offline mixer produces actual stereo PCM");
+var snapshot=voice.State;voice.Pause();Mix();
+Check(voice.State.Paused&&voice.State.Position==snapshot.Position&&SamplesMatch(0,0,0)&&snapshot.Playing,"voice pause and copied immutable state");
+voice.Resume();voice.SetGain(.5f);audio.SetGain(AudioGroup.Sfx,.5f);audio.SetGain(AudioGroup.Master,.5f);Mix();
+Check(SamplesMatch(.03125f,-.03125f),"voice and group gains");
+voice.Stop();var stream=sounds.OpenStream(assets,"pcm.wav");stream.Play(-1);Mix();
 Check(stream.State.Streaming&&stream.State.Position>0,"public reusable file stream");stream.Stop();
 
 Reject<ArgumentNullException>(()=>new AudioScope(null!),"null audio owner");

@@ -251,8 +251,7 @@ internal static class BoundUiAuthoring
         && value.All(c => c is >= '0' and <= '9') && int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int number)
         && number >= min && number <= max;
     private static void RequireChildren(UiXmlElement node, string[] names, string file) =>
-        Require(node.Elements().Select(child => child.Name.ToString()).SequenceEqual(names)
-            && node.Nodes().OfType<UiXmlText>().All(t => string.IsNullOrWhiteSpace(t.Value)),
+        Require(UiXmlStructure.HasOrderedChildren(node, names),
             "UI_STRUCTURE", file, node, "Expected only ordered children: " + string.Join(", ", names) + ".");
     private static void CheckText(string text, int maxBytes, int maxScalars, string file, UiXmlObject node)
     {

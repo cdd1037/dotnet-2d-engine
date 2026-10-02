@@ -364,8 +364,7 @@ internal static class UiAuthoring
 
     private static void RequireChildren(UiXmlElement e, string[] names, string file)
     {
-        if (!e.Elements().Select(child => child.Name.ToString()).SequenceEqual(names) ||
-            e.Nodes().OfType<UiXmlText>().Any(t => !string.IsNullOrWhiteSpace(t.Value)))
+        if (!UiXmlStructure.HasOrderedChildren(e, names))
             throw NodeError("UI_STRUCTURE", file, e, "Expected only ordered children: " + string.Join(", ", names) + ".");
     }
     private static UiXmlAttribute RequireAttribute(UiXmlElement e, string name, string? value, string file, string code = "UI_VALUE")

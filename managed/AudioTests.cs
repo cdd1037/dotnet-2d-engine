@@ -10,9 +10,38 @@ internal static unsafe class AudioTests
         foreach(float bad in new[]{float.NaN,float.PositiveInfinity,-.01f,1.01f})Reject<ArgumentOutOfRangeException>(()=>AudioSession.ValidateGain(bad));
         Reject<ArgumentOutOfRangeException>(()=>AudioSession.ValidateGroup((AudioGroup)3,true));
         Reject<ArgumentOutOfRangeException>(()=>AudioSession.ValidateGroup(AudioGroup.Master,false));
-        var assets=new AssetRoot();Check(File.Exists(AudioSession.ResolveAudio(assets,"audio/pcm.wav")),"asset-root WAV path");
-        Reject<AssetException>(()=>AudioSession.ResolveAudio(assets,"../secret.wav"));
-        Reject<AssetException>(()=>AudioSession.ResolveAudio(assets,"regions.bmp"));
+        Check(SamplesMatch([.25f,-.25f,.25f,-.25f],.25f,-.25f),"PCM oracle accepts exact stereo");
+        Check(SamplesMatch([.250001f,-.250001f],.25f,-.25f),"PCM oracle accepts finite tolerance");
+        Check(SamplesMatch([0,0],0,0,0),"PCM oracle accepts exact silence");
+        Check(!SamplesMatch([.000001f,0],0,0,0),"PCM oracle preserves exact silence where required");
+        foreach(float bad in new[]{float.NaN,float.PositiveInfinity,float.NegativeInfinity})
+        {
+            Check(!SamplesMatch([bad,-.25f],.25f,-.25f),"PCM oracle rejects nonfinite left channel");
+            Check(!SamplesMatch([.25f,bad],.25f,-.25f),"PCM oracle rejects nonfinite right channel");
+        }
+        Check(!SamplesMatch([float.NaN,float.NaN],0,0),"PCM oracle rejects unwritten silence");
+        Check(!SamplesMatch([.25f,-.25f,float.NaN,float.NaN],.25f,-.25f),"PCM oracle rejects partially written output");
+        Check(!SamplesMatch([.25f,-.2f],.25f,-.25f),"PCM oracle rejects incorrect finite samples");
+        Check(!SamplesMatch([],0,0)&&!SamplesMatch([0],0,0),"PCM oracle requires complete stereo frames");
+        string temporary=Path.Combine(Path.GetTempPath(),"gal-audio-contract-"+Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(temporary,"audio"));
+        try
+        {
+            string pcm=Path.Combine(temporary,"audio","pcm.wav");
+            // A single 16-bit stereo frame, independent of optional ffmpeg/Vorbis fixtures.
+            using(var writer=new BinaryWriter(File.Create(pcm)))
+            {
+                writer.Write("RIFF"u8);writer.Write(40);writer.Write("WAVEfmt "u8);writer.Write(16);
+                writer.Write((short)1);writer.Write((short)2);writer.Write(48000);writer.Write(192000);writer.Write((short)4);writer.Write((short)16);
+                writer.Write("data"u8);writer.Write(4);writer.Write((short)8192);writer.Write((short)-8192);
+            }
+            File.WriteAllText(Path.Combine(temporary,"not-audio.bmp"),"unsupported audio extension");
+            var assets=new AssetRoot(temporary);
+            Check(AudioSession.ResolveAudio(assets,"audio/pcm.wav")==pcm&&new FileInfo(pcm).Length==48,"asset-root WAV path");
+            Reject<AssetException>(()=>AudioSession.ResolveAudio(assets,"../secret.wav"));
+            Reject<AssetException>(()=>AudioSession.ResolveAudio(assets,"not-audio.bmp"));
+        }
+        finally{Directory.Delete(temporary,true);}
         Console.WriteLine($"AUDIO CONTRACT PASS assertions={n}; CPU validation only");return n;
     }
     public static int RunOffline()
@@ -25,35 +54,37 @@ internal static unsafe class AudioTests
         var clip=audio.LoadClip(root,"audio/pcm.wav");ulong staleClip=clip.Handle;
         using var voice=audio.CreateVoice(clip);Check(!voice.State.Playing,"new voice starts stopped");
         Check(audio.State is {Clips:1,Voices:1,DecodedBytes:16384},"bounded retained PCM accounting");
-        bool Samples(float left,float right)=>buffer.Where((v,i)=>Math.Abs(v-(i%2==0?left:right))>1e-5f).Any()==false;
-        Array.Fill(buffer,float.NaN);Check(audio.Mix(buffer)==0&&Samples(0,0),"idle fills all output with silence");
-        voice.Play();Check(audio.Mix(buffer)==256&&Samples(.25f,-.25f),"decoded WAV samples mixed exactly");
+        bool Samples(float left,float right)=>SamplesMatch(buffer,left,right);
+        // Poison each checked output so a partial or skipped write cannot pass on old samples.
+        uint Mix(float[] output){Array.Fill(output,float.NaN);return audio.Mix(output);}
+        Check(Mix(buffer)==0&&Samples(0,0),"idle fills all output with silence");
+        voice.Play();Check(Mix(buffer)==256&&Samples(.25f,-.25f),"decoded WAV samples mixed exactly");
         long position=voice.State.Position;voice.Pause();Check(voice.State.Paused,"pause state");
-        Check(audio.Mix(buffer)==0&&Samples(0,0)&&voice.State.Position==position,"pause is silence without advancing");
-        voice.Resume();Check(audio.Mix(buffer)==256&&Samples(.25f,-.25f)&&voice.State.Position>position,"resume continues position");
+        Check(Mix(buffer)==0&&Samples(0,0)&&voice.State.Position==position,"pause is silence without advancing");
+        voice.Resume();Check(Mix(buffer)==256&&Samples(.25f,-.25f)&&voice.State.Position>position,"resume continues position");
         voice.SetGain(.5f);audio.SetGain(AudioGroup.Sfx,.5f);audio.SetGain(AudioGroup.Master,.5f);
-        voice.Play(-1);audio.Mix(buffer);Check(Samples(.03125f,-.03125f),"voice x group x master gain");
-        audio.SetGain(AudioGroup.Music,0);audio.Mix(buffer);Check(Samples(.03125f,-.03125f),"music gain does not mute SFX");
-        audio.SetGain(AudioGroup.Sfx,0);audio.Mix(buffer);Check(Samples(0,0)&&voice.State.Playing,"mute does not stop voice");
+        voice.Play(-1);Mix(buffer);Check(Samples(.03125f,-.03125f),"voice x group x master gain");
+        audio.SetGain(AudioGroup.Music,0);Mix(buffer);Check(Samples(.03125f,-.03125f),"music gain does not mute SFX");
+        audio.SetGain(AudioGroup.Sfx,0);Mix(buffer);Check(Samples(0,0)&&voice.State.Playing,"mute does not stop voice");
         voice.Stop();Check(!voice.State.Playing&&!voice.State.Paused,"stop clears playing/paused");
         audio.SetGain(AudioGroup.Sfx,1);audio.SetGain(AudioGroup.Master,1);voice.SetGain(1);
-        voice.Play(1);var full=new float[2048*2*3];Check(audio.Mix(full)==4096,"one extra loop produces two complete clips");
-        Check(full.Take(8192).Where((v,i)=>Math.Abs(v-(i%2==0?.25f:-.25f))>1e-5f).Any()==false&&full.Skip(8192).All(v=>v==0),"finite loop tail padded with silence");
+        voice.Play(1);var full=new float[2048*2*3];Check(Mix(full)==4096,"one extra loop produces two complete clips");
+        Check(SamplesMatch(full.AsSpan(0,8192),.25f,-.25f)&&SamplesMatch(full.AsSpan(8192),0,0,0),"finite loop tail padded with silence");
         Check(!voice.State.Playing,"finite loops reach stopped state");
-        voice.Play(-1);Check(audio.Mix(full)==6144&&voice.State.Playing,"infinite loop advances across multiple clip durations");voice.Stop();
+        voice.Play(-1);Check(Mix(full)==6144&&voice.State.Playing,"infinite loop advances across multiple clip durations");voice.Stop();
         clip.Dispose();Check(audio.State.Clips==1,"disposed owner keeps attached clip resident");
-        voice.Play();audio.Mix(buffer);Check(Samples(.25f,-.25f),"attached voice can replay after clip-owner disposal");voice.Stop();
+        voice.Play();Mix(buffer);Check(Samples(.25f,-.25f),"attached voice can replay after clip-owner disposal");voice.Stop();
         Reject<ObjectDisposedException>(()=>audio.CreateVoice(clip),"disposed clip cannot create voice");
         voice.Dispose();Check(audio.State is {Clips:0,Voices:0,DecodedBytes:0},"final voice releases retained clip PCM");
         using(var scope=new AudioScope(audio))
         {
             var ogg=scope.LoadClip(root,"audio/music.ogg");var decoded=scope.CreateVoice(ogg,AudioGroup.Music);
-            audio.SetGain(AudioGroup.Music,1);decoded.Play();audio.Mix(full);
+            audio.SetGain(AudioGroup.Music,1);decoded.Play();Mix(full);
             Check(full.All(float.IsFinite)&&full.Any(v=>Math.Abs(v)>.01f),"bundled Vorbis decoded to actual PCM");decoded.Stop();
-            var stream=scope.OpenStream(root,"audio/music.ogg");stream.Play(-1);audio.Mix(full);
-            Check(stream.State.Streaming&&stream.State.Position>0&&full.Any(v=>Math.Abs(v)>.01f),"seekable Ogg file stream actually mixed");
-            stream.Pause();long at=stream.State.Position;audio.Mix(buffer);Check(Samples(0,0)&&stream.State.Position==at,"stream pause preserves cursor");
-            stream.Resume();audio.Mix(buffer);Check(stream.State.Position>at,"stream resumes");stream.Stop();stream.Play();audio.Mix(buffer);Check(stream.State.Position<at,"stream replay seeks to start");
+            var stream=scope.OpenStream(root,"audio/music.ogg");stream.Play(-1);Mix(full);
+            Check(stream.State.Streaming&&stream.State.Position>0&&full.All(float.IsFinite)&&full.Any(v=>Math.Abs(v)>.01f),"seekable Ogg file stream actually mixed");
+            stream.Pause();long at=stream.State.Position;Mix(buffer);Check(Samples(0,0)&&stream.State.Position==at,"stream pause preserves cursor");
+            stream.Resume();Mix(buffer);Check(stream.State.Position>at,"stream resumes");stream.Stop();stream.Play();Mix(buffer);Check(stream.State.Position<at,"stream replay seeks to start");
         }
         Check(audio.State is {Clips:0,Voices:0,DecodedBytes:0},"scene scope stops voices and closes streams before releasing clips");
         using(var persistentClip=audio.LoadClip(root,"audio/pcm.wav"))using(var persistentVoice=audio.CreateVoice(persistentClip))
@@ -66,7 +97,7 @@ internal static unsafe class AudioTests
                 var cue=scope.CreateVoice(scope.LoadClip(root,"audio/cue.wav"));cue.Play(-1);
                 world.UnloadScene(scene);
                 Check(audio.State is {Clips:1,Voices:1}&&persistentVoice.State.Playing,"scene unload releases only its audio scope, preserving independent voice");
-                audio.Mix(buffer);Check(Samples(.25f,-.25f),"scene unload leaves no stale audible voice");
+                Mix(buffer);Check(Samples(.25f,-.25f),"scene unload leaves no stale audible voice");
             }
         }
         Reject<InvalidOperationException>(()=>engine.OpenAudio(true),"one session per context");
@@ -100,7 +131,7 @@ internal static unsafe class AudioTests
                 writer.Write("data"u8);writer.Write(bytes);file.SetLength(44L+bytes);
             }
             Reject<AssetException>(()=>audio.LoadClip(local,"decoded-limit.wav"),"bounded incremental PCM decode");
-            using(var c=audio.LoadClip(root,"audio/pcm.wav"))using(var v=audio.CreateVoice(c)){v.Play();audio.Mix(buffer);Check(Samples(.25f,-.25f),"failure leaves prior mixer usable");}
+            using(var c=audio.LoadClip(root,"audio/pcm.wav"))using(var v=audio.CreateVoice(c)){v.Play();Mix(buffer);Check(Samples(.25f,-.25f),"failure leaves prior mixer usable");}
             if(OperatingSystem.IsLinux())
             {
                 File.CreateSymbolicLink(Path.Combine(temporary,"linked.wav"),root.Resolve("audio/pcm.wav"));
@@ -109,7 +140,7 @@ internal static unsafe class AudioTests
             // An open stream owns its file descriptor, not a future path lookup.
             File.Copy(root.Resolve("audio/pcm.wav"),Path.Combine(temporary,"retained.wav"));
             using(var v=audio.OpenStream(local,"retained.wav",AudioGroup.Sfx))
-            {if(OperatingSystem.IsLinux())File.Move(Path.Combine(temporary,"retained.wav"),Path.Combine(temporary,"renamed.wav"));v.Play();audio.Mix(buffer);Check(Samples(.25f,-.25f),"open stream retains independent cursor (rename tested on Linux)");}
+            {if(OperatingSystem.IsLinux())File.Move(Path.Combine(temporary,"retained.wav"),Path.Combine(temporary,"renamed.wav"));v.Play();Mix(buffer);Check(Samples(.25f,-.25f),"open stream retains independent cursor (rename tested on Linux)");}
         }
         finally{Directory.Delete(temporary,true);}
         var raw=new AudioConfig {Size=16,Version=99,Flags=1};Check(AudioNative.Open(engine.NativeContext,&raw)!=0,"native bad version rejected");
@@ -147,6 +178,14 @@ internal static unsafe class AudioTests
             Check(nextClip.Handle!=staleClip&&AudioNative.CreateVoice(nextEngine.NativeContext,staleClip,AudioGroup.Sfx,&foreign)!=0,"clip handles cannot cross destroyed contexts");
         }
         Console.WriteLine($"AUDIO OFFLINE PASS assertions={n}; actual SDL_mixer PCM, no physical output or latency measurement");return n;
+    }
+    // Test-only oracle; keep finite checks explicit instead of negating a > comparison (NaN).
+    private static bool SamplesMatch(ReadOnlySpan<float> samples,float left,float right,float tolerance=1e-5f)
+    {
+        if(samples.IsEmpty||samples.Length%2!=0)return false;
+        for(int i=0;i<samples.Length;i++)
+            if(!float.IsFinite(samples[i])||!(Math.Abs(samples[i]-(i%2==0?left:right))<=tolerance))return false;
+        return true;
     }
     private sealed class AudioOwnerBehavior : IBehavior { public void Update(Entity entity,float deltaSeconds){} }
     public static int RunDevice()

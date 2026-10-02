@@ -6,10 +6,30 @@ internal static unsafe class GameUiTests
     {
         int count=0;void Check(bool ok,string label){if(!ok)throw new Exception("GAME UI: "+label);count++;}
         var source=GameUiAuthoring.ValidateFiles(GameUiSession.SourcePath);Check(source.Rml.Contains("game-start",StringComparison.Ordinal),"fixed game profile accepted");
-        void Reject(string rml,string css)
+        UiAuthoringException Reject(string rml,string css)
         {
-            try{GameUiAuthoring.Validate(Encoding.UTF8.GetBytes(rml),Encoding.UTF8.GetBytes(css));}catch(UiAuthoringException){count++;return;}
+            try{GameUiAuthoring.Validate(Encoding.UTF8.GetBytes(rml),Encoding.UTF8.GetBytes(css));}catch(UiAuthoringException e){count++;return e;}
             throw new Exception("Invalid game profile accepted");
+        }
+        // Match exact names before Element(name) lookups: namespace variants must produce
+        // a source diagnostic, never a NullReferenceException from a missing head/body.
+        foreach(string tag in new[]{"head","body","title","link"})
+        {
+            string field=tag is "head" or "body"?"rml":"head";
+            foreach(string markup in new[]{
+                source.Rml.Replace("<"+tag,"<"+tag+" xmlns=\"urn:unsupported\"",StringComparison.Ordinal),
+                source.Rml.Replace("<"+tag,"<u:"+tag+" xmlns:u=\"urn:unsupported\"",StringComparison.Ordinal)
+                    .Replace("</"+tag+">","</u:"+tag+">",StringComparison.Ordinal)})
+            {
+                var error=Reject(markup,source.Rcss);
+                Check(error.Code=="GAME_UI_PROFILE"&&error.FilePath=="game.rml"&&error.Line>0&&error.Column>0&&error.Field==field,
+                    "namespaced "+tag+" has structured profile diagnostic");
+            }
+        }
+        foreach(string tag in new[]{"rml","head"})
+        {
+            var error=Reject(source.Rml.Replace("<"+tag+">","<"+tag+">unexpected text",StringComparison.Ordinal),source.Rcss);
+            Check(error.Code=="GAME_UI_PROFILE"&&error.Field==tag,"container text keeps profile diagnostic");
         }
         Reject(source.Rml.Replace("game-start","unknown",StringComparison.Ordinal),source.Rcss);
         Reject(source.Rml.Replace("game-start","game-resume",StringComparison.Ordinal),source.Rcss);

@@ -32,9 +32,9 @@ internal static class GameUiAuthoring
         var root=UiAuthoring.ParseXml(markup,file).Root??throw Error(file,null,"Missing root.");
         void Require(bool condition,UiXmlElement node,string cause){if(!condition)throw Error(file,node,cause);}
         Require(root.Name=="rml",root,"Expected rml root.");
-        Require(root.Elements().Select(n=>n.Name.LocalName).SequenceEqual(new[]{"head","body"}),root,"Expected head and body.");
+        Require(UiXmlStructure.HasOrderedChildren(root,["head","body"]),root,"Expected head and body.");
         var head=root.Element("head")!;var body=root.Element("body")!;
-        Require(head.Elements().Select(n=>n.Name.LocalName).SequenceEqual(new[]{"title","link"}),head,"Expected title and sibling stylesheet link.");
+        Require(UiXmlStructure.HasOrderedChildren(head,["title","link"]),head,"Expected title and sibling stylesheet link.");
         var seen=new HashSet<string>(StringComparer.Ordinal);
         foreach(var node in root.DescendantsAndSelf())
         {

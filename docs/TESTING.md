@@ -33,6 +33,11 @@ Quick/JIT use `--no-restore` and never install dependencies automatically. The
 optional local sibling SDK fallback is a workspace convenience, not a dependency
 included in a checkout.
 
+The CPU audio contract creates its own tiny WAV in a temporary directory. It does
+not require generated `assets/audio` files, ffmpeg or an enabled mixer. The optional
+`--audio-offline-test` integration still requires its prepared PCM/cue/Ogg fixtures
+and the mixer-enabled native build described in [Audio](AUDIO.md).
+
 The AOT tier deliberately does not republish. Publish the current tree first with
 an appropriate NativeAOT toolchain, for example:
 
@@ -104,6 +109,12 @@ a milestone. Reuse that evidence for documentation-only cleanup. Large XML
 validation differential/fuzz corpora, size ablations and deep benchmarks remain
 opt-in research, outside default development and CI commands. No automatic CI
 schedule is introduced.
+
+The retained `tests/xml-differential/Compare.csproj` explicitly links the asset-root
+types used by the current validator. It remains an opt-in historical comparison,
+including its mutation corpus and allocation measurement, rather than part of the
+daily test tier. A JIT build can use `-p:PublishAot=false` when only checking that
+the research harness still compiles; that does not establish a fresh AOT result.
 
 Raw evidence is generated locally and ignored by Git. Keep concise results,
 versions, caveats and source identity in [validation](validation.md); historical
