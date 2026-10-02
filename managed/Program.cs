@@ -38,6 +38,7 @@ internal static class Program
             if(args.Contains("--binding-demo",StringComparer.Ordinal))return BoundUiDemo.Run(options.Frames);
             if(args.Contains("--ui-owner-test",StringComparer.Ordinal)){UiTextTests.RunContracts();return 0;}
             if(args.Contains("--ui-text-test",StringComparer.Ordinal)){UiTextTests.RunComposition();return 0;}
+            if(args.Contains("--tilemap-edit-graphics-test",StringComparer.Ordinal))return TileMapEditingGraphics.Run();
             if(args.Contains("--tilemap-clip-demo",StringComparer.Ordinal)||args.Contains("--tilemap-clip-scenario",StringComparer.Ordinal))return TileMapDemo.Run(options.Headless,options.Frames,args.Contains("--tilemap-clip-scenario",StringComparer.Ordinal),false,true);
             if(args.Contains("--tilemap-demo",StringComparer.Ordinal)||args.Contains("--tilemap-scenario",StringComparer.Ordinal)||args.Contains("--tilemap-physics-demo",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal))return TileMapDemo.Run(options.Headless,options.Frames,args.Contains("--tilemap-scenario",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal),args.Contains("--tilemap-physics-demo",StringComparer.Ordinal)||args.Contains("--tilemap-physics-scenario",StringComparer.Ordinal));
             if(args.Contains("--movement-self-test",StringComparer.Ordinal)){TileMovementTests.RunContracts();return 0;}
@@ -224,6 +225,7 @@ internal static class Program
         Console.WriteLine("UI bindings: --binding-demo | --binding-self-test | --binding-native-test");
         Console.WriteLine("Tile movement: --movement-demo | --movement-scenario | --movement-self-test | --movement-physics-test");
         Console.WriteLine("TileMap: --tilemap-demo | --tilemap-scenario | --tilemap-physics-demo | --tilemap-physics-scenario | --tilemap-self-test | --tilemap-physics-test");
+        Console.WriteLine("TileMap runtime editing: --tilemap-edit-graphics-test (three captured frames)");
         Console.WriteLine("Animation: --animation-demo | --animation-scenario [--headless] | --animation-self-test");
         Console.WriteLine("Camera follow: --camera-self-test");
         Console.WriteLine("Physics: --physics-demo | --physics-scenario | --physics-contract-test | --physics-self-test (real solver)");
@@ -257,6 +259,7 @@ internal static class Program
                     case "--diagnostics-self-test": case "--diagnostics-demo": case "--diagnostics-scenario":break;
                     case "--material-self-test": case "--material-graphics-test": case "--material-demo":break;
                     case "--movement-demo": case "--movement-scenario": case "--movement-self-test": case "--movement-physics-test":break;
+                    case "--tilemap-edit-graphics-test":break;
                     case "--target-self-test": case "--target-graphics-test": case "--target-demo":break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;

@@ -32,6 +32,8 @@ public sealed class TileLayerRecord
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int[]? Flips { get; init; }
 }
 public readonly record struct TileDefinition(string AssetKey, bool Solid);
+/// <summary>One cell replacement. LayerIndex indexes the instance's sorted Map.Layers; zero TileId clears a cell.</summary>
+public readonly record struct TileCellEdit(int LayerIndex, int X, int Y, int TileId, int Flip = 0);
 public sealed class TileLayer
 {
     private readonly int[] _cells;
@@ -41,9 +43,11 @@ public sealed class TileLayer
     public int Order { get; }
     public float Opacity { get; }
     internal TileLayer(TileLayerRecord source, int width, int height)
+        : this(source.Name, source.Order, source.Opacity, (int[])source.Cells.Clone(),
+            source.Flips is null ? new byte[source.Cells.Length] : Array.ConvertAll(source.Flips,static value=>(byte)value), width, height) { }
+    private TileLayer(string name, int order, float opacity, int[] cells, byte[] flips, int width, int height)
     {
-        Name = source.Name; Order = source.Order; Opacity = source.Opacity;
-        _cells = (int[])source.Cells.Clone(); _flips = source.Flips is null ? new byte[_cells.Length] : Array.ConvertAll(source.Flips,static value=>(byte)value);
+        Name = name; Order = order; Opacity = opacity; _cells = cells; _flips = flips;
         int chunksWide = (width + TileMap.ChunkSize - 1) / TileMap.ChunkSize;
         _chunks = new bool[chunksWide * ((height + TileMap.ChunkSize - 1) / TileMap.ChunkSize)];
         for (int y=0;y<height;y++) for (int x=0;x<width;x++)
@@ -52,6 +56,15 @@ public sealed class TileLayer
     public int Cell(int index) => _cells[index];
     public byte Flip(int index) => _flips[index];
     internal bool ChunkOccupied(int index) => _chunks[index];
+    internal TileLayer WithCells(ReadOnlySpan<TileCellEdit> edits, int layerIndex, int width, int height)
+    {
+        var cells = (int[])_cells.Clone(); var flips = (byte[])_flips.Clone();
+        foreach (var edit in edits) if (edit.LayerIndex == layerIndex)
+        {
+            int index = edit.Y * width + edit.X; cells[index] = edit.TileId; flips[index] = (byte)edit.Flip;
+        }
+        return new(Name, Order, Opacity, cells, flips, width, height);
+    }
 }
 /// <summary>Copied immutable orthogonal grid. Runtime chunks and native handles never enter the source document.</summary>
 public sealed class TileMap
@@ -76,9 +89,44 @@ public sealed class TileMap
         // Explicit source index tie-breaker, independent of sorting implementation stability.
         _layers = source.Layers.Select((layer,index)=>(Layer:new TileLayer(layer,Width,Height),Index:index))
             .OrderBy(pair=>pair.Layer.Order).ThenBy(pair=>pair.Index).Select(pair=>pair.Layer).ToArray();
+        _assetKeys = FindUsedKeys();
+    }
+    private TileMap(TileMap source, TileLayer[] layers)
+    {
+        Name = source.Name; Width = source.Width; Height = source.Height; TileWidth = source.TileWidth; TileHeight = source.TileHeight;
+        _tiles = source._tiles; _layers = layers; _assetKeys = FindUsedKeys();
+    }
+    private string[] FindUsedKeys()
+    {
         var used = new HashSet<string>(StringComparer.Ordinal);
         foreach (var layer in _layers) for(int i=0;i<Width*Height;i++) if(layer.Cell(i)!=0) used.Add(_tiles[layer.Cell(i)].AssetKey);
-        _assetKeys = used.Order(StringComparer.Ordinal).ToArray();
+        return used.Order(StringComparer.Ordinal).ToArray();
+    }
+    internal string[] PaletteAssetKeys() => _tiles.Where(static tile => tile.AssetKey is not null)
+        .Select(static tile => tile.AssetKey).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+    internal bool IsSolid(int index)
+    {
+        foreach (var layer in _layers) if (layer.Cell(index) != 0 && _tiles[layer.Cell(index)].Solid) return true;
+        return false;
+    }
+    internal TileMap WithCells(ReadOnlySpan<TileCellEdit> edits)
+    {
+        // Validate the entire bounded batch before copying any layer or touching native state.
+        var targets = new HashSet<int>(); int changedLayers = 0;
+        foreach (var edit in edits)
+        {
+            if ((uint)edit.LayerIndex >= (uint)_layers.Length) throw new ArgumentOutOfRangeException(nameof(edits), "Invalid layer index in cell edit.");
+            if ((uint)edit.X >= (uint)Width || (uint)edit.Y >= (uint)Height) throw new ArgumentOutOfRangeException(nameof(edits), "Cell edit is outside this fixed grid.");
+            if (edit.TileId != 0) _ = Tile(edit.TileId);
+            if (edit.Flip is < 0 or > 3 || (edit.TileId == 0 && edit.Flip != 0)) throw new ArgumentOutOfRangeException(nameof(edits), "Only X=1/Y=2 flip bits on nonempty cells are supported.");
+            int index = edit.Y * Width + edit.X;
+            if (!targets.Add(edit.LayerIndex * Width * Height + index)) throw new ArgumentException("Each target cell may occur only once in a batch.", nameof(edits));
+            if (_layers[edit.LayerIndex].Cell(index) != edit.TileId || _layers[edit.LayerIndex].Flip(index) != edit.Flip) changedLayers |= 1 << edit.LayerIndex;
+        }
+        if (changedLayers == 0) return this;
+        var layers = (TileLayer[])_layers.Clone();
+        for (int i = 0; i < layers.Length; i++) if ((changedLayers & (1 << i)) != 0) layers[i] = layers[i].WithCells(edits, i, Width, Height);
+        return new(this, layers);
     }
 }
 public sealed class LoadedTileMap

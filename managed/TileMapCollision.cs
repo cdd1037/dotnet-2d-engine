@@ -50,12 +50,13 @@ internal sealed class TileCollisionPlan
 }
 public sealed class TileMapCollision : IDisposable
 {
-    private readonly PhysicsScope _scope;
-    private readonly TileCollisionPlan _plan;
-    private readonly ulong[] _shapeIds;
+    private readonly PhysicsWorld _world;
+    private PhysicsScope _scope;
+    private TileCollisionPlan _plan;
+    private ulong[] _shapeIds;
     public bool IsDisposed { get; private set; }
     public ReadOnlySpan<TileRectangle> Rectangles=>_plan.Rectangles;
-    private TileMapCollision(PhysicsScope scope,TileCollisionPlan plan,ulong[] shapes) { _scope=scope; _plan=plan; _shapeIds=shapes; }
+    private TileMapCollision(PhysicsWorld world,PhysicsScope scope,TileCollisionPlan plan,ulong[] shapes) { _world=world; _scope=scope; _plan=plan; _shapeIds=shapes; }
     internal static TileMapCollision Create(PhysicsWorld world,TileCollisionPlan plan)
     {
         var state=world.State; int count=plan.Rectangles.Length;
@@ -64,9 +65,20 @@ public sealed class TileMapCollision : IDisposable
         try
         {
             for(int i=0;i<count;i++) { var body=scope.CreateBody(plan.Body(i)); ids[i]=body.AddShape(plan.Shape(i)).Id; }
-            return new(scope,plan,ids);
+            return new(world,scope,plan,ids);
         }
         catch { scope.Dispose(); throw; } // Rollback retires shapes until the caller's next explicit physics step.
+    }
+    internal void Replace(TileCollisionPlan plan)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed,this);
+        // Keep every old body alive while validating and allocating the full candidate.
+        // Create includes old live bodies and retired identities in its headroom check.
+        var replacement=Create(_world,plan);
+        // These exclusively owned handles are valid on this same thread. Release
+        // reserves no body/shape slots and invokes no user callbacks or gameplay step.
+        _scope.Dispose();
+        _scope=replacement._scope; _plan=replacement._plan; _shapeIds=replacement._shapeIds;
     }
     public bool TryGetRectangle(ulong shapeId,out TileRectangle rectangle)
     {

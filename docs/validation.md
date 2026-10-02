@@ -1072,3 +1072,63 @@ dependency, callback graph, queue, blending or property-track system. No fresh
 NativeAOT, rendered animation scenario, hardware/device or package matrix was run
 for this managed-only change; the preceding combined SVG/camera AOT evidence
 remains historical evidence for that earlier tree.
+
+## Transactional runtime TileMap cell editing (2026-10-02)
+
+Verified against `4e0f7ff` plus this managed-only edit implementation. The new
+`TileMapInstance.CreateEditable` factory retains the fixed palette's textures;
+`SetCells` applies at most 4,096 distinct cell replacements atomically, publishing
+immutable per-instance snapshots and synchronously replacing attached collision
+when the multilayer solid union changes. Read-only construction keeps its prior
+used-keys-only residency. See [the full contract](TILEMAP.md).
+
+- Final Release/JIT: **11,546 assertions**, zero warnings/errors, existing native
+  **7/7 CTest** passed. One final aggregate invocation reported **11 s** on this
+  runner; the current native graph recompiled no native objects. This is one
+  measured invocation, not a benchmark
+- TileMap CPU: **1,282 assertions**, including **101 new edit checks**. Coverage
+  includes sorted layer indexing, two editable instances and loaded-asset/snapshot
+  isolation, shared untouched layers, copied caller edits, chunk empty/refill on
+  both axes, row-major culling, all invalid batch fields, repeated targets,
+  4,096/4,097 bounds, no-op identity, thread/lifetime guards and scene cleanup
+- Distinct-file residency checks prove editable setup retains a previously unused
+  palette texture, read-only setup does not, edits perform no loads/releases,
+  resident data survives source deletion, nonpalette resources stay unretained,
+  and failure to prepare an unused palette texture leaves existing leases usable
+- Real Box2D TileMap suite: **243 assertions**, including **44 edit checks**.
+  Immediate ray/AABB results and the original collision wrapper follow replacement;
+  old IDs stop resolving, borrowed rectangle snapshots survive, unchanged solid
+  unions preserve IDs, opacity-zero layers participate, and non-unit placement,
+  meter scale and filtering remain coherent
+- Body and live-plus-retired shape limits explicitly require **old + candidate**
+  headroom. Failures preserve the old Map, queries and world state before native
+  mutation. Tests cover retry after releasing body space or explicitly stepping,
+  128/129 collision rectangles, oversized physics geometry, empty/refill, scene
+  unload, and closed/reopened physics worlds. No implicit step occurs
+- A separate ordinary executable references the rebuilt public
+  `Dotnet2D.Engine.dll` and passes **16** editing/physics/ownership checks, without
+  linked runtime source or the friend assembly identity. It is a public-DLL
+  reachability test, not a repeated NuGet package matrix
+- The new software-Vulkan edit fixture passes **341 managed assertions** and
+  **54 actual-pixel assertions** across three readbacks: add/remove/replace,
+  previously unused palette entries, X/Y/XY flips, both 15/16 chunk boundaries,
+  unchanged sibling pixels and exact full-frame restore. All three were visually
+  inspected
+- Existing five-frame map and 180-step physics scenarios pass their **18 pixel
+  checks**. Final ball Y is **14.60007 m**, the expected generated floor remains,
+  and both scenarios finish with zero live textures/bodies. Initial/final physics
+  readbacks were also visually inspected
+- Warmed extraction after editing remains **zero managed bytes** across 1,000
+  iterations; existing warmed allocation contracts remain green. Edit planning,
+  immutable copies and collision construction intentionally allocate setup data
+
+Logs, captures and source/binary hashes are under `evidence/tilemap-edit/`; the
+initial focused CPU/physics logs are under `evidence/tilemap-editing/`. The external
+consumer's first rerun lacked the runner's writable `DOTNET_CLI_HOME` and stopped
+before compilation; repeating with the existing local CLI home passed.
+Native allocation-failure rollback is not fault-injected; any shapes created
+before such a failure can remain retired until the caller's next explicit step.
+Process-level out-of-memory recovery is not guaranteed. The change adds no native
+ABI, JSON schema/root, dependency, terrain/tileset tooling or save integration.
+No fresh AOT, package matrix, hardware/device or cross-platform result is claimed;
+the earlier SVG/camera AOT evidence remains historical for that earlier tree.

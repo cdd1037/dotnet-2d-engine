@@ -17,7 +17,7 @@ Every entry point prints elapsed wall time and its exit status.
 | Animation/tween/timer edit | `scripts/test.sh quick animation` | Default plus timing, bounded frame events/clip switching, lifetime, atlas residency and warmed-allocation checks |
 | Camera follow edit | `scripts/test.sh quick camera` | Default plus pure managed framing, half-life/clock, zoom/bounds and numeric/allocation contracts |
 | Tile movement sample edit | `scripts/test.sh quick movement` | Input/clock boundaries; follow with `--movement-physics-test` on the Box2D build and the [rendered scenario](TILE_MOVEMENT.md) when movement changes |
-| TileMap data/culling edit | `scripts/test.sh quick tilemap` | Default plus strict sourcegen data, chunk order/culling, lifetime, CPU collision plans and warmed allocations |
+| TileMap data/culling edit | `scripts/test.sh quick tilemap` | Default plus strict sourcegen data, atomic cell edits/residency, chunk order/culling, lifetime, CPU collision plans and warmed allocations |
 | Feature batch | `scripts/test.sh jit` | Native contracts, compile, complete JIT self-test |
 | Interop/trimming/serialization/publish change | `AOT_APP=/absolute/path/to/fresh/app scripts/test.sh aot` | Native contracts and full self-test of the explicitly selected NativeAOT binary |
 | Renderer change | `scripts/test.sh graphics` | Existing software Vulkan pixel checks, requires prepared SDL/ICD environment |
@@ -232,3 +232,17 @@ with the inherited SDL performance-counter clock. This is software-rendered inpu
 integration, not a physical device or real OS IME test. Its optional target is
 excluded from the default build and CTest so CPU-only contracts stay independent
 of fonts, assets and graphics setup.
+
+## Runtime TileMap edits
+
+The existing `quick tilemap` focus includes opt-in cell-edit validation, immutable
+snapshot isolation, full-palette residency, chunk refresh and cleanup. Run
+`--tilemap-physics-test` against the Box2D native build for atomic collision
+replacement, multilayer union, body/live-plus-retired shape headroom and explicit
+step/retry behavior. With the prepared software Vulkan build,
+`--tilemap-edit-graphics-test` writes three captures to
+`GAL_TILEMAP_EDIT_CAPTURE_DIR`; check them with
+`scripts/validate-tilemap-edit-pixels.py`. The captures cover add/remove/replace,
+X/Y/XY flips, 15/16 chunk boundaries, unchanged sibling instances and exact restore.
+This managed-only API adds neither ABI nor serialization roots; one final JIT
+aggregate is sufficient for the batch, with no repeated full AOT/package matrix.

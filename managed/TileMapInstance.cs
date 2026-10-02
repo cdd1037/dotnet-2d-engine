@@ -24,23 +24,60 @@ public readonly record struct TileView(double X, double Y, double Width, double 
         return viewport.IsValid ? new(camera.X,camera.Y,viewport.PixelWidth/(double)camera.Zoom,viewport.PixelHeight/(double)camera.Zoom) : default;
     }
 }
-/// <summary>Immutable placement; owns texture leases and optional generated static collision.</summary>
+/// <summary>Immutable placement; owns texture leases and optional generated static collision. Cell editing is explicit opt-in.</summary>
 public sealed class TileMapInstance : IDisposable
 {
+    public const int MaximumCellEdits = 4096;
     private readonly EngineHost _engine;
     private readonly TextureBank _bank;
     private readonly Func<string,TextureBinding> _resolver;
     private TileMapCollision? _collision;
-    public TileMap Map { get; }
+    private PhysicsScale _collisionScale;
+    private float _collisionFriction;
+    private ulong _collisionCategory, _collisionMask;
+    /// <summary>Current immutable snapshot. Previously retrieved snapshots remain unchanged by later edits.</summary>
+    public TileMap Map { get; private set; }
     public TileMapPlacement Placement { get; }
     public bool IsDisposed { get; private set; }
+    public bool IsEditable { get; }
     public TileMapInstance(EngineHost engine,LoadedTileMap asset,TileMapPlacement placement)
+        : this(engine,asset,placement,false) { }
+    /// <summary>Retains every palette texture up front so later bounded edits perform no texture loads.</summary>
+    public static TileMapInstance CreateEditable(EngineHost engine,LoadedTileMap asset,TileMapPlacement placement)
+        => new(engine,asset,placement,true);
+    private TileMapInstance(EngineHost engine,LoadedTileMap asset,TileMapPlacement placement,bool editable)
     {
         ArgumentNullException.ThrowIfNull(engine); ArgumentNullException.ThrowIfNull(asset); engine.AssertAlive(); placement.Validate(asset.Map);
-        _engine=engine; Map=asset.Map; Placement=placement; _bank=new(engine,asset.Catalog,Map.AssetKeys); _resolver=_bank.ResolveRegion;
+        _engine=engine; Map=asset.Map; Placement=placement; IsEditable=editable;
+        _bank=new(engine,asset.Catalog,editable?Map.PaletteAssetKeys():Map.AssetKeys); _resolver=_bank.ResolveRegion;
         try { _bank.Sync(new World()); } catch { _bank.Dispose(); throw; }
     }
     private void CheckAccess() { _engine.AssertAlive(); ObjectDisposedException.ThrowIf(IsDisposed,this); }
+    /// <summary>Atomically replace up to MaximumCellEdits distinct cells. Attached solid collision is rebuilt before committing the snapshot; no implicit physics step.</summary>
+    public void SetCells(ReadOnlySpan<TileCellEdit> edits)
+    {
+        CheckAccess();
+        if(!IsEditable) throw new InvalidOperationException("Cell edits require TileMapInstance.CreateEditable so every palette texture is resident.");
+        if(edits.Length>MaximumCellEdits) throw new ArgumentOutOfRangeException(nameof(edits),$"A batch supports at most {MaximumCellEdits} cell edits.");
+        if(edits.IsEmpty) return;
+        var candidate=Map.WithCells(edits);
+        if(ReferenceEquals(candidate,Map)) return;
+        if(_collision is not null && !_collision.IsDisposed)
+        {
+            bool changed=false;
+            foreach(var edit in edits)
+            {
+                int index=edit.Y*Map.Width+edit.X;
+                if(Map.IsSolid(index)!=candidate.IsSolid(index)) { changed=true; break; }
+            }
+            if(changed)
+            {
+                var plan=TileCollisionPlan.Create(candidate,Placement,_collisionScale,_collisionFriction,_collisionCategory,_collisionMask);
+                _collision.Replace(plan);
+            }
+        }
+        Map=candidate;
+    }
     public bool TryWorldToCell(Vector2 world,out int x,out int y)
     {
         CheckAccess(); x=y=0;
@@ -100,7 +137,9 @@ public sealed class TileMapInstance : IDisposable
         if(world.Context!=_engine.NativeContext) throw new InvalidOperationException("Tile collision must belong to this instance's engine context.");
         if(_collision is not null && !_collision.IsDisposed) throw new InvalidOperationException("This tile map already has collision.");
         var plan=TileCollisionPlan.Create(Map,Placement,scale,friction,category,mask);
-        return _collision=TileMapCollision.Create(world,plan);
+        var collision=TileMapCollision.Create(world,plan);
+        _collisionScale=scale; _collisionFriction=friction; _collisionCategory=category; _collisionMask=mask;
+        return _collision=collision;
     }
     public void Dispose()
     {

@@ -8,7 +8,9 @@ scene loading and BoundUiSession<T>. Dispose owners on their creating thread.
 Clipping, diagnostics, materials and render targets also have public experimental
 APIs; their runtime behavior is tested separately from the small package consumers.
 Audio, physics, frame animation/tween/timers and bounded TileMap entry points are
-also public. Audio/physics expose immutable copied state views; native-backed
+also public. `TileMapInstance.CreateEditable` enables bounded transactional cell
+edits over immutable map snapshots with synchronous collision replacement.
+Audio/physics expose immutable copied state views; native-backed
 wrappers come from owner factories, never arbitrary-handle constructors. The
 sample/test executable, raw interop, probes, source-generation contexts and
 collision planning helpers remain internal or outside this library. This is an

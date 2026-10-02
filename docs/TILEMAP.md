@@ -37,8 +37,9 @@ also include line/byte-column information.
 The returned `LoadedTileMap.Source` is an authoring DTO. `Map` privately copies
 cells/flags/palette/layer metadata, and `Catalog` copies resource mappings. Editing
 that DTO cannot mutate a live instance. Revalidate and create a candidate instance
-to adopt changes; there is no automatic reload, per-cell editing API or runtime
-map snapshot integration in this batch. Existing game progress saves are unchanged.
+to adopt structural changes. Opt-in runtime cell edits are described below; they
+do not rewrite the source DTO or JSON. There is no automatic reload or save
+integration. Existing game progress saves are unchanged.
 
 ## Placement, extraction and lifetime
 
@@ -61,8 +62,10 @@ move the map. Rotation, shear, nonuniform scale, parent transforms and implicit
 entity synchronization are outside this initial orthogonal contract. Floating
 render coordinates retain normal large-coordinate precision limits.
 
-An instance owns a `TextureBank` retaining only resource keys used by its cells,
-including temporarily invisible cells. Aliases/maps share the engine's cache.
+The ordinary read-only constructor owns a `TextureBank` retaining only resource
+keys used by its initial cells, including temporarily invisible cells. The
+explicit editable factory retains every palette texture instead. Aliases/maps
+share the engine's cache.
 Constructor resource failure rolls back candidate leases. Residency does not
 change while panning. Instance `Dispose` releases optional collision first, then
 texture leases; it is idempotent and safe after engine/world closure on the owning
@@ -90,7 +93,7 @@ appending, never silently truncated. The existing native limit remains 65,536
 sprites; choosing a larger source grid does not bypass it. An extraction failure
 after mutation clears the incomplete batch; never submit a rejected extraction.
 Warmed extraction/append/sort allocate no managed memory; first-time buffer growth,
-asset load and collision planning are setup allocations.
+asset load, cell-edit transactions and collision planning are setup allocations.
 
 `TileView` is a half-open world-pixel visibility rectangle. Camera X/Y is the
 upper-left; view extent uses framebuffer dimensions divided by zoom, not logical
@@ -100,6 +103,74 @@ view. Invalid camera/rect values reject explicitly. `TryWorldToCell` similarly u
 half-open bounds and returns false outside the map. A partially visible tile stays
 a complete quad: this is visibility culling, **not world scissoring**. The actual
 framebuffer clips the rendered quad.
+
+## Opt-in runtime cell edits
+
+```csharp
+var editable = TileMapInstance.CreateEditable(engine, asset, new(64, 64));
+TileMap previous = editable.Map; // immutable snapshot, safe to retain
+editable.SetCells([
+    new TileCellEdit(LayerIndex: 0, X: 15, Y: 4, TileId: 2, Flip: 1),
+    new TileCellEdit(LayerIndex: 0, X: 16, Y: 4, TileId: 0)
+]);
+```
+
+The existing constructor remains read-only and `SetCells` rejects on it.
+`CreateEditable` explicitly retains **all resource keys referenced by the fixed
+palette**, including tiles absent from the initial grid. Missing, invalid or
+unloadable unused palette textures therefore fail during editable construction,
+with candidate leases rolled back. Existing read-only instances still retain
+only used keys. Editing never acquires textures, opens files or expands the
+palette; all palette leases last until instance disposal. Unreferenced resource
+records outside the palette are not retained.
+
+`SetCells(ReadOnlySpan<TileCellEdit>)` synchronously accepts at most
+`TileMapInstance.MaximumCellEdits` (**4,096**) replacements. `LayerIndex` addresses
+the instance's sorted `Map.Layers`, not the original DTO array: numeric order,
+then source order for ties. Coordinates are zero-based grid cells. IDs must be
+zero (clear) or an existing palette ID; `Flip` is 0..3 and must be zero for a
+cleared cell. Repeating a target layer/X/Y, even with the same value, is rejected.
+Invalid layer/coordinates/ID/flags, an oversized batch, or collision failure
+reject the entire batch. There is no clipping, partial success or last-write-wins.
+
+Dimensions, tile sizes, layer names/order/opacity, palette and placement stay
+fixed. A successful edit publishes a new immutable `Map` snapshot: touched layers
+are copied and their 16×16 occupancy chunks recomputed; untouched layers and the
+immutable palette are shared. The loaded asset, other instances, old snapshots
+and authored arrays remain unchanged. `Map.AssetKeys` reflects keys used by that
+snapshot, while the instance's residency still includes the entire palette.
+Empty batches and edits that already match leave the snapshot unchanged. Edits
+obey the engine's creating-thread/lifetime checks, and are bounded setup work,
+not a zero-allocation per-frame operation. Extraction after editing retains the
+existing warmed zero-allocation contract.
+
+If collision is attached, an edit that changes the **union of solid cells across
+all layers** first plans and allocates a complete replacement with the original
+scale/friction/category/mask. Only then are the old owned bodies released and
+the visual snapshot committed. All old bodies and shapes count during candidate
+preflight: enough capacity for **old + new** bodies and **live + retired + new**
+shape identities is required, even if the final replacement alone would fit.
+Rectangle and physics-unit bounds still apply. Validation, capacity and candidate
+native-creation rejection keep the old visual and collision state usable. As with
+other physics operations, recovery from process-level out-of-memory failure is
+not guaranteed. Allocation rollback may retire candidate shape IDs;
+retired counts are not promised to remain unchanged after native creation starts.
+No hidden physics step is used to reclaim identities or advance gameplay.
+
+The originally returned `TileMapCollision` wrapper remains valid after successful
+edits: its current rectangles and `TryGetRectangle` lookup change to the new
+shapes. Replaced shape IDs stop resolving through it immediately; a previously
+borrowed rectangle span remains a snapshot of the old plan. Previously copied
+physics events may still contain old identities, and replacement may produce
+normal contact-end/begin events on the next explicit step. Callers must not treat
+an old hit or contact as a current collision lookup. Edits with an unchanged solid
+union (flips, non-solid visuals, solid-to-solid changes, or transferring a solid
+cell between layers in one batch) preserve shape IDs and consume no collision
+headroom. Dispose the collision explicitly if it is no longer wanted; later edits
+then affect visuals only until it is attached again.
+
+This API does not resize grids, edit palettes/layers, regenerate terrain, animate
+tiles, navigate, serialize runtime snapshots or introduce asynchronous work.
 
 ## Optional static collision
 
@@ -143,7 +214,8 @@ mutation; the native allocation-failure rollback branch is not fault-injected he
 The instance owns its collision object. Early collision disposal is allowed; a
 later attachment may need an explicit step to reclaim retired slots. Unloading the
 owning scene releases both collision and textures while independent bodies survive.
-Placement is immutable so the static collision cannot silently lag a moved visual.
+Placement is immutable; editable cell transactions keep generated collision
+coherent with the committed solid union.
 Ray/AABB queries retain the physics module's existing closest-ray/broad-phase
 semantics. This does not add navigation, terrain rules, one-way platforms, character
 controllers, tile animation or external editor/import formats.
@@ -162,6 +234,9 @@ GAL_TILEMAP_CAPTURE_DIR="$PWD/evidence/tilemap/visual-jit" \
 GAL_TILEMAP_CAPTURE_DIR="$PWD/evidence/tilemap/physics-visual-jit" \
   dotnet managed/bin/Release/net10.0/GameAuthoringLab.dll --tilemap-physics-scenario --frames 180
 python3 scripts/validate-tilemap-pixels.py evidence/tilemap/visual-jit evidence/tilemap/physics-visual-jit
+GAL_TILEMAP_EDIT_CAPTURE_DIR="$PWD/evidence/tilemap-edit/visual-jit" \
+  dotnet managed/bin/Release/net10.0/GameAuthoringLab.dll --tilemap-edit-graphics-test
+python3 scripts/validate-tilemap-edit-pixels.py evidence/tilemap-edit/visual-jit
 ```
 
 Use an installed `dotnet` or the explicit SDK path from the other test commands.
@@ -172,6 +247,7 @@ entries are validated placeholders. This sample is a grid/camera/physics fixture
 not a character controller. Source data reuses existing `regions.bmp`; no new
 binary asset, codec, font or external dependency is added.
 
-Because this batch adds a source-generation root, its boundary includes a fresh
-NativeAOT publish and focused source/culling/physics/pixel checks; see
-[validation](validation.md) for actual results and platform limits.
+The original TileMap batch added a source-generation root and included a fresh
+NativeAOT publication. Runtime cell editing is pure managed code over existing
+JSON/interop contracts and adds no new serialization root; its focused JIT,
+physics and pixel evidence is recorded separately in [validation](validation.md).

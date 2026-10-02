@@ -12,7 +12,7 @@ internal static class TileMapTests
     };
     public static int Run()
     {
-        int count=0;
+        int count=TileMapEditingTests.Run();
         void Check(bool ok,string label) { if(!ok) throw new InvalidOperationException("TILEMAP: "+label); count++; }
         void Reject<T>(Action action,string label) where T:Exception { try { action(); } catch(T) { count++;return; } throw new InvalidOperationException("TILEMAP accepted: "+label); }
         var root=new AssetRoot(); string path=root.FilePath("basics.tilemap.json"),json=File.ReadAllText(path);
@@ -153,7 +153,7 @@ internal static class TileMapTests
 
     public static int RunPhysics()
     {
-        int count=0; void Check(bool ok,string label){if(!ok)throw new InvalidOperationException("TILE PHYSICS: "+label);count++;}
+        int count=TileMapEditingTests.RunPhysics(); void Check(bool ok,string label){if(!ok)throw new InvalidOperationException("TILE PHYSICS: "+label);count++;}
         void Reject(Action action,string label){try{action();}catch(InvalidOperationException){count++;return;}throw new InvalidOperationException("TILE PHYSICS accepted: "+label);}
         var loaded=TileMapAsset.LoadAsset(new AssetRoot(),"basics.tilemap.json");
         using var engine=new EngineHost(true,4096); using var physics=engine.OpenPhysics(); using var map=new TileMapInstance(engine,loaded,new(64,64));
