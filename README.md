@@ -76,10 +76,19 @@ See [world model](managed/WORLD.md), [dependency checklist](docs/dependencies.md
 
 RmlUi 6.3 settings prototype: `docs/UI_PROTOTYPE.md`. Build flag `GAL_ENABLE_RMLUI` is off by default. Bilingual text, scrolling, C# events/model updates and JIT/NativeAOT are tested with software Vulkan; real IME and other-platform acceptance remain open. RML/RCSS are RmlUi-specific formats. Other UI choices and a future Blazor/engine-self-hosted/hybrid editor remain alternatives.
 
-The [typed binding/list profile](docs/UI_BINDINGS.md) adds explicit C# projections,
-plain text/boolean/integer values and stable-ID dynamic lists with guarded copied
-actions. Run `scripts/test.sh quick bindings` or use `--binding-demo` in the UI
-build for the interactive inventory fixture.
+For new UI, prefer [generic C# UI models](docs/UI_MODELS.md): `UiModelSession<T>`
+copies explicit scalar/record/array projections into ordinary nested RML views and
+returns typed commands. C# owns state; exact 64-bit keys survive RML expressions,
+and stale revisions/retargeted gestures are rejected. No reflection, runtime
+JavaScript or component runtime is required. Try `--model-ui-demo` for inventory
+cards, dialogue and grouped settings; `--model-ui-self-test` and
+`--model-ui-native-test` are the focused validation entry points. The guide records
+remaining validation and physical-GPU/real-IME limits.
+
+The [legacy typed binding/list profile](docs/UI_BINDINGS.md) remains a separate
+implementation sharing renderer/staging/resource ownership, not a wrapper over
+the new bridge. Run `scripts/test.sh quick bindings` or `--binding-demo` for its
+plain-value and bounded stable-ID-list contracts.
 
 Combined gameplay/menu and lifecycle experiments: [findings and run instructions](docs/GAMEPLAY_UI_LIFECYCLE.md).
 

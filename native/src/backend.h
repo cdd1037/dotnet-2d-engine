@@ -1,6 +1,7 @@
 #pragma once
 #include "gal.h"
 #include "gal_ui.h"
+#include "gal_ui_model.h"
 #include <string>
 struct Vertex { float x,y,u,v,r,g,b,a; };
 struct DrawRun { uint64_t texture; uint32_t first,count; gal_clip_rect clip; uint64_t material; float parameters[8]; };
@@ -29,3 +30,7 @@ bool backend_ui(Backend*,int,const void*,void*,std::string&);
 struct BoundUiOpen { const char* path; const char* font; const gal_bound_ui_target* targets; uint32_t count; const char*const* images=nullptr; uint32_t image_count=0; };
 struct BoundUiApply { const gal_bound_ui_snapshot* snapshot; const gal_bound_ui_value* values; const gal_bound_ui_row* rows; };
 struct BoundUiTest { uint32_t command; gal_bound_ui_action* value; };
+
+struct ModelUiOpen { const char* path;const char* font;const char* stylesheet;const gal_ui_data_schema* schema;uint32_t schema_count;const gal_ui_command* commands;uint32_t command_count;const char*const* images;uint32_t image_count; };
+struct ModelUiApply { const gal_ui_data_snapshot* snapshot;const gal_ui_data_value* values; };
+struct ModelUiTest { uint32_t command;const char* id;uint32_t occurrence;gal_ui_event* packet; };

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head>
+    <title>Expedition preferences</title>
+    <link type="text/rcss" href="model-settings.rcss" />
+  </head>
+  <body data-model="model">
+    <div id="settings-panel" class="panel">
+      <div class="eyebrow">03 / MAKE IT YOURS</div>
+      <h1>Expedition preferences</h1>
+      <div class="settings-layout">
+        <div class="profile">
+          <h2>Explorer profile</h2>
+          <label for="player-name">Display name</label>
+          <input id="player-name" type="text" maxlength="48" data-attr-value="state.profile.name" data-event-change="rename(ev.value)" />
+          <label for="volume">Master volume <span id="volume-value">{{state.profile.volume}}</span></label>
+          <input id="volume" type="range" min="0" max="100" step="1" data-attr-value="state.profile.volume" data-event-change="volume(ev.value * 1)" />
+          <div class="hint-row"><input id="hints" type="checkbox" data-attrif-checked="state.profile.hints" data-event-change="hints(!state.profile.hints)" /><label for="hints">Show journey hints</label></div>
+          <p class="profile-note">Changes are commands. Your C# model decides which values to keep.</p>
+        </div>
+        <div id="settings-groups" class="groups">
+          <div id="settings-group" class="group" data-for="group : state.groups">
+            <h2 id="group-title">{{group.title}}</h2><p class="group-description">{{group.description}}</p>
+            <div id="settings-option" class="option" data-for="option : group.options">
+              <div class="option-copy"><span id="option-label">{{option.label}}</span><span class="option-weight">Priority {{option.weight}}</span></div>
+              <input id="option-toggle" class="toggle" type="checkbox" data-attrif-checked="option.enabled" data-event-change="option(option.id, !option.enabled)" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><p id="settings-status">{{state.status}}</p><button id="next-example" data-event-click="next()">Back to inventory</button></div>
+    </div>
+  </body>
+</rml>

@@ -37,6 +37,7 @@ internal static unsafe class SelfTests
         _assertions += TileMovementTests.RunContracts();
         _assertions += UiTextTests.RunContracts();
         _assertions += BoundUiTests.RunContracts();
+        _assertions += UiModelTests.RunContracts();
         _assertions += ClippingTests.Run();
         _assertions += DiagnosticsTests.Run();
         _assertions += MaterialTests.Run();

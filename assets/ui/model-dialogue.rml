@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head>
+    <title>A conversation at the waystation</title>
+    <link type="text/rcss" href="model-dialogue.rcss" />
+  </head>
+  <body data-model="model">
+    <div id="dialogue-panel" class="panel">
+      <div class="eyebrow">02 / AT THE WAYSTATION</div>
+      <h1 id="dialogue-scene">{{state.scene}}</h1>
+      <div class="conversation">
+        <div class="speaker"><div class="portrait">M</div><h2 id="dialogue-speaker">{{state.conversation.speaker.name}}</h2><p class="role">{{state.conversation.speaker.role}}</p></div>
+        <div class="message"><p id="dialogue-message">{{state.conversation.message.body}}</p><p id="dialogue-aside" class="aside" data-if="state.conversation.message.show_aside">{{state.conversation.message.aside}}</p></div>
+      </div>
+      <h2 class="choice-heading">YOUR RESPONSE</h2>
+      <div id="dialogue-choices" class="choices">
+        <button id="choice" class="choice" data-for="choice : state.choices" data-attrif-disabled="!choice.available" data-event-click="choose(choice.id, choice.text)">
+          <span class="choice-marker">&#x203A;</span><span id="choice-label">{{choice.text}}</span><span class="choice-note">{{choice.note}}</span>
+        </button>
+      </div>
+      <div class="footer"><p id="dialogue-status">{{state.status}}</p><button id="next-example" data-event-click="next()">Next: settings</button></div>
+    </div>
+  </body>
+</rml>

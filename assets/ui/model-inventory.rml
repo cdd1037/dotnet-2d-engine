@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml>
+  <head>
+    <title>Expedition inventory</title>
+    <link type="text/rcss" href="model-inventory.rcss" />
+  </head>
+  <body data-model="model">
+    <div id="inventory-panel" class="panel">
+      <div class="eyebrow">01 / EXPEDITION KIT</div>
+      <h1 id="inventory-title">{{state.title}}</h1>
+      <p class="intro">Choose what comes with you. Every card is an authored subtree.</p>
+      <div id="inventory-items" class="cards">
+        <div id="inventory-card" class="card" data-for="item : state.items" data-class-equipped="item.equipped">
+          <div class="card-art"><img id="item-image" data-attr-src="item.card.image" width="48" height="48" /></div>
+          <div class="card-copy">
+            <div class="card-heading"><h2 id="item-title">{{item.card.title}}</h2><span id="item-badge" class="badge">{{item.card.badge}}</span></div>
+            <p class="description">{{item.card.description}}</p>
+            <div class="card-meta"><span>Stock {{item.quantity}}</span><span class="equipped-tag" data-if="item.equipped">IN YOUR KIT</span></div>
+            <div class="card-actions">
+              <button id="equip" data-event-click="equip(item.id)">{{item.equipped ? 'Unequip' : 'Equip'}}</button>
+              <button id="drop" class="secondary" data-event-click="drop(item.id)">Drop</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><p id="inventory-status">{{state.status}}</p><button id="next-example" class="next" data-event-click="next()">Next: dialogue</button></div>
+    </div>
+  </body>
+</rml>

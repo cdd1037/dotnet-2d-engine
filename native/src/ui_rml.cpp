@@ -1,5 +1,7 @@
 #include "ui_rml.h"
 #include "ui_bound.h"
+#include "ui_model.h"
+#include "ui_file_gate.h"
 #include "text_input_geometry.h"
 #include "RmlUi_Platform_SDL.h"
 #include "ui_image_renderer.h"
@@ -117,7 +119,9 @@ struct UiRml final: Rml::EventListener {
  SDL_GPUDevice* device;SDL_Window* window;UiSystem system;
  std::unique_ptr<UiImageRenderer> renderer,pending_renderer;
  UiIme ime;
+ UiFileGate files;
  std::unique_ptr<UiBoundDocument> bound,pending_bound;
+ std::unique_ptr<UiModelDocument> model,pending_model;
  Rml::Context* current=nullptr;Rml::Context* pending=nullptr;
  Rml::ElementDocument* document=nullptr;Rml::ElementDocument* candidate=nullptr;
  uint32_t generation=0,serial=0;bool initialized=false;float test_density=0;
@@ -150,7 +154,7 @@ struct UiRml final: Rml::EventListener {
   actions[(first+count)%actions.size()]=value;count++;
  }
  void DropCandidate(){
-  pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;
+  files.Drop();pending_model.reset();pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;
   if(pending_renderer){Rml::ReleaseRenderManagers();pending_renderer->Shutdown();pending_renderer.reset();}
  }
 };
@@ -160,18 +164,18 @@ void ui_destroy(UiRml*u) noexcept {
  if(!u)return;
  try {
   u->ime.Cancel(false);u->system.DeactivateKeyboard();discard_queued_text(u->window);
-  u->bound.reset();u->pending_bound.reset();
+  u->model.reset();u->pending_model.reset();u->bound.reset();u->pending_bound.reset();
   if(u->initialized)Rml::Shutdown();
   if(u->pending_renderer){u->pending_renderer->Shutdown();u->pending_renderer.reset();}
   if(u->renderer){u->renderer->Shutdown();u->renderer.reset();}
-  Rml::SetTextInputHandler(nullptr);Rml::SetSystemInterface(nullptr);Rml::SetRenderInterface(nullptr);
+  Rml::SetTextInputHandler(nullptr);Rml::SetFileInterface(nullptr);Rml::SetSystemInterface(nullptr);Rml::SetRenderInterface(nullptr);
   SDL_WaitForGPUIdle(u->device);
  }catch(...){/* No exception crosses destruction boundary. */}
  delete u;
 }
 UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  std::unique_ptr<UiRml,decltype(&ui_destroy)> u(new UiRml(d,w),ui_destroy);
- Rml::SetSystemInterface(&u->system);
+ Rml::SetSystemInterface(&u->system);Rml::SetFileInterface(&u->files);
  // Explicit per-document interfaces keep upstream texture/cache ownership bounded.
  Rml::SetRenderInterface(nullptr);Rml::SetTextInputHandler(&u->ime);
 #ifdef GAL_ENABLE_SVG
@@ -185,9 +189,9 @@ UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  if(u->system.warnings){e=u->system.diagnostic;return nullptr;}
  return u.release();
 }
-bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count,const char*const*images,uint32_t image_count){
+bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count,const char*const*images,uint32_t image_count,const gal_ui_data_schema*schema,uint32_t schema_count,const gal_ui_command*commands,uint32_t command_count,const char*stylesheet){
  u->pending_game=game;
- u->DropCandidate();Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
+ u->DropCandidate();u->files.Stage(path,stylesheet);Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
  u->pending_renderer=std::make_unique<UiImageRenderer>(u->device,u->window);
  if(u->system.warnings){e=u->system.diagnostic;u->DropCandidate();return false;}
  if(!u->pending_renderer->StageImages(path,images,image_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}
@@ -196,9 +200,11 @@ bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_
  if(!u->pending){u->DropCandidate();return fail(e,"could not create staging context");}
  u->pending->SetDensityIndependentPixelRatio(u->Density());
  if(!u->pending_renderer->Preload(u->pending,e)){remember(u,e.c_str());u->DropCandidate();return false;}
+ if(schema){u->pending_model=std::make_unique<UiModelDocument>(u->pending);if(!u->pending_model->Configure(schema,schema_count,commands,command_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}}
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
- if(targets){
+ if(schema){if(valid)u->pending_model->Attach(u->candidate);}
+ else if(targets){
   if(valid){u->pending_bound=std::make_unique<UiBoundDocument>(u->candidate);valid=u->pending_bound->Configure(targets,count,e);}
  }else if(game){
   for(const char*id:{"game-panel","game-title","game-objective","game-status","game-time","game-actions","hud","hud-objective","hud-status","hud-time"})if(!u->candidate||!u->candidate->GetElementById(id))valid=false;
@@ -219,7 +225,7 @@ bool ui_valid_utf8(const char*text,size_t cap,size_t max_scalars){
  return true;
 }
 bool ui_set_model(UiRml*u,const gal_ui_model&m,std::string&e){
- if(u->bound||u->game||!u->document||m.generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
+ if(u->model||u->bound||u->game||!u->document||m.generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
  if(m.reserved||m.volume<0||m.volume>100||!ui_valid_utf8(m.name,sizeof(m.name),32)||!ui_valid_utf8(m.status,sizeof(m.status),255))return fail(e,"invalid UI model fields/UTF8");
  auto*name=dynamic_cast<Rml::ElementFormControlInput*>(u->document->GetElementById("player-name"));
  auto*volume=dynamic_cast<Rml::ElementFormControlInput*>(u->document->GetElementById("volume"));
@@ -259,7 +265,7 @@ bool ui_game_test_command(UiRml*u,uint32_t generation,uint32_t command,std::stri
  else {element->DispatchEvent("click",{});}
  return true;
 }
-void ui_state(UiRml*u,gal_ui_state&s){s={sizeof(s),u->generation,u->document?1u:0u,u->pending?1u:0u,u->bound?u->bound->Count():u->count,u->bound?u->bound->Overflow():u->overflow,ui_keyboard_focus(u)?1u:0u,u->document&&!u->game&&!u->bound?u->document->GetElementById("item-list")->GetScrollTop():0,{}};std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->bound&&u->bound->Diagnostic()[0]?u->bound->Diagnostic():u->diagnostic);}
+void ui_state(UiRml*u,gal_ui_state&s){s={sizeof(s),u->generation,u->document?1u:0u,u->pending?1u:0u,u->model?u->model->Count():u->bound?u->bound->Count():u->count,u->model?u->model->Overflow():u->bound?u->bound->Overflow():u->overflow,ui_keyboard_focus(u)?1u:0u,u->document&&!u->game&&!u->bound&&!u->model?u->document->GetElementById("item-list")->GetScrollTop():0,{}};std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->model&&u->model->Diagnostic()[0]?u->model->Diagnostic():u->bound&&u->bound->Diagnostic()[0]?u->bound->Diagnostic():u->diagnostic);}
 void ui_text_state(UiRml*u,gal_ui_text_state&s){
  s={};s.size=sizeof(s);s.version=1;s.generation=u->generation;
  const char*hint=SDL_GetHint(SDL_HINT_IME_IMPLEMENTED_UI);
@@ -273,9 +279,9 @@ void ui_text_state(UiRml*u,gal_ui_text_state&s){
  }
  std::snprintf(s.diagnostic,sizeof(s.diagnostic),"%s",u->system.text_diagnostic);
 }
-bool ui_poll_action(UiRml*u,gal_ui_action&a,std::string&e){if(u->bound||u->game)return fail(e,"settings UI profile required");a={sizeof(a),u->generation,0,0,{}};if(u->count){a=u->actions[u->first];u->first=(u->first+1)%u->actions.size();u->count--;}return true;}
+bool ui_poll_action(UiRml*u,gal_ui_action&a,std::string&e){if(u->model||u->bound||u->game)return fail(e,"settings UI profile required");a={sizeof(a),u->generation,0,0,{}};if(u->count){a=u->actions[u->first];u->first=(u->first+1)%u->actions.size();u->count--;}return true;}
 bool ui_test_command(UiRml*u,uint32_t generation,uint32_t command,std::string&e){
- if(u->bound||u->game||!u->document||generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
+ if(u->model||u->bound||u->game||!u->document||generation!=u->generation)return fail(e,"stale UI generation or wrong profile");
  if(command==GAL_UI_TEST_APPLY||command==GAL_UI_TEST_RESET)u->document->GetElementById(command==GAL_UI_TEST_APPLY?"apply":"reset")->DispatchEvent("click",{});
  else if(command==GAL_UI_TEST_FOCUS)u->document->GetElementById("player-name")->Focus();
  else if(command==GAL_UI_TEST_SCROLL)u->document->GetElementById("item-list")->SetScrollTop(150);
@@ -349,17 +355,18 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
   else{
    if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
    u->ime.Cancel(false);u->system.DeactivateKeyboard();discard_queued_text(u->window);
-   u->bound.reset();
+   u->model.reset();u->bound.reset();
    if(u->current){
     Rml::RemoveContext(u->current->GetName());Rml::ReleaseRenderManagers();
     u->renderer->Shutdown();u->renderer.reset();
    }
    u->renderer=std::move(u->pending_renderer);
    u->current=u->pending;u->document=u->candidate;u->pending=nullptr;u->candidate=nullptr;
-   u->bound=std::move(u->pending_bound);
+   u->files.Publish();u->model=std::move(u->pending_model);u->bound=std::move(u->pending_bound);
    u->document->Focus();
    u->generation=next_generation++;u->game=u->pending_game;u->game_screen=0;u->game_flags=0;u->first=u->count=u->overflow=0;u->diagnostic[0]=0;
-   if(u->bound)u->bound->Publish(u->generation);
+   if(u->model)u->model->Publish(u->generation);
+   else if(u->bound)u->bound->Publish(u->generation);
    else if(u->game){for(uint32_t action=10;action<=16;action++)u->document->GetElementById(game_button(action))->AddEventListener("click",u);}
    else{
    for(const char*id:{"apply","reset"})u->document->GetElementById(id)->AddEventListener("click",u);
@@ -367,7 +374,7 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
    }
   }
  }
- if(u->current){u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(u->Density());u->current->Update();u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}}
+ if(u->current){if(u->model)u->model->Updating();u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(u->Density());u->current->Update();u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}if(u->model)u->model->Updated();}
  return true;
 }
 
@@ -392,4 +399,25 @@ bool ui_test_bound(UiRml*u,uint32_t command,gal_bound_ui_action&a,std::string&e)
   return SDL_PushEvent(&event)||fail(e,"could not enqueue bound text probe");
  }
  return u->bound->Test(command,a,u->current,e);
+}
+
+bool ui_apply_model(UiRml*u,const gal_ui_data_snapshot&s,const gal_ui_data_value*v,std::string&e){
+ if(!u->model)return fail(e,"generic UI profile required");
+ if(!u->model->Stage(s,v,e))return false;
+ // A snapshot can retarget positional data-for inputs; cancel drafts/focus before it changes.
+ u->ime.Cancel();u->ime.bounds_valid=false;
+ if(auto*focus=u->current->GetFocusElement())focus->Blur();
+ u->model->Commit();return true;
+}
+bool ui_poll_model(UiRml*u,gal_ui_event&v,std::string&e){if(!u->model)return fail(e,"generic UI profile required");return u->model->Poll(v,e);}
+bool ui_test_model(UiRml*u,uint32_t command,const char*id,uint32_t occurrence,gal_ui_event&v,std::string&e){
+ if(!u->model)return fail(e,"generic UI profile required");
+ if(command==8||command==9){
+  if(!u->model->Test(7,id,occurrence,v,e))return false;
+  SDL_Event event{};
+  if(command==8){event.type=SDL_EVENT_TEXT_EDITING;event.edit.windowID=SDL_GetWindowID(u->window);event.edit.text="ni";event.edit.start=0;event.edit.length=2;}
+  else{event.type=SDL_EVENT_TEXT_INPUT;event.text.windowID=SDL_GetWindowID(u->window);event.text.text="你";}
+  return SDL_PushEvent(&event)||fail(e,"could not queue generic text probe");
+ }
+ return u->model->Test(command,id,occurrence,v,e);
 }

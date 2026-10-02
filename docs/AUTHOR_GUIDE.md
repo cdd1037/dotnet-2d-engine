@@ -143,24 +143,33 @@ character controller or encode game-specific rules in the runtime.
 
 ## 5. Add UI only when it helps the game
 
-Use public `BoundUiSession<T>` with explicit delegates and a model projection.
-`GameUiSession`/settings profiles belong to examples, not a reusable package SDK.
-RML/RCSS is a bounded RmlUi profile, not browser HTML/CSS. The public
-`session.LoadAsset(assets, path)` validates and stages the source internally;
-`BoundUiAuthoring` is not public. Render once to publish the accepted document,
-then call `session.Apply(model)` explicitly. `session.Poll()` returns a copied
-`UiBindingAction`, not a borrowed span. Check `session.IsCurrent(action)` before
-applying an action to game state: this validates its generation, revision, target
-and enabled state after changes. Drain or bound the queue deliberately, update the
-model, and apply its next projection. [Bindings/lists](UI_BINDINGS.md)
-and [text input](UI_TEXT_INPUT.md) describe current contracts.
+Prefer public `UiModelSession<T>` for new UI. Register scalar/record/array data
+with `UiRecord<T>` and explicit projection delegates, then author ordinary nested
+RmlUi 6.3 RML/RCSS with expressions, repeated cards and typed commands. There is
+no reflection, runtime JavaScript, runtime code generation or component runtime. C# owns
+the model and game rules. [Generic UI models](UI_MODELS.md) includes a small card
+example, exact limits, command registration and resource authoring rules.
 
-The current bound profile permits at most 32 targets and 64 total list rows per
-document. `UiListRow` has stable ID, text, enabled and selected state. It is useful
-for menus and bounded inventories; it is not an arbitrary rich card/slot template,
-drag/drop framework, virtualized list or automatic focus-navigation system.
-Static raster UI images are separate from rich dynamic row structure. Optional
-[SVG](UI_SVG.md) needs an SVG-on native build and remains off in the default package.
+`session.LoadAsset(assets, path)` validates and stages copied sources. Render once
+to publish the accepted document, call `session.Apply(model)`, then render to
+synchronize its values. `session.Poll()` returns a copied `UiCommandEvent`.
+Check `session.IsCurrent(command)` immediately before applying game behavior,
+accept or reject its draft in C#, then apply the next snapshot. Keys are exact
+`ulong` identities passed through RML expressions as decimal strings, never
+floating-point numbers. Each changed snapshot invalidates old commands and
+conservatively cancels focus/preedit; a gesture interrupted by a snapshot change
+cannot act on a positionally reused row. `data-for` is positional, and `data-if`
+hides rather than unmounts. Vue-style compilation, props and slots are deferred.
+
+`BoundUiSession<T>` remains a separate legacy mapping implementation, not a wrapper
+around the generic bridge. Its 32-target/64-total-row limits and narrower draft/
+focus behavior remain documented in [legacy bindings/lists](UI_BINDINGS.md).
+`GameUiSession`, settings profiles and `UiModelExamples` belong to examples, not a
+reusable game-rule SDK. Both UI paths share rendering, staged resources and one
+exclusive owner per engine. [Text input](UI_TEXT_INPUT.md) describes the shared
+composition bridge; use the generic guide for its more conservative focus policy.
+Optional [SVG](UI_SVG.md) needs an SVG-on native build and remains off in the default
+package. RML/RCSS are RmlUi formats, not browser HTML/CSS.
 
 **Fonts are not supplied by the repository or NuGet packages.** When adding UI,
 require an explicitly selected, readable `GAL_UI_FONT` before opening the session:
@@ -195,5 +204,6 @@ execution result. Record which path you actually ran. [Test tiers](TESTING.md)
 separates quick, integration, rendering, device and release evidence.
 
 The starter and guide remove a repeated starting decision, not the remaining
-content-authoring tools gap. Layout/level editing, rich UI and robust character
-motion still deserve requirements from a real game before new general APIs.
+content-authoring tools gap. Visual layout/level editing, UI component tooling and
+robust character motion still deserve requirements from a real game before new
+general APIs.

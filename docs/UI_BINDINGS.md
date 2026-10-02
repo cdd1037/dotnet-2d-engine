@@ -1,4 +1,11 @@
-# Typed UI bindings and dynamic lists
+# Legacy typed UI bindings and dynamic lists
+
+For new UI, prefer [generic C# UI models](UI_MODELS.md) with `UiModelSession<T>`:
+explicit scalar/record/array schemas, ordinary nested RML views and typed commands.
+This page documents the retained `BoundUiSession<T>` implementation and its finite
+target/list profile. It is separate code, **not** forwarded to the generic model
+bridge. Renderer, source staging, image resources and exclusive engine UI ownership
+are shared; the authoring limits and draft/focus behavior below are legacy-specific.
 
 This optional RmlUi profile adds explicit C# projections for ordinary models. The
 settings and mission adapters retain their existing contracts. It is not a managed

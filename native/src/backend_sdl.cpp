@@ -370,20 +370,25 @@ void backend_material_release(Backend*b,uint64_t id){
 
 #ifdef GAL_ENABLE_RMLUI
 bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
- if(op==1||op==10||op==20){
+ if(op==1||op==10||op==20||op==30){
+  const auto*model=op==30?static_cast<const ModelUiOpen*>(in):nullptr;
   const auto*bound=op==20?static_cast<const BoundUiOpen*>(in):nullptr;
-  const char*bound_paths[]={bound?bound->path:nullptr,bound?bound->font:nullptr};
-  auto paths=op==20?bound_paths:static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
+  const char*bound_paths[]={model?model->path:bound?bound->path:nullptr,model?model->font:bound?bound->font:nullptr};
+  auto paths=(op==20||op==30)?bound_paths:static_cast<const char*const*>(in);if(!paths||!paths[0]||!paths[1]||!paths[0][0]||!paths[1][0]){e="UI paths required";return false;}
+  if(op==30&&(!model||!model->stylesheet||!model->stylesheet[0]||!model->schema||!model->schema_count||model->schema_count>128||model->command_count>32||(model->command_count&&!model->commands))){e="generic schema/command pointers or counts invalid";return false;}
   const bool created=!b->ui;
   if(created){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;ui_window_state(b->ui,b->input.focused,!b->minimized);}
   if(op==20&&(!bound||!bound->targets||!bound->count||bound->count>32)){e="binding targets required (1..32)";if(created){ui_destroy(b->ui);b->ui=nullptr;}return false;}
-  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0,bound?bound->images:nullptr,bound?bound->image_count:0))return true;
+  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0,model?model->images:bound?bound->images:nullptr,model?model->image_count:bound?bound->image_count:0,model?model->schema:nullptr,model?model->schema_count:0,model?model->commands:nullptr,model?model->command_count:0,model?model->stylesheet:nullptr))return true;
   if(created){ui_destroy(b->ui);b->ui=nullptr;}
   return false;
  }
  if(op==2){ui_destroy(b->ui);b->ui=nullptr;return true;}
  if(op==7){auto path=static_cast<const char*>(in);if(!path||!path[0]||std::strlen(path)>4096){e="invalid capture path";return false;}b->capture_path=path;b->captured=false;return true;}
  if(!b->ui){e="UI is not open";return false;}
+ if(op==31){auto*r=static_cast<const ModelUiApply*>(in);if(!r||!r->snapshot){e="generic snapshot required";return false;}return ui_apply_model(b->ui,*r->snapshot,r->values,e);}
+ if(op==32){auto*r=static_cast<gal_ui_event*>(out);if(!r){e="generic packet required";return false;}return ui_poll_model(b->ui,*r,e);}
+ if(op==33){auto*r=static_cast<const ModelUiTest*>(in);if(!r||!r->packet){e="generic probe required";return false;}return ui_test_model(b->ui,r->command,r->id,r->occurrence,*r->packet,e);}
  if(op==21){auto*r=static_cast<const BoundUiApply*>(in);if(!r||!r->snapshot){e="binding snapshot required";return false;}return ui_apply_bound(b->ui,*r->snapshot,r->values,r->rows,e);}
  if(op==22){auto*a=static_cast<gal_bound_ui_action*>(out);if(!a){e="binding action required";return false;}return ui_poll_bound(b->ui,*a,e);}
  if(op==23){auto*r=static_cast<const BoundUiTest*>(in);if(!r||!r->value){e="binding probe required";return false;}return ui_test_bound(b->ui,r->command,*r->value,e);}

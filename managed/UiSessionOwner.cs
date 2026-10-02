@@ -13,10 +13,11 @@ public abstract unsafe class UiSessionOwner : IDisposable , IEngineOwned
     protected void MarkNativeOpened() => _nativeOpened=true;
     void IEngineOwned.EngineDestroyed()=>EngineDestroyed();
     internal void EngineDestroyed() { IsDisposed=true; OnClosed(); }
+    protected virtual void BeforeClose() { }
     protected virtual void OnClosed() { }
     public void Dispose()
     {
-        Engine.AssertThread(); if(IsDisposed)return;
+        Engine.AssertThread(); if(IsDisposed)return; BeforeClose();
         if(_nativeOpened)Native.Check(UiNative.Close(Context),"UI close");
         IsDisposed=true; Engine.ReleaseUi(this); OnClosed();
     }

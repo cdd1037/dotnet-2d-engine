@@ -1,8 +1,15 @@
 #include "gal.h"
 #include "gal_audio.h"
 #include "gal_ui.h"
+#include "gal_ui_model.h"
 #include "gal_physics.h"
 #include <stddef.h>
+_Static_assert(sizeof(gal_ui_data_schema)==64, "generic data schema");
+_Static_assert(sizeof(gal_ui_command)==72, "generic command");
+_Static_assert(sizeof(gal_ui_data_value)==288 && offsetof(gal_ui_data_value,text)==32, "generic copied value");
+_Static_assert(sizeof(gal_ui_data_snapshot)==24, "generic snapshot");
+_Static_assert(sizeof(gal_ui_argument)==280, "generic argument");
+_Static_assert(sizeof(gal_ui_event)==1144 && offsetof(gal_ui_event,arguments)==24, "generic event");
 _Static_assert(sizeof(gal_bound_ui_target)==64, "bound target");
 _Static_assert(sizeof(gal_bound_ui_value)==288, "bound value");
 _Static_assert(sizeof(gal_bound_ui_row)==272, "bound row");

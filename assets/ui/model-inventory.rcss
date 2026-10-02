@@ -1,0 +1,33 @@
+body { font-family: "Noto Sans CJK SC"; font-size: 14dp; color: #e8eff5; width: 100%; height: 100%; background-color: #101923; }
+div, h1, h2, p { display: block; }
+.panel { position: absolute; left: 24dp; top: 18dp; width: 868dp; padding: 20dp; background-color: #182632; border: 1dp #3a515e; border-radius: 12dp; }
+.eyebrow { color: #7ad3b5; font-size: 12dp; letter-spacing: 2dp; margin-bottom: 5dp; }
+h1 { font-size: 29dp; margin: 0dp 0dp 6dp; }
+h2 { display: inline-block; font-size: 18dp; margin: 0dp 12dp 0dp 0dp; }
+p { margin: 0dp; line-height: 140%; }
+.intro { color: #a6bac8; margin-bottom: 17dp; }
+.cards { height: 301dp; overflow-y: auto; overflow-x: hidden; }
+.card { display: flex; margin-bottom: 9dp; padding: 12dp; background-color: #203342; border: 1dp #3a5362; border-radius: 8dp; }
+.card.equipped { border-color: #7ad3b5; background-color: #203c42; }
+.card-art { display: flex; align-items: center; justify-content: center; width: 72dp; height: 72dp; margin-right: 14dp; background-color: #14232f; border-radius: 6dp; }
+.card-art img { width: 48dp; height: 48dp; image-color: #ffffff; }
+.card-copy { flex: 1; }
+.card-heading { margin-bottom: 3dp; }
+.badge { display: inline-block; padding: 2dp 6dp; font-size: 11dp; color: #e9cba0; background-color: #3d3e34; border-radius: 3dp; vertical-align: middle; }
+.description { color: #b6c6d2; font-size: 13dp; }
+.card-meta { display: inline-block; margin-top: 9dp; width: 300dp; font-size: 12dp; color: #a6bac8; }
+.equipped-tag { color: #7ad3b5; margin-left: 16dp; }
+.card-actions { display: inline-block; margin-top: 6dp; }
+button { display: inline-block; padding: 5dp 17dp; color: #102820; background-color: #7ad3b5; border: 1dp #a0e5ce; border-radius: 5dp; font-size: 13dp; }
+button:hover { background-color: #a0e5ce; }
+button:focus { border-color: #ffffff; }
+button:active { background-color: #52aa8d; }
+button.secondary { margin-left: 7dp; color: #c8d7e2; background-color: #293e4d; border-color: #5a7384; }
+button.secondary:hover { background-color: #3c5362; }
+.footer { display: flex; align-items: center; justify-content: space-between; margin-top: 15dp; padding-top: 12dp; border-top: 1dp #3a515e; }
+#inventory-status { font-size: 13dp; color: #a6bac8; }
+button.next { color: #e8eff5; background-color: #304957; border-color: #64808f; }
+scrollbarvertical { width: 10dp; }
+scrollbarvertical slidertrack { background-color: #14232f; }
+scrollbarvertical sliderbar { width: 8dp; min-height: 18dp; background-color: #64808f; }
+scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc { display: none; }
