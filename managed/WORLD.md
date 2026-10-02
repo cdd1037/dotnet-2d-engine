@@ -166,8 +166,11 @@ and texture handles. Use `Draws` to render rotation, shear, and multiple texture
 If extraction fails, `Count` resets to zero. Submitted spans are borrowed until the
 next extraction. No per-property/per-entity native interop is added.
 
-`World.Entities` exposes an `IReadOnlyList<Entity>` for lookup/rebinding and indexed
-iteration; filter `IsAlive` if enumerating during an update. `LoadedScenes` exposes
+`World.Entities` exposes a cached read-only live view for lookup/rebinding and indexed
+iteration. The collection cannot be changed through mutable collection interfaces;
+create and destroy members through `World`, and edit each entity through its explicit
+properties. Reading the view does not copy the list or allocate a new wrapper.
+Filter `IsAlive` if enumerating during an update. `LoadedScenes` exposes
 currently loaded scene objects. The world remains single-threaded. Setup, graph
 edits, save/load, texture loading, capacity growth, and exceptional paths allocate;
 the established warmed behavior/extract/draw loop still tests zero managed bytes.

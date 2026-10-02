@@ -57,6 +57,23 @@ context. Screen boundaries discard pending simulation input, clear stale UI
 commands through generations, and require neutral gameplay input. Native SDL focus
 loss suppresses gameplay keys and the host pauses; focus gain never auto-resumes.
 
+Retirement attempts the remaining scene/entity cleanup even when one registered
+callback throws, then reports the failures together. A cleanup callback error after
+replacement does not undo the newly committed run. If numeric teardown preflight
+leaves part of the old run alive, the mission retains that one pending owner and
+retries it before another replacement or during disposal; it does not accumulate
+an unbounded list of abandoned runs.
+
+Disposal closes mission operations before callbacks run, so a callback cannot
+reopen the mission and loading a checkpoint after disposal is rejected. A later
+`Dispose` can retry incomplete teardown after the caller repairs invalid transforms
+through retained entity references. Already retired callbacks do not run again,
+and a recursive `Dispose` during cleanup is a no-op. Callback failures themselves
+are reported after commit; they are not retried as if the callback had never run.
+Preparation and retirement callbacks cannot start or load another replacement.
+Disposal during preparation is allowed; the uncommitted candidate is cleaned up
+instead of reopening the closed mission when the preparation callback returns.
+
 The game UI has its own [bounded RML/RCSS profile](GAME_UI_PROFILE.md) and explicit C# model/commands.
 There are no hidden settings controls, settings-action aliases or generic DOM
 binding. Settings experiments remain unchanged. The mission marker uses existing

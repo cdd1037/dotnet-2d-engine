@@ -120,6 +120,7 @@ internal static class MissionTests
                 Reject(() => isolated.Start(), "invalid destination asset");
                 Check(ReferenceEquals(usable, isolated.Room), "invalid resource preserves usable world");
             }
+            count += RetirementFailures(path, catalog);
             game.Dispose(); game.Dispose();
             Check(game.Room.World.EntityCount == 0 && subscribers == 0, "final idempotent disposal");
             Console.WriteLine($"MISSION SELF-TEST PASS assertions={count}");
@@ -127,5 +128,222 @@ internal static class MissionTests
         }
         finally { Directory.Delete(directory, true); }
     }
+
+    private static int RetirementFailures(string path, AssetCatalog catalog)
+    {
+        int count = 0;
+        void Check(bool value, string message) { if (!value) throw new InvalidOperationException("MISSION: " + message); count++; }
+        T Throws<T>(Action action, string message) where T : Exception
+        {
+            try { action(); }
+            catch (T error) { count++; return error; }
+            throw new InvalidOperationException("MISSION accepted " + message);
+        }
+        (Entity Parent, Entity Leaf) InvalidRetirement(RoomGame room)
+        {
+            Entity parent = room.World.Entities[0];
+            parent.LocalTransform = new Transform2D(0, 0, 1e30f, 1e30f);
+            room.Player.LocalTransform = new Transform2D(0, 0, 1e30f, 1e30f);
+            room.World.Reparent(room.Player, parent, keepWorldTransform: false);
+            Entity leaf = room.World.Create("Overflow leaf");
+            room.World.Reparent(leaf, room.Player, keepWorldTransform: false);
+            return (parent, leaf);
+        }
+
+        using (var game = new MissionGame(path, catalog))
+        {
+            game.Start();
+            string saved = game.Save();
+            var room = game.Room;
+            var extraScene = room.World.CreateScene("Additional cleanup");
+            var extra = room.World.Create("Additional entity", extraScene);
+            Entity[] entities = room.World.Entities.ToArray();
+            int sceneCleanups = 0, persistentCleanups = 0, signalHits = 0;
+            Action? signal = null;
+            Action handler = () => signalHits++;
+            signal += handler; signal();
+            var roomFailure = new InvalidOperationException("room detach");
+            var extraFailure = new InvalidOperationException("extra scene detach");
+            var playerFailure = new InvalidOperationException("player detach");
+            room.World.AttachBehavior(room.Item, new IdleBehavior(), scope => scope.OnDetach(() =>
+            {
+                sceneCleanups++;
+                game.Dispose(); // The recursive call must not enter retirement again.
+                Throws<ObjectDisposedException>(() => game.Load(saved), "load from disposal callback");
+                Throws<ObjectDisposedException>(() => game.Start(), "start from disposal callback");
+                throw roomFailure;
+            }));
+            room.World.AttachBehavior(extra, new IdleBehavior(), scope => scope.OnDetach(() => { sceneCleanups++; throw extraFailure; }));
+            room.World.AttachBehavior(room.Player, new IdleBehavior(), scope => scope.OnDetach(() =>
+            { persistentCleanups++; signal -= handler; throw playerFailure; }));
+            room.World.AttachBehavior(entities.Single(entity => entity.Name == "Status"), new IdleBehavior(),
+                scope => scope.OnDetach(() => persistentCleanups++));
+
+            var failures = Throws<AggregateException>(() => game.Dispose(), "disposal cleanup errors").Flatten().InnerExceptions;
+            Check(failures.Count == 3 && failures.Contains(roomFailure) && failures.Contains(extraFailure) && failures.Contains(playerFailure),
+                "disposal reports all scene and persistent cleanup failures");
+            signal?.Invoke();
+            Check(sceneCleanups == 2 && persistentCleanups == 2 && signal is null && signalHits == 1,
+                "throwing cleanup cannot skip later scenes, persistent entities or subscription removal");
+            Check(room.World.EntityCount == 0 && room.World.Entities.Count == 0 && entities.All(entity => !entity.IsAlive)
+                && !room.ActiveScene.IsLoaded && !extraScene.IsLoaded && room.World.LoadedScenes.Single() == room.World.PersistentScene,
+                "failed callbacks leave all destruction committed");
+            game.Dispose(); game.Dispose();
+            Check(sceneCleanups == 2 && persistentCleanups == 2, "repeated disposal never repeats cleanup callbacks");
+
+            int prepares = 0, revision = game.Revision;
+            string notice = game.Notice;
+            Action[] closedOperations = [() => game.Start(_ => prepares++), () => game.Load(saved, _ => prepares++),
+                () => game.Load("{"), () => game.LoadFile(Path.Combine(path, "missing.json")),
+                () => game.Pause(), () => game.Resume(), () => game.Title(), () => game.SetNotice("closed"),
+                () => game.Advance(0, 0), () => game.Advance(0, 0, 0), () => game.Save(),
+                () => game.SaveFile(Path.Combine(path, "missing.json"))];
+            foreach (var operation in closedOperations)
+                Throws<ObjectDisposedException>(operation, "operation on disposed mission");
+            Check(prepares == 0 && ReferenceEquals(game.Room, room) && room.World.EntityCount == 0
+                && game.Revision == revision && game.Notice == notice, "closed operations reject before preparation, I/O or state changes");
+        }
+
+        using (var game = new MissionGame(path, catalog))
+        {
+            game.Start(); string saved = game.Save();
+            var room = game.Room;
+            var (parent, leaf) = InvalidRetirement(room);
+            int releases = 0;
+            room.World.AttachBehavior(parent, new IdleBehavior(), scope => scope.OnDetach(() => releases++));
+            room.World.AttachBehavior(room.Player, new IdleBehavior(), scope => scope.OnDetach(() => releases++));
+            var errors = Throws<AggregateException>(() => game.Dispose(), "numeric retirement preflight").Flatten().InnerExceptions;
+            Check(errors.All(error => error is ArgumentOutOfRangeException) && parent.IsAlive && room.Player.IsAlive
+                && room.ActiveScene.IsLoaded && room.World.EntityCount == 2 && !leaf.IsAlive && releases == 0,
+                "preflight failures are bounded, retain invalid survivors and still attempt unrelated cleanup");
+            Throws<ObjectDisposedException>(() => game.Start(), "restart after incomplete disposal");
+            Throws<ObjectDisposedException>(() => game.Load(saved), "load after incomplete disposal");
+            room.Player.LocalTransform = Transform2D.Identity; // Repair through a retained World reference, not a reopened mission.
+            game.Dispose(); game.Dispose();
+            Check(room.World.EntityCount == 0 && !room.ActiveScene.IsLoaded && releases == 2,
+                "closed mission permits teardown retry after numeric repair, releasing retained attachments once");
+        }
+
+        foreach (bool disposeWithPending in new[] { false, true })
+        {
+            using var game = new MissionGame(path, catalog);
+            game.Start(); string saved = game.Save();
+            var old = game.Room;
+            var (parent, _) = InvalidRetirement(old);
+            int pendingReleases = 0, currentReleases = 0, prepares = 0;
+            old.World.AttachBehavior(parent, new IdleBehavior(), scope => scope.OnDetach(() => pendingReleases++));
+            old.World.AttachBehavior(old.Player, new IdleBehavior(), scope => scope.OnDetach(() => pendingReleases++));
+            Throws<AggregateException>(() => game.Start(), "incomplete old retirement after committed replacement");
+            var current = game.Room;
+            Check(!ReferenceEquals(old, current) && current.World.EntityCount == 6 && old.World.EntityCount == 2,
+                "preflight-blocked old room remains owned alongside the committed candidate");
+            current.World.AttachBehavior(current.Player, new IdleBehavior(), scope => scope.OnDetach(() => currentReleases++));
+            if (disposeWithPending)
+            {
+                Throws<AggregateException>(() => game.Dispose(), "pending old retirement during disposal");
+                Check(current.World.EntityCount == 0 && currentReleases == 1 && parent.IsAlive && pendingReleases == 1,
+                    "disposal attempts current room even when pending retirement is still blocked");
+                Throws<ObjectDisposedException>(() => game.Load(saved), "load with closed pending retirement");
+                parent.LocalTransform = Transform2D.Identity;
+                game.Dispose(); game.Dispose();
+            }
+            else
+            {
+                Throws<AggregateException>(() => game.Load(saved, _ => prepares++), "pending retirement before another load");
+                Check(ReferenceEquals(current, game.Room) && current.World.EntityCount == 6 && prepares == 0 && parent.IsAlive,
+                    "pending cleanup is retried before creating or preparing another candidate");
+                parent.LocalTransform = Transform2D.Identity;
+                game.Start(_ => prepares++);
+                Check(prepares == 1 && current.World.EntityCount == 0 && currentReleases == 1,
+                    "successful pending cleanup permits the next replacement");
+            }
+            Check(old.World.EntityCount == 0 && !old.ActiveScene.IsLoaded && pendingReleases == 2,
+                "pending room ownership persists until all retained entities and scene are retired");
+        }
+
+        using (var game = new MissionGame(path, catalog))
+        {
+            game.Start(); string saved = game.Save();
+            var current = game.Room;
+            var (parent, _) = InvalidRetirement(current);
+            RoomGame? candidate = null;
+            int nestedPrepares = 0, releases = 0;
+            Throws<InvalidOperationException>(() => game.Start(prepared =>
+            {
+                candidate = prepared;
+                prepared.World.AttachBehavior(prepared.Player, new IdleBehavior(), scope => scope.OnDetach(() => releases++));
+                Throws<InvalidOperationException>(() => game.Load(saved, _ => nestedPrepares++), "load from preparation callback");
+                Throws<InvalidOperationException>(() => game.LoadFile(Path.Combine(path, "missing.json")), "file load from preparation callback");
+                game.Start(_ => nestedPrepares++); // Propagate this rejection to exercise candidate rollback too.
+            }), "restart from preparation callback");
+            Check(ReferenceEquals(game.Room, current) && current.World.EntityCount == 7 && parent.IsAlive && current.Player.IsAlive
+                && candidate is not null && candidate.World.EntityCount == 0 && releases == 1 && nestedPrepares == 0,
+                "nested preparation cannot create a pending owner or overwrite ownership during candidate rollback");
+            current.Player.LocalTransform = Transform2D.Identity;
+            game.Load(saved);
+            Check(current.World.EntityCount == 0 && game.Room.World.EntityCount == 6 && releases == 1,
+                "preparation guard clears after failure and permits a later replacement");
+        }
+
+        foreach (bool loading in new[] { false, true })
+        {
+            using var game = new MissionGame(path, catalog);
+            game.Start(); string saved = game.Save();
+            var current = game.Room;
+            RoomGame? candidate = null;
+            int releases = 0;
+            void Prepare(RoomGame prepared)
+            {
+                candidate = prepared;
+                prepared.World.AttachBehavior(prepared.Player, new IdleBehavior(), scope => scope.OnDetach(() => releases++));
+                game.Dispose();
+            }
+            Throws<ObjectDisposedException>(() =>
+            {
+                if (loading) game.Load(saved, Prepare);
+                else game.Start(Prepare);
+            }, "disposal during candidate preparation");
+            Check(ReferenceEquals(game.Room, current) && current.World.EntityCount == 0 && candidate is not null
+                && candidate.World.EntityCount == 0 && !candidate.ActiveScene.IsLoaded && releases == 1,
+                "preparation cannot resurrect a disposed mission and rejected candidate cleanup runs once");
+            Throws<ObjectDisposedException>(() => game.Load(saved), "load after disposal during preparation");
+            game.Dispose();
+            Check(releases == 1, "repeated disposal does not retain or repeat rejected candidate cleanup");
+        }
+
+        foreach (bool loading in new[] { false, true })
+        {
+            using var game = new MissionGame(path, catalog);
+            game.Start(); string saved = game.Save();
+            var old = game.Room;
+            int releases = 0;
+            old.World.AttachBehavior(old.Item, new IdleBehavior(), scope => scope.OnDetach(() => throw new InvalidOperationException("old run cleanup")));
+            old.World.AttachBehavior(old.Player, new IdleBehavior(), scope => scope.OnDetach(() => releases++));
+            RoomGame? replacement = null;
+            int nestedPrepares = 0;
+            old.World.AttachBehavior(old.World.Entities.Single(entity => entity.Name == "Status"), new IdleBehavior(), scope => scope.OnDetach(() =>
+            {
+                Check(old.World.EntityCount == 0, "last persistent callback runs after all old entities are destroyed");
+                Throws<InvalidOperationException>(() => game.Start(_ => nestedPrepares++), "restart from old retirement callback");
+                Throws<InvalidOperationException>(() => game.Load(saved, _ => nestedPrepares++), "load from old retirement callback");
+                Throws<InvalidOperationException>(() => game.LoadFile(Path.Combine(path, "missing.json")), "file load from old retirement callback");
+                game.Dispose();
+                Check(ReferenceEquals(game.Room, replacement) && game.Room.World.EntityCount == 6 && nestedPrepares == 0,
+                    "nested replacement and disposal cannot change the committed candidate or pending ownership");
+            }));
+            Throws<AggregateException>(() =>
+            {
+                if (loading) game.Load(saved, candidate => replacement = candidate);
+                else game.Start(candidate => replacement = candidate);
+            }, "old run cleanup after replacement");
+            Check(ReferenceEquals(game.Room, replacement) && game.Room.World.EntityCount == 6
+                && game.Screen == (loading ? MissionScreen.Paused : MissionScreen.Playing)
+                && old.World.EntityCount == 0 && !old.ActiveScene.IsLoaded && releases == 1,
+                "old cleanup failure does not undo committed replacement or skip persistent cleanup");
+            Check(game.Save().Length > 0, "nested disposal during retirement leaves the live mission usable");
+        }
+        return count;
+    }
+
     private sealed class IdleBehavior : IBehavior { public void Update(Entity entity, float dt) { } }
 }

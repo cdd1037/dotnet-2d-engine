@@ -169,6 +169,7 @@ public sealed class World
 {
     private static long _nextId;
     private readonly List<Entity> _entities = [];
+    private readonly IReadOnlyList<Entity> _entitiesView;
     private readonly Dictionary<EntityId, Entity> _byId = [];
     private readonly Dictionary<Guid, Entity> _byPersistentId = [];
     private readonly Dictionary<Guid, Scene> _scenes = [];
@@ -178,6 +179,7 @@ public sealed class World
 
     public World(Guid? persistentSceneId = null)
     {
+        _entitiesView = _entities.AsReadOnly();
         Guid id = persistentSceneId ?? Guid.NewGuid();
         if (id == Guid.Empty) throw new ArgumentException("A persistent ID cannot be empty.", nameof(persistentSceneId));
         PersistentScene = new Scene(this, "Persistent", id);
@@ -187,7 +189,7 @@ public sealed class World
     public int EntityCount => _byId.Count;
 
     public IEnumerable<Scene> LoadedScenes => _scenes.Values;
-    public IReadOnlyList<Entity> Entities => _entities;
+    public IReadOnlyList<Entity> Entities => _entitiesView;
 
     public Scene CreateScene(string name, Guid? persistentId = null)
     {

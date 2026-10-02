@@ -8,6 +8,7 @@ internal static class WorldSelfTests
     {
         _assertions = 0;
         IdentityAndValidation();
+        ReadOnlyEntityView();
         IndependentRelations();
         PickupDropAndRoomUnload();
         MixedGraphSurvivors();
@@ -54,6 +55,48 @@ internal static class WorldSelfTests
         Throws<ArgumentException>(() => world.UnloadScene(room), "double unload rejected");
         Throws<InvalidOperationException>(() => world.UnloadScene(world.PersistentScene), "persistent scope cannot unload");
         Console.WriteLine("PASS world IDs, stale/foreign handles, component validation, scene guards");
+    }
+
+    private static void ReadOnlyEntityView()
+    {
+        var world = new World();
+        IReadOnlyList<Entity> view = world.Entities;
+        Assert(ReferenceEquals(view, world.Entities) && view.Count == 0, "entity view is cached and initially empty");
+        Scene room = world.CreateScene("Read-only view room");
+        Entity root = world.Create("Root", room);
+        Entity child = world.CreateChild(root, "Child");
+        Entity neighbor = world.Create("Neighbor", room);
+        Entity persistent = world.Create("Persistent");
+        int cleanups = 0;
+        foreach (var entity in new[] { root, child, neighbor })
+            world.AttachBehavior(entity, new Callback((_, _) => { }), scope => scope.OnDetach(() => cleanups++));
+        Assert(view.Count == 4 && ReferenceEquals(view[0], root), "cached entity view reflects newly created entities");
+        var collection = (ICollection<Entity>)view;
+        Assert(collection.IsReadOnly, "entity collection advertises read-only access");
+        Throws<NotSupportedException>(() => collection.Clear(), "entity view rejects collection clear");
+        Throws<NotSupportedException>(() => collection.Add(persistent), "entity view rejects collection add");
+        Throws<NotSupportedException>(() => collection.Remove(root), "entity view rejects collection removal");
+        Throws<NotSupportedException>(() => ((IList<Entity>)view)[0] = persistent, "entity view rejects index assignment");
+        Throws<NotSupportedException>(() => ((System.Collections.IList)view).Clear(), "entity view rejects non-generic mutation");
+        Assert(view.Count == world.EntityCount && view.Count == 4 && root.IsAlive && cleanups == 0
+            && ReferenceEquals(world.Get(root.Id), root) && ReferenceEquals(world.GetPersistent(root.PersistentId), root),
+            "rejected view writes preserve entities, indices and ownership callbacks");
+
+        world.Destroy(root);
+        Assert(view.Count == world.EntityCount && view.Count == 2 && ReferenceEquals(view[0], neighbor)
+            && !root.IsAlive && !child.IsAlive && !world.TryGet(root.Id, out _) && !world.TryGetPersistent(child.PersistentId, out _)
+            && cleanups == 2, "cached view tracks ownership destruction and both identity indices");
+        world.UnloadScene(room);
+        Assert(view.Count == world.EntityCount && view.Count == 1 && ReferenceEquals(view[0], persistent)
+            && !room.IsLoaded && !neighbor.IsAlive && !world.TryGet(neighbor.Id, out _) && !world.TryGetPersistent(neighbor.PersistentId, out _)
+            && persistent.IsAlive && cleanups == 3, "cached view tracks unload without bypassing cleanup or persistent survivors");
+        for (int i = 0; i < 128; i++) _ = world.Entities;
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        int observed = 0;
+        for (int i = 0; i < 1000; i++) observed += world.Entities.Count;
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert(observed == 1000 && allocated == 0, "reading the entity view does not allocate wrappers or copies");
+        Console.WriteLine("PASS cached read-only live entity view, lifecycle invariants and allocation-free access");
     }
 
     private static void IndependentRelations()

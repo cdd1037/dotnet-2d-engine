@@ -94,7 +94,8 @@ internal sealed class MissionGame : IDisposable
 {
     private readonly AssetCatalog _catalog;
     private readonly string _missionPath;
-    private bool _waitForNeutral = true, _disposed;
+    private bool _waitForNeutral = true, _disposed, _retiring, _preparing;
+    private RoomGame? _pendingRetirement;
     private uint _previousKeys;
     private bool _pendingDelivery;
     public MissionDefinition Definition { get; private set; }
@@ -131,30 +132,48 @@ internal sealed class MissionGame : IDisposable
 
     public void Start(Action<RoomGame>? prepare = null)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        RequireReplacementAllowed();
+        RetirePending();
         var definition = MissionDefinition.Load(_missionPath);
         var candidate = new RoomGame();
-        try { ValidateResources(candidate); prepare?.Invoke(candidate); }
-        catch { Retire(candidate); throw; }
+        PrepareCandidate(candidate, prepare);
         Replace(candidate, definition, definition.Seconds * 60, MissionScreen.Playing);
         Notice = "Find the cell. Carry it to the archive relay.";
+    }
+
+    private void PrepareCandidate(RoomGame candidate, Action<RoomGame>? prepare)
+    {
+        try
+        {
+            _preparing = true;
+            try { ValidateResources(candidate); prepare?.Invoke(candidate); }
+            finally { _preparing = false; }
+            // Dispose remains allowed during preparation, but cannot be undone by
+            // committing the candidate after the callback returns.
+            RequireReplacementAllowed();
+        }
+        catch { _pendingRetirement = candidate; RetirePending(); throw; }
     }
 
     private void Replace(RoomGame candidate, MissionDefinition definition, int ticks, MissionScreen screen)
     {
         var old = Room;
         Room = candidate; Definition = definition; RemainingTicks = ticks;
-        Boundary(screen); Retire(old);
+        Boundary(screen);
+        // Replacement is committed even if old cleanup fails. Keep ownership of
+        // preflight-blocked objects until a later operation or Dispose can retry.
+        _pendingRetirement = old;
+        RetirePending();
     }
 
-    public void Pause() { if (Screen == MissionScreen.Playing) Boundary(MissionScreen.Paused); }
-    public void Resume() { if (Screen == MissionScreen.Paused) Boundary(MissionScreen.Playing); }
-    public void Title() { Boundary(MissionScreen.Title); Notice = ""; }
+    public void Pause() { ObjectDisposedException.ThrowIf(_disposed, this); if (Screen == MissionScreen.Playing) Boundary(MissionScreen.Paused); }
+    public void Resume() { ObjectDisposedException.ThrowIf(_disposed, this); if (Screen == MissionScreen.Paused) Boundary(MissionScreen.Playing); }
+    public void Title() { ObjectDisposedException.ThrowIf(_disposed, this); Boundary(MissionScreen.Title); Notice = ""; }
     private void Boundary(MissionScreen screen)
     {
         Screen = screen; Revision++; _waitForNeutral = true; _previousKeys = 0; _pendingDelivery = false; Room.ResetInputBoundary();
     }
-    public void SetNotice(string notice) => Notice = notice;
+    public void SetNotice(string notice) { ObjectDisposedException.ThrowIf(_disposed, this); Notice = notice; }
 
     public void Advance(uint keys, float elapsed) => Advance(keys, keys & ~_previousKeys, elapsed);
     public void Advance(uint keys, uint pressed, float elapsed)
@@ -179,6 +198,7 @@ internal sealed class MissionGame : IDisposable
 
     public string Save()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (Screen is not (MissionScreen.Playing or MissionScreen.Paused)) throw new SceneFormatException("Save is available during play or pause. Start a new run first.");
         return JsonSerializer.Serialize(new MissionSave { Kind = "gal-relay-save", Version = 1, Mission = Definition,
             RemainingTicks = RemainingTicks, World = Room.Save() }, MissionJsonContext.Default.MissionSave);
@@ -194,6 +214,8 @@ internal sealed class MissionGame : IDisposable
 
     public void Load(string json, Action<RoomGame>? prepare = null)
     {
+        RequireReplacementAllowed();
+        RetirePending();
         if (json.Length > 1024 * 1024) throw new SceneFormatException("$ relay save exceeds 1 Mi-character limit.");
         MissionSave save;
         try
@@ -211,14 +233,14 @@ internal sealed class MissionGame : IDisposable
         if (save.RemainingTicks < 1 || save.RemainingTicks > definition.Seconds * 60) throw new SceneFormatException("$.remainingTicks: outside mission time limit.");
         if (save.World is null) throw new SceneFormatException("$.world: missing runtime snapshot.");
         var candidate = RoomGame.Load(save.World, _catalog);
-        try { ValidateResources(candidate); prepare?.Invoke(candidate); }
-        catch { Retire(candidate); throw; }
+        PrepareCandidate(candidate, prepare);
         Replace(candidate, definition, save.RemainingTicks, MissionScreen.Paused);
         Notice = "Checkpoint restored. Resume when ready.";
     }
 
     public void LoadFile(string path, Action<RoomGame>? prepare = null)
     {
+        RequireReplacementAllowed();
         try
         {
             using var stream = File.OpenRead(path);
@@ -230,11 +252,61 @@ internal sealed class MissionGame : IDisposable
         { throw new SceneFormatException($"{path}: {e.Message}", e); }
     }
 
+    private void RequireReplacementAllowed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_preparing || _retiring) throw new InvalidOperationException("Mission replacement is forbidden during preparation or retirement callbacks.");
+    }
+
+    private void RetirePending()
+    {
+        if (_pendingRetirement is not { } room) return;
+        bool wasRetiring = _retiring;
+        _retiring = true;
+        try { Retire(room); }
+        finally
+        {
+            _retiring = wasRetiring;
+            if (room.World.EntityCount == 0 && room.World.LoadedScenes.All(scene => scene == room.World.PersistentScene))
+                _pendingRetirement = null;
+        }
+    }
+
     internal static void Retire(RoomGame room)
     {
+        List<Exception>? failures = null;
         foreach (var scene in room.World.LoadedScenes.ToArray())
-            if (scene != room.World.PersistentScene) room.World.UnloadScene(scene);
-        while (room.World.Entities.Count != 0) room.World.Destroy(room.World.Entities[0]);
+        {
+            if (scene == room.World.PersistentScene) continue;
+            try { room.World.UnloadScene(scene); }
+            catch (Exception error) { (failures ??= []).Add(error); }
+        }
+        // Snapshot once: a preflight failure can leave an entity alive, while a
+        // cleanup failure means destruction already committed. Never spin on it.
+        foreach (var entity in room.World.Entities.ToArray())
+        {
+            if (!entity.IsAlive) continue;
+            try { room.World.Destroy(entity); }
+            catch (Exception error) { (failures ??= []).Add(error); }
+        }
+        if (failures is not null)
+            throw new AggregateException("Mission retirement encountered errors; remaining cleanup was attempted.", failures);
     }
-    public void Dispose() { if (_disposed) return; _disposed = true; Retire(Room); }
+    public void Dispose()
+    {
+        if (_retiring) return;
+        // Close before callbacks. Later Dispose calls may retry anything whose
+        // teardown preflight failed, but no operation can reopen this mission.
+        _disposed = _retiring = true;
+        try
+        {
+            List<Exception>? failures = null;
+            try { RetirePending(); }
+            catch (Exception error) { (failures ??= []).Add(error); }
+            try { Retire(Room); }
+            catch (Exception error) { (failures ??= []).Add(error); }
+            if (failures is not null) throw new AggregateException("Mission disposal encountered retirement errors.", failures);
+        }
+        finally { _retiring = false; }
+    }
 }
