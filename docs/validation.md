@@ -1176,6 +1176,11 @@ meters and caller-owned output spans. See [bounds and semantics](PHYSICS.md).
   feed/cache, SDK 10.0.401 and runtime 10.0.12. There is no source/project/friend
   access or native library search path back into this checkout. Package engine
   bytes match the final source build; JIT and AOT use identical native payloads
+- A final native-only callback fast path landed after the first package capture.
+  The native package was rebuilt, the JIT consumer restored into another fresh
+  cache and rerun, and the same freshly compiled AOT executable rerun with the
+  verified final packaged native payload. Both pass **56 assertions** again; the
+  managed source/executable was unchanged and there was still only **one AOT publish**
 - Independent read-only review found no blocking ABI, geometry, lifetime, filtering,
   capacity, allocation or public-consumer issue
 
