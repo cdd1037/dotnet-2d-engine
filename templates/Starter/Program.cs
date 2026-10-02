@@ -12,18 +12,12 @@ try
     using var engine = EngineHost.Create(headless: options.Headless, maxSprites: 16);
     assets.ReadImageInfo("white.png");
     using var texture = engine.Textures.Acquire(assets, "white.png");
-    using var game = new StarterGame(engine, options.Physics);
-    var actions = new InputActionMap(
-        InputBinding.Key(StarterGame.Left, PhysicalKey.A), InputBinding.Key(StarterGame.Left, PhysicalKey.Left),
-        InputBinding.Key(StarterGame.Right, PhysicalKey.D), InputBinding.Key(StarterGame.Right, PhysicalKey.Right),
-        InputBinding.Key(StarterGame.Up, PhysicalKey.W), InputBinding.Key(StarterGame.Up, PhysicalKey.Up),
-        InputBinding.Key(StarterGame.Down, PhysicalKey.S), InputBinding.Key(StarterGame.Down, PhysicalKey.Down),
-        InputBinding.Key(StarterGame.Pulse, PhysicalKey.Space),
-        InputBinding.Key(StarterGame.Pause, PhysicalKey.Escape, allowUiConsumed: true),
-        InputBinding.Key(StarterGame.RestartAction, PhysicalKey.T));
+    var controls = new StarterInput();
+    using var game = new StarterGame(engine, options.Physics, controls);
+    var actions = controls.Map;
     var fixedInput = new FixedStepInput(StarterGame.StepSeconds);
     var camera = new Camera { Zoom = 1 };
-    var draws = new SpriteDraw[1];
+    var draws = new SpriteCommand[1];
     var watch = Stopwatch.StartNew();
     double previous = watch.Elapsed.TotalSeconds;
     int frames = 0;
@@ -31,16 +25,16 @@ try
     Console.WriteLine("Arrows/WASD move; Space changes color; Escape pauses; T restarts; close window exits.");
     while (options.Frames == 0 || frames < options.Frames)
     {
-        var input = engine.PollInput(); // Poll once per outer frame, before reading UI/actions.
-        if (input.Quit != 0) break;
+        var input = engine.PollInputFrame(); // Poll once per outer frame, before reading UI/actions.
+        if (input.Quit) break;
         var action = actions.Update(input);
         double now = watch.Elapsed.TotalSeconds;
         double elapsed = now - previous;
         previous = now; // Also update while paused; no resume-time catch-up.
         // Drain/check optional UI commands here, before deciding pause/restart.
         // Keep UI polling/model updates/drawing outside the fixed-step loop.
-        if ((action.Pressed & StarterGame.Pause) != 0) game.Paused = !game.Paused;
-        bool restart = (action.Pressed & StarterGame.RestartAction) != 0;
+        if (action.IsPressed(controls.Pause)) game.Paused = !game.Paused;
+        bool restart = action.IsPressed(controls.Restart);
         if (restart) { game.Restart(); fixedInput.Reset(); }
         bool suspended = game.Paused || restart || !input.Focused || !input.Drawable;
         // Headless is an explicit deterministic CLI test clock, never a live input path.
@@ -54,11 +48,8 @@ try
         if (input.Drawable || options.Headless)
         {
             var position = game.PresentationPosition(fixedInput.InterpolationAlpha);
-            draws[0] = new SpriteDraw {
-                M11 = 1, M22 = 1, X = position.X - 16, Y = position.Y - 16,
-                Width = 32, Height = 32, Texture = texture.Handle,
-                R = game.Paused ? .4f : 1, G = game.Pulses % 2 == 0 ? .8f : .2f, B = .3f, A = 1
-            };
+            draws[0] = new SpriteCommand(new(position.X - 16, position.Y - 16), new(32, 32),
+                new(game.Paused ? .4f : 1, game.Pulses % 2 == 0 ? .8f : .2f, .3f, 1), texture.Texture);
             engine.Draw(camera, draws);
         }
         frames++;

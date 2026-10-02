@@ -6,7 +6,7 @@ namespace Dotnet2DStarter;
 // Game-owned state and optional physics. No base game, service lookup or scanning.
 internal sealed class StarterGame : IDisposable
 {
-    public const uint Left = 1, Right = 2, Up = 4, Down = 8, Pulse = 16, Pause = 32, RestartAction = 64;
+    private readonly StarterInput controls;
     public const float StepSeconds = 1f / 60;
     private static readonly Vector2 Spawn = new(160, 120);
     private Vector2 previousPosition = Spawn;
@@ -19,8 +19,9 @@ internal sealed class StarterGame : IDisposable
     public int Steps { get; private set; }
     public bool Paused { get; set; }
 
-    public StarterGame(EngineHost engine, bool usePhysics)
+    public StarterGame(EngineHost engine, bool usePhysics, StarterInput controls)
     {
+        this.controls = controls;
         if (!usePhysics) return;
         physics = engine.OpenPhysics(new(0, 0, StepSeconds, 4));
         bodies = new(physics);
@@ -36,8 +37,8 @@ internal sealed class StarterGame : IDisposable
     public void Tick(ActionState input)
     {
         Vector2 direction = new(
-            ((input.Down & Right) != 0 ? 1 : 0) - ((input.Down & Left) != 0 ? 1 : 0),
-            ((input.Down & Down) != 0 ? 1 : 0) - ((input.Down & Up) != 0 ? 1 : 0));
+            (input.IsDown(controls.Right) ? 1 : 0) - (input.IsDown(controls.Left) ? 1 : 0),
+            (input.IsDown(controls.Down) ? 1 : 0) - (input.IsDown(controls.Up) ? 1 : 0));
         if (direction.LengthSquared() > 1) direction = Vector2.Normalize(direction);
         Vector2 velocity = direction * 160;
         Vector2 nextPosition;
@@ -53,7 +54,7 @@ internal sealed class StarterGame : IDisposable
         else nextPosition = Position + velocity * StepSeconds;
         previousPosition = Position;
         Position = nextPosition;
-        if ((input.Pressed & Pulse) != 0) Pulses++;
+        if (input.IsPressed(controls.Pulse)) Pulses++;
         Steps++;
     }
 

@@ -74,6 +74,9 @@ public sealed unsafe class EngineHost : IDisposable
         return input;
     }
 
+    /// <summary>Poll once per outer frame. Game filters UI consumption; Raw is an explicit opt-in.</summary>
+    public InputFrame PollInputFrame() => new(PollInput());
+
     internal Input Poll()
     {
         var input = new Input { Size = (uint)sizeof(Input) };

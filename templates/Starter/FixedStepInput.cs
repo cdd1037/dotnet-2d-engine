@@ -47,7 +47,7 @@ internal sealed class FixedStepInput
         else
         {
             accumulator += accepted;
-            pending = new(actions.Down, pending.Pressed | actions.Pressed, pending.Released | actions.Released);
+            pending = pending.Accumulate(actions);
         }
         return TimingStep.FromReal(accepted, suspended);
     }
@@ -59,7 +59,7 @@ internal sealed class FixedStepInput
         if (accumulator + StepSeconds * 1e-9 < StepSeconds) return false;
         accumulator = Math.Max(0, accumulator - StepSeconds);
         actions = pending;
-        pending = new(pending.Down, 0, 0);
+        pending = pending.WithoutEdges();
         return true;
     }
 

@@ -19,6 +19,10 @@ Reusable C# composition uses ordinary application factories and typed references
 `World.OnDestroy(entity, cleanup)` explicitly binds instance resources to entity
 destruction, separately from behavior replacement. See the
 [composition guide](../docs/CSHARP_COMPOSITION.md) and public-package consumer.
+Use `SpriteCommand`, borrowed typed resource views and `FramePass` factories for
+manual drawing, and `PollInputFrame` plus automatically allocated `InputAction`
+tokens for input. Existing ABI-shaped APIs remain compatible. See the
+[managed boundary guide](../docs/SAFE_AUTHORING_BOUNDARY.md) in the checkout.
 Clipping, diagnostics, materials and render targets also have public experimental
 APIs; their runtime behavior is tested separately from the small package consumers.
 Audio, physics, frame animation/tween/timers and bounded TileMap entry points are

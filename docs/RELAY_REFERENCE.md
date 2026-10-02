@@ -78,3 +78,8 @@ check; full publication modes are optional.
 This is Linux x64/software Vulkan evidence. Physical GPU/input/audio, real IME,
 minimization and wider platform/distribution acceptance remain unverified. No
 public NuGet publication, release pipeline or versioning overhaul is introduced.
+
+The managed-boundary iteration uses `PollInputFrame` and
+`DrawWithOverlay(camera, batch, SpriteCommand[])` in `RelayHost`. Its game-owned
+legacy rule masks, input routes, ownership and screen policy are unchanged. New
+projects should follow the [typed starter entry](SAFE_AUTHORING_BOUNDARY.md).

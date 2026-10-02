@@ -93,9 +93,13 @@ next-stage work beyond the RELAY migration:
    [opted-in C# DTO/handler generation](GENERATED_UI_CONTRACTS.md), shared static
    preflight and source-aware build diagnostics; dynamic proof limits stay explicit
 3. Provide safer public rendering/input surfaces and typed resource handles,
-   keeping raw/native representations behind an explicit advanced boundary
+   keeping raw/native representations behind an explicit advanced boundary. **Implemented:**
+   [managed sprite/pass descriptions, borrowed typed handles and copied input views](SAFE_AUTHORING_BOUNDARY.md);
+   existing ABI-shaped APIs remain compatible
 4. Prefer input action tokens over manually allocated action bits on the ordinary
-   author path, while preserving the existing implementation's semantics
+   author path, while preserving the existing implementation's semantics. **Implemented:**
+   map-allocated tokens, typed queries/rebind and identity-preserving edge helpers;
+   starter and its pause-menu use them, with raw/UI/focus policy kept explicit
 5. Add an explicit UI initialization/publication helper that preserves failed-load
    or failed-reload retention and caller-visible update/render ownership
 6. Add semantic Circle/Box shape factories so authors do not rely on ambiguous

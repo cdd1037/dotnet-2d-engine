@@ -1,5 +1,7 @@
 # Explicit RGBA8 render targets and passes
 
+For managed application code, prefer [typed sprite commands and pass factories](SAFE_AUTHORING_BOUNDARY.md). The low-level ABI contract below remains available.
+
 This is a bounded extension of the Linux Vulkan renderer: reusable target textures,
 an explicit ordered pass list, and basic post-processing through the existing
 material API. The old `Draw` overloads continue to present one window frame. There

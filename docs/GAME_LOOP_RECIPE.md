@@ -7,7 +7,7 @@ no base game, scheduler, service locator, entity/body binder or new runtime API.
 
 ## One order to copy
 
-1. Poll native input once, then update your `InputActionMap` once
+1. Call `PollInputFrame` once, then update your `InputActionMap` once
 2. Sample elapsed time and update the stopwatch baseline, including paused frames
 3. Drain UI commands on the outer frame. Check `IsCurrent` immediately before
    dispatch; handle keyboard/UI pause and restart requests before simulation
@@ -51,7 +51,8 @@ It caps each frame at 0.1 seconds, accumulates accepted time, and records discar
 hitch time in `DroppedSeconds`. `Reset()` clears the accumulator and pending
 input, not that cumulative diagnostic. The caller must drain the steps.
 
-- A tap survives zero-step frames. Pressed/released edges coalesce by action bit
+- A tap survives zero-step frames. `ActionState.Accumulate`/`WithoutEdges` retain
+  the map identity; pressed/released edges coalesce by action token
   and reach only the first catch-up step; held state reaches every step
 - A press and release between steps may arrive together with `Down == 0`
 - Pause, focus loss, no drawable area and restart discard queued gameplay input

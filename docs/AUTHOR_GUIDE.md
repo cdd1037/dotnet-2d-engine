@@ -64,11 +64,12 @@ for exactly what moved and what remains author work. The
 explicit pause-menu order and restart ownership without introducing another loop
 abstraction.
 
-Define action bits and bindings in game code. Use `InputActionMap`, not the sample's
-`CreateSample()` defaults. Gameplay controls respect UI consumption unless an
+Name actions in game code with `InputActionMap.AddAction(InputControl.Key(...))`;
+query the returned tokens through `ActionState.IsDown/IsPressed/IsReleased`. Use
+`PollInputFrame()` for copied `Game`/`Raw` views, not the sample's `CreateSample()` defaults. Gameplay controls respect UI consumption unless an
 individual binding explicitly opts out. Input edges coalesce, survive zero-step
 frames and apply to only the first catch-up step. Raw physical scancodes are not
-text input; use the UI composition bridge for text. See [input](INPUT_VIEWPORT.md).
+text input; use the UI composition bridge for text. See [managed drawing/input](SAFE_AUTHORING_BOUNDARY.md) and [input](INPUT_VIEWPORT.md).
 
 The default policy pauses gameplay on Escape, focus loss or no drawable area,
 clears pending edges/debt and does not catch up after resuming. T resets the game
@@ -89,9 +90,10 @@ raster decode, actual pixels, GPU/device behavior, audio hardware or real IME.
 
 - **Pure rules first:** ordinary C# types can hold health, items, turn state or
   movement policy and be tested without constructing an engine
-- **Simple sprites:** submit explicit `SpriteDraw` arrays, as in the starter
+- **Simple sprites:** submit reusable `SpriteCommand` arrays, as in the starter
 - **Related entities/scenes:** create a `World`, then explicit `Scene`/`Entity`
-  objects, or load a strict `AuthoredScene`. Extract through `SpriteBatch`
+  objects, or load a strict `AuthoredScene`. Extract through `SpriteBatch` and
+  submit with `engine.Draw(camera, batch)`
 - **Content reuse:** use [parameterized C# factories and typed instance references](CSHARP_COMPOSITION.md),
   validated by the independent nested enemy/room consumer. There is no automatic
   prefab inheritance, arbitrary serialized component registry or behavior discovery

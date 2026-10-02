@@ -1,5 +1,7 @@
 # Sprite material contract
 
+For managed application code, prefer [typed sprite commands and pass factories](SAFE_AUTHORING_BOUNDARY.md). The low-level ABI contract below remains available.
+
 Materials are a bounded, opt-in extension of the existing Linux Vulkan sprite
 renderer. The old ABI, default sprite shader, atlas coordinates, flips, camera and
 straight-alpha order remain available. The subsequent [target/pass slice](RENDER_TARGETS.md)

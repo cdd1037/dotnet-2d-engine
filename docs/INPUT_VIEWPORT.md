@@ -69,6 +69,8 @@ character entry and existing IME handling stay with the UI; they are not key act
 
 ## Managed action mapping
 
+New application code should use [copied input views and automatic action tokens](SAFE_AUTHORING_BOUNDARY.md#poll-copied-views-and-name-actions). The explicit-mask API below remains compatible.
+
 `InputActionMap` copies a bounded array of `InputBinding` records. Action IDs are
 caller-chosen single bits, with any number of key/button alternatives within 128
 bindings. `Update(snapshot)` returns `ActionState(Down, Pressed, Released)`; systems

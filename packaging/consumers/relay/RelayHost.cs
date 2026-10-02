@@ -12,7 +12,7 @@ internal sealed class RelayHost : IDisposable
     private readonly TextureBank bank;
     private readonly UiModelSession<RelayView> ui;
     private readonly SpriteBatch batch = new(64);
-    private readonly SpriteDrawV2[] draws = new SpriteDrawV2[128];
+    private readonly SpriteCommand[] overlay = new SpriteCommand[3];
     private readonly InputActionMap actions = RelayInput.CreateActions();
     private readonly DiagnosticLog diagnostics = new(16) { MinimumLevel = DiagnosticLevel.Info };
     private bool canLoad;
@@ -88,7 +88,7 @@ internal sealed class RelayHost : IDisposable
     }
     public bool Frame(float elapsed)
     {
-        var input = engine.PollInput(); if (input.Quit != 0) return false;
+        var input = engine.PollInputFrame(); if (input.Quit) return false;
         var mapped = actions.Update(input);
         int revision = game.Revision;
         if (!input.Focused || !input.Drawable) game.Pause();
@@ -118,18 +118,18 @@ internal sealed class RelayHost : IDisposable
     public void Render()
     {
         bank.Sync(game.Room.World); game.Room.World.ExtractSprites(batch);
-        batch.RegionDraws.CopyTo(draws); int count = batch.Count;
+        int count = 0;
         if (game.Room.RoomIndex == game.Definition.DeliveryRoom)
         {
             float x = game.Definition.DeliveryX, y = game.Definition.DeliveryY;
-            draws[count++] = Disc(x - 20, y - 20, 80, .3f, 1, .75f, .35f);
-            draws[count++] = Disc(x - 8, y - 8, 56, .12f, .35f, .3f, .9f);
-            draws[count++] = Disc(x + 11, y + 11, 18, .65f, 1, .8f, 1);
+            overlay[count++] = Disc(x - 20, y - 20, 80, .3f, 1, .75f, .35f);
+            overlay[count++] = Disc(x - 8, y - 8, 56, .12f, .35f, .3f, .9f);
+            overlay[count++] = Disc(x + 11, y + 11, 18, .65f, 1, .8f, 1);
         }
-        engine.Draw(new Camera { Zoom = 1 }, draws.AsSpan(0, count));
+        engine.DrawWithOverlay(new Camera { Zoom = 1 }, batch, overlay.AsSpan(0, count));
     }
     public void Capture(string path) { ui.Capture(path); Render(); }
     public void Dispose() { try { ui.Dispose(); } finally { bank.Dispose(); } }
-    private static SpriteDrawV2 Disc(float x, float y, float size, float r, float g, float b, float a) => SpriteDrawV2.Create(new SpriteDraw()
-    { M11 = 1, M22 = 1, X = x, Y = y, Width = size, Height = size, R = r, G = g, B = b, A = a });
+    private static SpriteCommand Disc(float x, float y, float size, float r, float g, float b, float a)
+        => new(new(x, y), new(size, size), new(r, g, b, a));
 }

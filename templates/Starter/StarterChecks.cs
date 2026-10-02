@@ -64,11 +64,12 @@ internal static class StarterChecks
         Reject(() => StarterOptions.Parse(["--unknown"]), "unknown option");
         Check(StarterOptions.Parse(["--headless"]).Frames == 120, "bounded headless default");
         using var engine = EngineHost.Create(headless: true, maxSprites: 16);
+        var controls = new StarterInput();
         foreach (bool physics in new[] { false, true })
         {
-            using (var game = new StarterGame(engine, physics))
+            using (var game = new StarterGame(engine, physics, controls))
             {
-                for (int i = 0; i < 60; i++) game.Tick(new(StarterGame.Right, i == 0 ? StarterGame.Pulse : 0, 0));
+                for (int i = 0; i < 60; i++) game.Tick(controls.Map.CreateState(down: [controls.Right], pressed: i == 0 ? [controls.Pulse] : []));
                 Check(Math.Abs(game.Position.X - 320) < .01 && game.Pulses == 1 && game.Steps == 60,
                     $"movement/one-shot {(physics ? "native physics" : "plain rules")}");
                 Vector2 current = game.Position;

@@ -10,6 +10,7 @@ public enum PointerButton { Left=1, Middle=2, Right=3 }
 [Flags] public enum InputFlags : uint { Focused=1, Drawable=2, FocusChanged=4 }
 [Flags] public enum InputConsumption : uint { Keyboard=1, Pointer=2, Wheel=4, Text=8 }
 
+/// <summary>Advanced v2 interop/compatibility layout. New game code should use EngineHost.PollInputFrame and its copied Game/Raw views.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct InputSnapshot
 {
@@ -58,7 +59,78 @@ public readonly record struct Viewport(int WindowWidth, int WindowHeight, int Pi
     { window = default; return IsValid && Valid(camera) && Result(((double)world.X - camera.X) * camera.Zoom * WindowWidth / PixelWidth, ((double)world.Y - camera.Y) * camera.Zoom * WindowHeight / PixelHeight, out window); }
 }
 
-public readonly record struct ActionState(uint Down, uint Pressed, uint Released);
+/// <summary>
+/// Coalesced held/edge state. Typed queries retain the originating map across rebinds.
+/// Mask construction, deconstruction and equality remain available for legacy callers.
+/// </summary>
+public readonly record struct ActionState(uint Down, uint Pressed, uint Released)
+{
+    private readonly InputActionMap? _owner;
+    internal ActionState(InputActionMap owner, uint down, uint pressed, uint released) : this(down, pressed, released) => _owner = owner;
+
+    public bool IsDown(InputAction action) => (Down & Validate(action)) != 0;
+    public bool IsPressed(InputAction action) => (Pressed & Validate(action)) != 0;
+    public bool IsReleased(InputAction action) => (Released & Validate(action)) != 0;
+
+    private uint Validate(InputAction action)
+    {
+        action.Validate();
+        if (_owner is null)
+        {
+            if ((Down | Pressed | Released) != 0) throw new InvalidOperationException("A mask-only state has no action-map identity. Use InputActionMap.CreateState for typed states.");
+        }
+        else if (!ReferenceEquals(_owner, action.Owner)) throw new ArgumentException("The action belongs to a different input map.", nameof(action));
+        return action.Mask;
+    }
+
+    /// <summary>
+    /// Keep the newest held state and union pending edges until a fixed step consumes them.
+    /// A default state adopts the map identity; mixing different maps is rejected.
+    /// </summary>
+    public ActionState Accumulate(ActionState next)
+    {
+        if (_owner is not null && next._owner is not null && !ReferenceEquals(_owner, next._owner))
+            throw new ArgumentException("Cannot accumulate states from different input maps.", nameof(next));
+        var owner = _owner ?? next._owner;
+        if (owner is not null && ((_owner is null && (Down | Pressed | Released) != 0) || (next._owner is null && (next.Down | next.Pressed | next.Released) != 0)))
+            throw new ArgumentException("Cannot mix typed states with nonempty mask-only states.", nameof(next));
+        return owner is null ? new(next.Down, Pressed | next.Pressed, Released | next.Released)
+            : new(owner, next.Down, Pressed | next.Pressed, Released | next.Released);
+    }
+
+    /// <summary>Keep held actions and map identity, consuming all pending edges.</summary>
+    public ActionState WithoutEdges() => _owner is null ? new(Down, 0, 0) : new(_owner, Down, 0, 0);
+
+    // Preserve the original mask-only value contract, including equality with default.
+    // Token queries and accumulation validate identity separately.
+    public bool Equals(ActionState other) => Down == other.Down && Pressed == other.Pressed && Released == other.Released;
+    public override int GetHashCode() => HashCode.Combine(Down, Pressed, Released);
+}
+
+/// <summary>An opaque action allocated by one InputActionMap. The default value is invalid.</summary>
+public readonly record struct InputAction
+{
+    internal InputActionMap? Owner { get; }
+    internal uint Mask { get; }
+    internal InputAction(InputActionMap owner, uint mask) { Owner = owner; Mask = mask; }
+    internal void Validate()
+    {
+        if (Owner is null || Mask == 0) throw new ArgumentException("A default action is not valid; allocate it with InputActionMap.AddAction.", "action");
+    }
+}
+
+/// <summary>A key or pointer binding. UI-consumed input is excluded unless explicitly requested.</summary>
+public readonly record struct InputControl
+{
+    internal int Code { get; }
+    internal bool Pointer { get; }
+    internal bool AllowUiConsumed { get; }
+    private InputControl(int code, bool pointer, bool allowUiConsumed) { Code = code; Pointer = pointer; AllowUiConsumed = allowUiConsumed; }
+    public static InputControl Key(PhysicalKey key, bool allowUiConsumed = false) => new(InputSnapshot.ValidateKey(key), false, allowUiConsumed);
+    public static InputControl Button(PointerButton button, bool allowUiConsumed = false)
+    { InputSnapshot.ButtonBit((int)button); return new((int)button, true, allowUiConsumed); }
+    internal InputBinding Bind(uint action) => new(action, Code, Pointer, AllowUiConsumed);
+}
 public readonly record struct InputBinding(uint Action, int Code, bool Pointer = false, bool AllowUiConsumed = false)
 {
     public static InputBinding Key(uint action, PhysicalKey key, bool allowUiConsumed = false) => new(action, (int)key, false, allowUiConsumed);
@@ -66,7 +138,8 @@ public readonly record struct InputBinding(uint Action, int Code, bool Pointer =
 }
 
 /// <summary>
-/// Poll-based bindings, independent of entities. Actions are caller-chosen single bits.
+/// Poll-based bindings, independent of entities. AddAction allocates opaque map-bound
+/// actions; legacy InputBinding callers may still choose their own single bits.
 /// Alternative controls combine into one held action. A tap that begins/ends in one
 /// poll still reports pressed+released. Edges coalesce; there is no ordered event queue.
 /// Rebinding/focus loss waits for neutral controls, preventing held-key activation.
@@ -76,9 +149,79 @@ public sealed class InputActionMap
     private InputBinding[] _bindings;
     private bool[] _previousControls;
     private uint _previous;
+    private uint _allocatedActions;
     private bool _waitForNeutral;
     public InputActionMap(params InputBinding[] bindings) { _bindings = Copy(bindings); _previousControls = new bool[_bindings.Length]; }
     public void Rebind(params InputBinding[] bindings) { var copy = Copy(bindings); var previous = new bool[copy.Length]; _bindings = copy; _previousControls = previous; _previous = 0; _waitForNeutral = true; }
+
+    /// <summary>Allocate one of 32 action bits, with alternative controls within the existing 128-binding limit.</summary>
+    public InputAction AddAction(params InputControl[] controls)
+    {
+        ArgumentNullException.ThrowIfNull(controls);
+        uint used = _allocatedActions;
+        foreach (var binding in _bindings) used |= binding.Action;
+        uint available = ~used;
+        if (available == 0) throw new InvalidOperationException("At most 32 actions per input map.");
+        uint action = 1u << BitOperations.TrailingZeroCount(available);
+        var added = Bind(action, controls);
+        if (_bindings.Length + added.Length > 128) throw new ArgumentException("At most 128 bindings per action map.", nameof(controls));
+        var replacement = new InputBinding[_bindings.Length + added.Length];
+        _bindings.CopyTo(replacement, 0); added.CopyTo(replacement, _bindings.Length);
+        var previous = new bool[replacement.Length];
+        _previousControls.CopyTo(previous, 0);
+        _bindings = replacement; _previousControls = previous; _allocatedActions |= action;
+        return new(this, action);
+    }
+
+    /// <summary>
+    /// Replace only this action's controls, then use the existing map-wide raw-neutral
+    /// gate. Empty controls unbind the action without invalidating its token.
+    /// </summary>
+    public void Rebind(InputAction action, params InputControl[] controls)
+    {
+        Validate(action);
+        var added = Bind(action.Mask, controls);
+        int retained = 0;
+        foreach (var binding in _bindings) if (binding.Action != action.Mask) retained++;
+        if (retained + added.Length > 128) throw new ArgumentException("At most 128 bindings per action map.", nameof(controls));
+        var replacement = new InputBinding[retained + added.Length];
+        int index = 0;
+        foreach (var binding in _bindings) if (binding.Action != action.Mask) replacement[index++] = binding;
+        added.CopyTo(replacement, index);
+        var previous = new bool[replacement.Length];
+        _bindings = replacement; _previousControls = previous; _previous = 0; _waitForNeutral = true;
+    }
+
+    /// <summary>Create a copied synthetic state without knowing action bits, for simulation or tests.</summary>
+    public ActionState CreateState(ReadOnlySpan<InputAction> down = default, ReadOnlySpan<InputAction> pressed = default, ReadOnlySpan<InputAction> released = default)
+        => new(this, Mask(down), Mask(pressed), Mask(released));
+
+    private uint Mask(ReadOnlySpan<InputAction> actions)
+    {
+        uint result = 0;
+        foreach (var action in actions) { Validate(action); result |= action.Mask; }
+        return result;
+    }
+
+    private void Validate(InputAction action)
+    {
+        action.Validate();
+        if (!ReferenceEquals(action.Owner, this)) throw new ArgumentException("The action belongs to a different input map.", nameof(action));
+    }
+
+    private static InputBinding[] Bind(uint action, InputControl[] controls)
+    {
+        ArgumentNullException.ThrowIfNull(controls);
+        if (controls.Length > 128) throw new ArgumentException("At most 128 bindings per action map.", nameof(controls));
+        var bindings = new InputBinding[controls.Length];
+        for (int i = 0; i < controls.Length; i++)
+        {
+            var binding = controls[i].Bind(action);
+            if (binding.Pointer) InputSnapshot.ButtonBit(binding.Code); else InputSnapshot.ValidateKey((PhysicalKey)binding.Code);
+            bindings[i] = binding;
+        }
+        return bindings;
+    }
     private static InputBinding[] Copy(InputBinding[] bindings)
     {
         ArgumentNullException.ThrowIfNull(bindings);
@@ -90,9 +233,10 @@ public sealed class InputActionMap
         }
         return (InputBinding[])bindings.Clone();
     }
+    public ActionState Update(InputFrame frame) => Update(frame.Snapshot);
     public ActionState Update(InputSnapshot snapshot)
     {
-        if (!snapshot.Focused) { uint released = _previous; Array.Clear(_previousControls); _previous = 0; _waitForNeutral = true; return new(0, 0, released); }
+        if (!snapshot.Focused) { uint released = _previous; Array.Clear(_previousControls); _previous = 0; _waitForNeutral = true; return new(this, 0, 0, released); }
         uint down = 0, presses = 0, releases = 0, continuous = 0; bool rawActivity = false;
         for (int i = 0; i < _bindings.Length; i++)
         {
@@ -114,12 +258,12 @@ public sealed class InputActionMap
             _previousControls[i] = held;
             if (held) down |= binding.Action; if (pressed) presses |= binding.Action; if (released) releases |= binding.Action;
         }
-        if (_waitForNeutral) { if (!rawActivity) _waitForNeutral = false; return default; }
+        if (_waitForNeutral) { if (!rawActivity) _waitForNeutral = false; return new(this, 0, 0, 0); }
         uint cycle = presses & releases & ~continuous;
         uint began = ((down | presses) & ~_previous) | cycle;
         uint ended = ((_previous | (began & releases)) & ~down) | (cycle & _previous);
         _previous = down;
-        return new(down, began, ended);
+        return new(this, down, began, ended);
     }
 
     // Default bindings belong to this sample adapter, not the native backend or World.

@@ -1466,3 +1466,57 @@ this cleanup. Logs are in `evidence/relay/simplified-*.log`; the focused output 
 
 The roadmap records the approved two-track strategy and six next-stage author-API
 improvements separately; none was implemented in the RELAY migration.
+
+## 2026-10-02: safe managed drawing and input boundary
+
+Stages 3–4 of the approved author-API sequence add `SpriteCommand`, `FramePass`,
+borrowed resource-kind handles, copied `InputFrame.Game`/`Raw` views and map-allocated
+`InputAction` tokens. Existing ABI structs and mask APIs remain compatible. The
+starter and its optional pause-menu use the safe entry; RELAY changes only its
+polling and overlay boundary. See [contract, examples and costs](SAFE_AUTHORING_BOUNDARY.md).
+No native sources, renderer routing, resource ownership or UI consumption rules
+changed. No additional package identity/version framework was introduced.
+
+Final-source results:
+
+- Release builds: **0 warnings/errors**
+- Headless aggregate: **11,845 assertions**; typed input accounts for 82 added
+  checks (134 input checks total), managed drawing has 25
+- Managed drawing with software Vulkan: **25 checks**, including zero extents,
+  empty passes, post-processing, target feedback rejection and scene/overlay
+  batching; warmed managed draw/pass/overlay allocations are zero
+- Existing queued SDL/Rml input integration: **28 checks**, preserving consumption,
+  focus and viewport behavior
+- Prepared native CTest profiles: **8/8 headless and 8/8 UI**, without rebuilding
+- Standalone `packaging/consumers/authoring`: **59 checks each in JIT and NativeAOT**,
+  unsafe disabled, no internals or numeric IDs, zero warmed input/draw allocations
+  and all owned resources released
+- Negative public compilation: **8 intended CS0029/CS1503 cases** for wrong
+  resource kinds and numeric resource/action values
+- Refreshed-package starter: **49 checks + 58 extracted host-policy checks**,
+  plain/physics 120-frame headless runs and 30-frame software-Vulkan smoke
+- Refreshed-package pause-menu: **33 queued SDL checks + 24 pixel assertions**
+- Refreshed-package RELAY: **932 rules + 118 full-loop checks + 22 pixel assertions**
+
+Reproduction entry points are `scripts/test-authoring-packages.sh`,
+`test-starter.sh`, `test-loop-ui.sh`, `test-relay-packages.sh` and the focused
+`--draw-command-self-test` / `--draw-command-graphics-test` source-host flags.
+The prepared feed is `build-packages/authoring-feed`, reusing the preceding native
+package; the final runtime DLL was checked against the managed package bytes.
+
+Final local evidence is under
+`/workspace/scratch/196948ae630a/safe-authoring-evidence/`:
+`final-authoring-proof`, `final-starter`, `final-loop-ui`, and `final-relay`.
+Source aggregate/graphics/build logs are in `/tmp/safe-authoring-source/logs`.
+An earlier public proof passed before the final zero-extent compatibility fix; its
+AOT restore first exhausted `/tmp`, then proof relocation required correcting the
+caller asset layout. Those diagnostic logs remain preserved. The final proof was
+run afresh on the canonical workspace filesystem, with normal asset placement and
+no recovery. There were two AOT compiles in this iteration: the initial baseline
+and one required verification of the final semantic correction.
+
+The native runtime permits one live engine context, so prior-context handle tests
+create the replacement only after disposing the original. Copied handles from a
+disposed lease fail even when a sibling lease retains the same resource. This is
+borrowed validity checking, not new ownership or implicit retention. Physical input,
+hardware GPU/audio, real high-DPI devices and OS IME remain outside this proof.

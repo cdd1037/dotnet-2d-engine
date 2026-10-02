@@ -72,6 +72,7 @@ internal static unsafe class InputTests
             mission.Advance(0,0,RoomGame.FixedDelta/2);Check(mission.Room.Held is not null,"fixed-step game consumes quick tap despite no held snapshot");
             mission.Pause();mission.Resume();mission.Advance(0,Native.Drop,RoomGame.FixedDelta);Check(mission.WaitingForNeutral&&mission.Room.Held is not null,"modal neutral gate also blocks transient tap edges");
         }
+        count += InputAuthoringTests.Run();
         Console.WriteLine($"INPUT SELF-TEST PASS assertions={count}; headless ABI, synthetic density math, action maps and fixed-step edges");return count;
     }
 

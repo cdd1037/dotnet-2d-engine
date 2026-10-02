@@ -29,10 +29,9 @@ def main():
     output = proof / 'loop-policy'
     output.mkdir()  # Never overwrite a prior result.
     host = (source / 'Program.cs').read_text()
-    policy = between(host, '        if ((action.Pressed & StarterGame.Pause)', '        frames++;')
-    bindings = between(host, '    var actions = new InputActionMap(', '    var fixedInput =')
-    bindings = bindings.replace('var actions =', 'private readonly InputActionMap actions =', 1)
-    for name in ('FixedStepInput.cs', 'StarterGame.cs', 'StarterOptions.cs'):
+    policy = between(host, '        if (action.IsPressed(controls.Pause))', '        frames++;')
+    bindings = 'private readonly StarterInput controls = new();\nprivate InputActionMap actions => controls.Map;\n'
+    for name in ('FixedStepInput.cs', 'StarterGame.cs', 'StarterInput.cs', 'StarterOptions.cs'):
         shutil.copy2(source / name, output / name)
     shutil.copytree(source / 'assets', output / 'assets')
     shutil.copy2(source / 'Starter.csproj', output / 'LoopPolicy.csproj')
@@ -42,7 +41,7 @@ internal sealed class Driver : IDisposable
     private readonly EngineHost engine;
     private readonly TextureLease texture;
     private readonly Camera camera = new() { Zoom = 1 };
-    private readonly SpriteDraw[] draws = new SpriteDraw[1];
+    private readonly SpriteCommand[] draws = new SpriteCommand[1];
     private readonly FixedStepInput fixedInput = new(StarterGame.StepSeconds);
     private readonly StarterOptions options;
     private readonly StarterGame game;
@@ -56,7 +55,7 @@ internal sealed class Driver : IDisposable
     {
         engine = EngineHost.Create(headless: true, maxSprites: 16);
         texture = engine.Textures.Acquire(new AssetRoot(Path.Combine(AppContext.BaseDirectory, "assets")), "white.png");
-        game = new StarterGame(engine, physics);
+        game = new StarterGame(engine, physics, controls);
         options = StarterOptions.Parse(headlessClock ? ["--headless"] : []);
     }
 

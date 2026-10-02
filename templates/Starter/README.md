@@ -8,6 +8,10 @@ friend assembly name, code generation or automatic component discovery. The
 This is an editable application skeleton, **not a new engine framework**.
 `FixedStepInput.cs` is a small application-owned policy helper. The complete loop,
 input mapping, game state, physics step, draw and disposal remain visible in C#.
+`StarterInput` names automatically assigned action tokens; `PollInputFrame` exposes
+copied game/raw views. Drawing uses `SpriteCommand` and the existing lease's borrowed
+`Texture` view, without native ABI headers or numeric resource IDs.
+`FixedStepInput` keeps token identity through `Accumulate`/`WithoutEdges`.
 
 ## Prepare once
 

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Dotnet2DStarter;
 using GameAuthoringLab;
 
-// The harness copies StarterGame.cs, FixedStepInput.cs and white.png unchanged.
+// The harness copies StarterGame.cs, StarterInput.cs, FixedStepInput.cs and white.png unchanged.
 // This optional UI example still consumes only the two public preview packages.
 if (args.Any(arg => arg != "--check"))
     throw new ArgumentException("Usage: Sample.loop-ui [--check]");
@@ -13,15 +13,16 @@ using (File.OpenRead(font)) { } // Check access before starting native graphics.
 var assets = new AssetRoot(Path.Combine(AppContext.BaseDirectory, "assets"));
 using var engine = EngineHost.Create(maxSprites: 16);
 using var texture = engine.Textures.Acquire(assets, "white.png");
-using (var game = new StarterGame(engine, usePhysics: true))
+var controls = new StarterInput();
+using (var game = new StarterGame(engine, usePhysics: true, controls))
 using (var ui = new UiModelSession<StarterGame>(engine,
     new UiRecord<StarterGame>().Boolean("paused", static game => game.Paused),
     new UiCommands().Add("toggle", LoopUiHost.Toggle).Add("restart", LoopUiHost.Restart)))
 {
     ui.LoadAsset(assets, "ui/pause.rml");
-    engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteDraw>.Empty);
+    engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
     ui.Apply(game); // Publish the loaded document, then its initial model.
-    var host = new LoopUiHost(engine, game, ui, texture.Handle);
+    var host = new LoopUiHost(engine, game, ui, texture.Texture, controls);
     host.Frame(0);
     if (args.Contains("--check")) ScriptedChecks.Run(engine, host, game, ui);
     else

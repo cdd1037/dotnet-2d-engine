@@ -36,7 +36,7 @@ with zipfile.ZipFile(sys.argv[1]) as package:
 PY_NATIVE
 cp -a packaging/consumers/loop-ui "$proof/app"
 rm -rf "$proof/app/bin" "$proof/app/obj"
-cp templates/Starter/{StarterGame,FixedStepInput}.cs "$proof/app/"
+cp templates/Starter/{StarterGame,StarterInput,FixedStepInput}.cs "$proof/app/"
 cp templates/Starter/assets/white.png "$proof/app/assets/"
 cp templates/Starter/LICENSE.txt "$proof/app/assets/LICENSE.txt"
 python3 - "$proof" <<'PY'
@@ -75,13 +75,13 @@ for package, member in [('Dotnet2D.Engine','lib/net10.0/Dotnet2D.Engine.dll'),('
             paths=[n for n in z.namelist() if n.startswith('runtimes/linux-x64/native/') and not n.endswith('/')]
             assert len(paths)==8
             for n in paths:assert z.read(n)==(output/n).read_bytes()
-for name in ('StarterGame.cs','FixedStepInput.cs'):
+for name in ('StarterGame.cs','StarterInput.cs','FixedStepInput.cs'):
     assert (p/'app'/name).read_bytes()==(root/'templates/Starter'/name).read_bytes()
 for f in (root/'packaging/consumers/loop-ui').rglob('*'):
     if f.is_file() and f.suffix in ('.cs','.csproj','.rml','.rcss'):
         assert f.read_bytes()==(p/'app'/f.relative_to(root/'packaging/consumers/loop-ui')).read_bytes()
 inputs={str(f.relative_to(root)):sha(f) for f in (root/'packaging/consumers/loop-ui').rglob('*') if f.is_file() and not {'bin','obj'} & set(f.parts)}
-inputs.update({f'templates/Starter/{name}':sha(root/'templates/Starter'/name) for name in ('StarterGame.cs','FixedStepInput.cs','assets/white.png','LICENSE.txt')})
+inputs.update({f'templates/Starter/{name}':sha(root/'templates/Starter'/name) for name in ('StarterGame.cs','StarterInput.cs','FixedStepInput.cs','assets/white.png','LICENSE.txt')})
 run=(p/'logs/run.log').read_text(); checks=re.search(r'LOOP UI CHECKS PASS assertions=(\d+)',run)
 assert checks and 'LOOP UI OWNERSHIP PASS reopened-empty-world=true' in run
 pixels=re.search(r'LOOP UI PIXELS PASS assertions=(\d+)',(p/'logs/pixels.log').read_text()); assert pixels
