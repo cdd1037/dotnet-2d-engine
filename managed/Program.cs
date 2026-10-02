@@ -22,6 +22,8 @@ internal static class Program
             }
             if(args.Contains("--diagnostics-self-test",StringComparer.Ordinal)){DiagnosticsTests.Run();DebugGeometryTests.Run();return 0;}
             if(args.Contains("--material-self-test",StringComparer.Ordinal)){MaterialTests.Run();return 0;}
+            if(args.Contains("--draw-command-self-test",StringComparer.Ordinal)){DrawingCommandTests.Run();return 0;}
+            if(args.Contains("--draw-command-graphics-test",StringComparer.Ordinal)){DrawingCommandTests.Run(true);return 0;}
             if(args.Contains("--target-self-test",StringComparer.Ordinal)){RenderTargetTests.Run();return 0;}
             if(args.Contains("--target-graphics-test",StringComparer.Ordinal)||args.Contains("--target-demo",StringComparer.Ordinal))return RenderTargetDemo.Run(args.Contains("--target-graphics-test",StringComparer.Ordinal),options.Frames);
             if(args.Contains("--material-graphics-test",StringComparer.Ordinal)||args.Contains("--material-demo",StringComparer.Ordinal))return MaterialDemo.Run(args.Contains("--material-graphics-test",StringComparer.Ordinal),options.Frames);
@@ -266,7 +268,7 @@ internal static class Program
                     case "--material-self-test": case "--material-graphics-test": case "--material-demo":break;
                     case "--movement-demo": case "--movement-scenario": case "--movement-self-test": case "--movement-physics-test":break;
                     case "--tilemap-edit-graphics-test":break;
-                    case "--target-self-test": case "--target-graphics-test": case "--target-demo":break;
+                    case "--target-self-test": case "--target-graphics-test": case "--target-demo": case "--draw-command-self-test": case "--draw-command-graphics-test": break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
                     case "--composition-self-test":

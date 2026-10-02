@@ -22,7 +22,7 @@ public readonly struct MaterialParameters
     }
 }
 
-/// <summary>Additive material draw ABI. Handle zero preserves the default pipeline and requires zero parameters.</summary>
+/// <summary>Advanced material draw ABI. Prefer SpriteCommand for managed authoring. Zero material requires zero parameters.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct MaterialDraw
 {
@@ -97,6 +97,8 @@ public sealed unsafe class MaterialCache : IEngineOwned
     public int Count{get{CheckAccess();return _entries.Count;}}
     public int Loads{get;private set;}
     public int Releases{get;private set;}
+    internal void CheckOwner(EngineHost candidate)
+    { CheckAccess(); if (!ReferenceEquals(_engine, candidate)) throw new ArgumentException("Material belongs to a different engine."); }
     internal void CheckAccess(){_engine.AssertAlive();ObjectDisposedException.ThrowIf(_destroyed,this);}
     public MaterialLease Acquire(AssetRoot assets,string logicalPath)
     {
@@ -132,6 +134,10 @@ public sealed class MaterialLease : IDisposable
     private bool _disposed;
     internal MaterialLease(MaterialCache cache,string path,ulong handle,MaterialInfo info){_cache=cache;_path=path;_handle=handle;_info=info;}
     public ulong Handle{get{ObjectDisposedException.ThrowIf(_disposed,this);_cache.CheckAccess();return _handle;}}
+    /// <summary>Borrowed typed view; disposing this lease invalidates all its copies.</summary>
+    public MaterialHandle Material { get { _ = Handle; return new(this); } }
+    internal ulong ResolveMaterial(EngineHost engine)
+    { ObjectDisposedException.ThrowIf(_disposed, this); _cache.CheckOwner(engine); return _handle; }
     public MaterialInfo Info{get{ObjectDisposedException.ThrowIf(_disposed,this);_cache.CheckAccess();return _info;}}
     public void Dispose(){if(_disposed)return;_cache.Release(_path);_disposed=true;}
 }

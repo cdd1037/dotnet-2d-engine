@@ -21,6 +21,9 @@ public sealed class TextureCache : IEngineOwned
     public int Loads { get; private set; }
     public int Releases { get; private set; }
 
+    internal void CheckOwner(EngineHost candidate)
+    { CheckAccess(); if (!ReferenceEquals(engine, candidate)) throw new ArgumentException("Texture belongs to a different engine."); }
+
     internal void CheckAccess()
     {
         engine.AssertAlive();
@@ -93,7 +96,7 @@ public sealed class TextureCache : IEngineOwned
     }
 }
 
-public sealed class TextureLease : IDisposable
+public sealed class TextureLease : IDisposable, ITextureSource
 {
     private readonly TextureCache cache; private readonly string path; private readonly ulong handle; private readonly BitmapInfo info;
     internal TextureLease(TextureCache cache,string path,ulong handle,BitmapInfo info){this.cache=cache;this.path=path;this.handle=handle;this.info=info;}
@@ -102,6 +105,13 @@ public sealed class TextureLease : IDisposable
     public ulong Handle
     {
         get { ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckAccess(); return handle; }
+    }
+    /// <summary>Borrowed typed view; disposing this lease invalidates all its copies.</summary>
+    public TextureHandle Texture { get { _ = Handle; return new(this); } }
+    ulong ITextureSource.ResolveTexture(EngineHost engine, TextureRegion? region)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckOwner(engine);
+        region?.Validate(info.Width, info.Height); return handle;
     }
     public void Dispose()
     {

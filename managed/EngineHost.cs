@@ -5,6 +5,8 @@ namespace GameAuthoringLab;
 public sealed unsafe class EngineHost : IDisposable
 {
     private nint _context;
+    private MaterialDraw[] _commandDraws = [];
+    private RenderPass[] _commandPasses = [];
     public bool Headless { get; }
     public uint MaximumSprites { get; }
     private IEngineOwned? _textures;
@@ -77,6 +79,60 @@ public sealed unsafe class EngineHost : IDisposable
         var input = new Input { Size = (uint)sizeof(Input) };
         Native.Check(Native.Poll(Context, &input), "poll");
         return input;
+    }
+
+    private ReadOnlySpan<MaterialDraw> PrepareCommands(ReadOnlySpan<SpriteCommand> commands)
+    {
+        AssertAlive();
+        if ((uint)commands.Length > MaximumSprites) throw new ArgumentException("Sprite command count exceeds the engine capacity.", nameof(commands));
+        if (_commandDraws.Length < commands.Length) _commandDraws = new MaterialDraw[commands.Length];
+        // Resolve every borrowed resource before opening a native frame. The buffer
+        // has no managed owner references and never extends a resource's lifetime.
+        for (int i = 0; i < commands.Length; i++) _commandDraws[i] = commands[i].ToNative(this);
+        return _commandDraws.AsSpan(0, commands.Length);
+    }
+
+    /// <summary>Managed commands convert into a reusable bounded buffer; one contiguous native submit preserves batching.</summary>
+    public void Draw(in Camera camera, ReadOnlySpan<SpriteCommand> commands, ReadOnlySpan<FramebufferClip> clips = default)
+        => Draw(camera, PrepareCommands(commands), clips);
+
+    /// <summary>Draw the existing extracted batch without exposing its ABI storage.</summary>
+    public void Draw(in Camera camera, SpriteBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        Draw(camera, batch.RegionDraws);
+    }
+
+    /// <summary>Draw an extracted scene and managed overlay in one frame, retaining their stable order.</summary>
+    public void DrawWithOverlay(in Camera camera, SpriteBatch scene, ReadOnlySpan<SpriteCommand> overlay)
+    {
+        ArgumentNullException.ThrowIfNull(scene);
+        AssertAlive();
+        if ((ulong)scene.Count + (uint)overlay.Length > MaximumSprites)
+            throw new ArgumentException("Scene and overlay exceed the engine capacity.", nameof(overlay));
+        var commands = PrepareCommands(overlay);
+        var value = camera; nint context = Context;
+        Native.Check(Native.Begin(context, &value), "begin");
+        try
+        {
+            fixed (SpriteDrawV2* data = scene.RegionDraws)
+                Native.Check(Native.SubmitDrawsV2(context, data, (uint)scene.Count), "submit scene");
+            fixed (MaterialDraw* data = commands)
+                Native.Check(MaterialNative.Submit(context, data, (uint)commands.Length, null, 0), "submit overlay");
+        }
+        catch { Native.Abort(context); throw; }
+        Native.Check(Native.End(context), "end");
+    }
+
+    /// <summary>Managed pass descriptions retain native all-or-nothing validation, including target feedback and draw ranges.</summary>
+    public void RenderFrame(ReadOnlySpan<FramePass> passes, ReadOnlySpan<SpriteCommand> commands, ReadOnlySpan<FramebufferClip> clips = default)
+    {
+        AssertAlive();
+        if (passes.Length is < 1 or > 16) throw new ArgumentException("A frame requires 1..16 passes.", nameof(passes));
+        if (_commandPasses.Length == 0) _commandPasses = new RenderPass[16];
+        for (int i = 0; i < passes.Length; i++) _commandPasses[i] = passes[i].ToNative(this);
+        var draws = PrepareCommands(commands);
+        RenderFrame(_commandPasses.AsSpan(0, passes.Length), draws, clips);
     }
 
     public void Draw(in Camera camera, ReadOnlySpan<Sprite> sprites)

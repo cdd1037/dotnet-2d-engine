@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 namespace GameAuthoringLab;
 
-/// <summary>One explicit pass. Draw ranges partition the shared array, and the last pass targets the window (zero).</summary>
+/// <summary>Advanced ABI pass. Prefer FramePass for managed authoring. Ranges partition the array; the final target is zero.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct RenderPass
 {
@@ -30,6 +30,8 @@ public sealed unsafe class RenderTargetStore : IEngineOwned
     internal RenderTargetStore(EngineHost engine)=>_engine=engine;
     public int Count{get{CheckAccess();return _targets.Count;}}
     public long AllocatedBytes{get;private set;}
+    internal void CheckOwner(EngineHost candidate)
+    { CheckAccess(); if (!ReferenceEquals(_engine, candidate)) throw new ArgumentException("Render target belongs to a different engine."); }
     internal void CheckAccess(){_engine.AssertAlive();ObjectDisposedException.ThrowIf(_destroyed,this);}
     public RenderTarget Create(int width,int height)
     {
@@ -51,7 +53,7 @@ public sealed unsafe class RenderTargetStore : IEngineOwned
     void IEngineOwned.EngineDestroyed(){_targets.Clear();AllocatedBytes=0;_destroyed=true;}
 }
 
-public sealed class RenderTarget : IDisposable
+public sealed class RenderTarget : IDisposable, ITextureSource
 {
     private readonly RenderTargetStore _owner;
     private readonly ulong _handle;
@@ -63,6 +65,12 @@ public sealed class RenderTarget : IDisposable
     public int Width{get{CheckAccess();return _width;}}
     public int Height{get{CheckAccess();return _height;}}
     public TextureBinding Binding=>new(Handle);
+    public RenderTargetHandle Target { get { CheckAccess(); return new(this); } }
+    /// <summary>Borrowed sampling view of this target; it does not own or retain the target.</summary>
+    public TextureHandle Texture { get { CheckAccess(); return new(this); } }
+    internal ulong ResolveTarget(EngineHost engine) { CheckAccess(); _owner.CheckOwner(engine); return _handle; }
+    ulong ITextureSource.ResolveTexture(EngineHost engine, TextureRegion? region)
+    { ulong handle = ResolveTarget(engine); region?.Validate(_width, _height); return handle; }
     public long StorageBytes=>8L*_width*_height;
     public void Dispose(){if(_disposed)return;_owner.Release(_handle);_disposed=true;}
 }

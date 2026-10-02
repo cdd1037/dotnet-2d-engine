@@ -10,6 +10,7 @@
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/TextureRegion.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BehaviorLifetime.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/EngineHost.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/DrawingCommands.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/EngineOwnership.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Native.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Clipping.cs" />

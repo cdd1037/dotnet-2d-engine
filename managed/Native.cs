@@ -32,6 +32,7 @@ public struct Sprite
     public float X, Y, Width, Height, R, G, B, A;
 }
 
+/// <summary>Advanced ABI-shaped draw. Prefer SpriteCommand for ordinary managed authoring.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct SpriteDraw
 {
@@ -39,6 +40,7 @@ public struct SpriteDraw
     public ulong Texture;
 }
 
+/// <summary>Advanced versioned ABI draw. Prefer SpriteCommand for ordinary managed authoring.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct SpriteDrawV2
 {
