@@ -19,6 +19,28 @@ public readonly record struct PhysicsBodyDefinition(PhysicsBodyType Type,float X
 /// <summary>Circle A is its radius, with B and Angle zero; box A/B are half extents. Lengths are meters, local angles radians and density kg/m².</summary>
 public readonly record struct PhysicsShapeDefinition(PhysicsShapeType Type,float A,float B=0,float OffsetX=0,float OffsetY=0,float Angle=0,float Density=1,float Friction=.6f,float Restitution=0,ulong Category=1,ulong Mask=ulong.MaxValue,int Group=0,bool Sensor=false)
 {
+    /// <summary>Creates a validated circle with radius and body-local offsets in meters. B and Angle are always zero. Density is kg/m²; explicit zero material/filter values are preserved.</summary>
+    public static PhysicsShapeDefinition Circle(float radius, float offsetX = 0, float offsetY = 0,
+        float density = 1, float friction = .6f, float restitution = 0,
+        ulong category = 1, ulong mask = ulong.MaxValue, int group = 0, bool sensor = false)
+    {
+        var definition = new PhysicsShapeDefinition(PhysicsShapeType.Circle, radius, 0, offsetX, offsetY, 0,
+            density, friction, restitution, category, mask, group, sensor);
+        definition.Validate();
+        return definition;
+    }
+
+    /// <summary>Creates a validated box with positive half width/height and body-local offsets in meters, and a local angle in radians. Density is kg/m²; explicit zero material/filter values are preserved.</summary>
+    public static PhysicsShapeDefinition Box(float halfWidth, float halfHeight, float offsetX = 0, float offsetY = 0,
+        float angle = 0, float density = 1, float friction = .6f, float restitution = 0,
+        ulong category = 1, ulong mask = ulong.MaxValue, int group = 0, bool sensor = false)
+    {
+        var definition = new PhysicsShapeDefinition(PhysicsShapeType.Box, halfWidth, halfHeight, offsetX, offsetY, angle,
+            density, friction, restitution, category, mask, group, sensor);
+        definition.Validate();
+        return definition;
+    }
+
     internal unsafe PhysicsShapeDef NativeValue(){Validate();return new(){Size=(uint)sizeof(PhysicsShapeDef),Version=1,Type=Type,Flags=Sensor?1u:0,OffsetX=OffsetX,OffsetY=OffsetY,Angle=Angle,A=A,B=B,Density=Density,Friction=Friction,Restitution=Restitution,Category=Category,Mask=Mask,Group=Group};}
     public void Validate()
     {

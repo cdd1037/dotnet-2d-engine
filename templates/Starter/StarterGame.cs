@@ -29,7 +29,7 @@ internal sealed class StarterGame : IDisposable
         {
             body = bodies.CreateBody(new(PhysicsBodyType.Dynamic,
                 scale.ToMeters(Position.X), scale.ToMeters(Position.Y), FixedRotation: true));
-            body.AddShape(new(PhysicsShapeType.Box, .25f, .25f));
+            body.AddShape(PhysicsShapeDefinition.Box(halfWidth: .25f, halfHeight: .25f));
         }
         catch { bodies.Dispose(); physics.Dispose(); throw; }
     }

@@ -2,7 +2,11 @@
 
 An ordinary public `PackageReference` application with unsafe blocks disabled.
 It exercises managed draw/pass descriptions, borrowed typed resources, copied input
-views, map-allocated actions and fixed-step edge helpers. The `compilefail` project
+views, map-allocated actions, fixed-step edge helpers and semantic circle/box
+factories. Physics checks use the package's existing Box2D runtime for local
+geometry/radian angles, sensor events, zero filters, signed collision groups and
+body-owned lifetime. Factory validation and unchanged descriptor defaults are
+checked through the public API. The `compilefail` project
 must fail for eight specific resource-kind/numeric-ID mistakes; it is excluded from
 the runnable application.
 

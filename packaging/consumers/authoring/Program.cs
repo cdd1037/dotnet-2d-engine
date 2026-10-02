@@ -7,6 +7,7 @@ var assets = new AssetRoot(Path.Combine(AppContext.BaseDirectory, "assets"));
 using var engine = EngineHost.Create(headless: true, maxSprites: 16);
 DrawingChecks.Run(checks, engine, assets);
 InputChecks.Run(checks, engine);
+PhysicsChecks.Run(checks, engine);
 long inputBytes = InputChecks.MeasureWarm(engine);
 long drawBytes = DrawingChecks.MeasureWarm(engine, assets);
 checks.That(inputBytes == 0, "warm safe input and typed synthetic states allocate zero bytes");

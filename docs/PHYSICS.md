@@ -169,6 +169,33 @@ programmatic capsule definition, not a new serialization schema.
 
 ## Numeric validation and authoring
 
+Prefer the semantic factories for new circle/box code:
+
+```csharp
+body.AddShape(PhysicsShapeDefinition.Circle(radius: .5f));
+body.AddShape(PhysicsShapeDefinition.Box(halfWidth: 1, halfHeight: .25f,
+    offsetY: .5f, angle: MathF.PI / 4, friction: .3f));
+body.AddShape(PhysicsShapeDefinition.Box(halfWidth: 1, halfHeight: 1,
+    density: 0, category: 2, mask: 1, sensor: true));
+```
+
+`Circle` and `Box` return validated `PhysicsShapeDefinition` values; radius,
+positive **half** width/height and body-local offsets are already in meters, and
+the box's local angle is already in radians. They do not convert units, invert
+axes or normalize angles. The circle always supplies zero `B` and `Angle` and
+therefore has no angle argument. Use `PhysicsScale.ToMeters` explicitly for
+pixel-authored lengths, including both half extents rather than a full width.
+
+Both factories keep the existing defaults: density `1`, friction `.6`, restitution
+`0`, category `1`, mask `ulong.MaxValue`, group `0` and sensor `false`. Explicit
+zero material/category/mask/group arguments remain zero. Collision groups retain
+their signed override semantics; sensor density still contributes mass. Factory
+validation uses the same bounds as the original descriptor/native adapter, and
+`AddShape` still validates any later `with` edits. The positional constructor,
+descriptor fields, ownership rules and native ABI remain available and unchanged.
+The [public package consumer](../packaging/consumers/authoring/README.md) exercises
+these factories without unsafe blocks or internal access.
+
 Definitions reject unknown versions/flags, nonfinite values and invalid extents
 before touching Box2D. Initial/teleport positions are bounded to ±10,000 meters;
 velocity components to ±1,000 and angular speed to ±100; gravity components to
