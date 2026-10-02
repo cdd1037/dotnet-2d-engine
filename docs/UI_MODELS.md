@@ -63,14 +63,16 @@ ui.Apply(model);
 engine.Draw(camera, ReadOnlySpan<SpriteDraw>.Empty); // synchronize model/view
 
 // In each outer update, after the ordinary engine.PollInput():
+bool changed = false;
 for (var command = ui.Poll(); !command.IsEmpty; command = ui.Poll())
 {
     if (command.CommandId != 1 || !ui.IsCurrent(command)) continue;
     var selected = model.Items.Find(x => x.Id == command[0].Key);
     if (selected is null) continue;
     selected.Equipped = !selected.Equipped; // this policy belongs to the game
-    ui.Apply(model);
+    changed = true;
 }
+if (changed) ui.Apply(model); // drain this revision before retiring its queue
 // The next normal Draw synchronizes the accepted snapshot before more commands.
 ```
 
@@ -167,12 +169,28 @@ the last applied snapshot. Changing a C# object without a successful `Apply` doe
 not update that snapshot. The application still owns game-rule validation.
 
 RmlUi `data-for` reuses elements by position. Reorder, removal and replacement may
-retarget an existing element to a different item. Every changed snapshot therefore
-conservatively cancels current focus and text preedit, even for an unrelated field
-change. An active pointer gesture is invalidated across **all** command callbacks,
-including mouseup, until a fresh interaction resets it. An unchanged `Apply` does
-not cancel focus or reset a draft. This deliberately trades editing continuity for
-safe identity routing; do not assume the legacy profile's narrower focus policy.
+retarget an existing element to a different item. Shape/key changes therefore
+cancel focus/preedit and reset generic attribute caches. An unkeyed array is
+conservative: any element change retires editing, since identity cannot be proved.
+Keys inside a descendant array do not identify its unkeyed parent row.
+
+Scalar edits within a stable keyed structure keep focus. Each generic `data-attr-*`
+and `data-attrif-*` view caches its last evaluated **model** output: an unrelated
+snapshot does not overwrite a local draft or preedit just because its DOM value
+differs. Accepting consecutive text commands preserves the caret/focus. Changing a
+bound attribute's model output on the composing field explicitly cancels preedit
+before the authoritative value is installed. Hidden/disabled ancestors retire
+focus/preedit; `data-if` still hides rather than unmounting its DOM state. Reload
+and owner destruction clear all caches. An unchanged `Apply` is not a command to
+discard drafts.
+
+Drain the current revision's command queue and update application state before one
+`Apply`; applying after each character would retire later packets already queued
+in the same input frame. Preedit-only changes do not become accepted change
+commands. An active pointer gesture interrupted by a changed snapshot remains
+invalidated across **all** command callbacks, including mouseup, until a fresh
+interaction resets it. This conservative gesture policy is independent of the
+improved scalar editing continuity.
 
 `data-if` hides an element; it does not unmount a component. Hidden or disabled
 elements/ancestors cannot emit accepted commands. There is no Vue-style keyed
@@ -189,13 +207,13 @@ Retained native state is one bounded current model plus bounded staging/event
 storage, not a history of snapshots. No managed model pointers or callbacks are
 retained by native UI; managed projection references are released on disposal.
 
-### Pinned RmlUi ordering fix
+### Pinned RmlUi ordering and draft hooks
 
 The UI build applies a narrow RmlUi 6.3 compatibility fix using
 `scripts/patches/patch-rmlui-datafor.py`. It verifies the original
-`DataViewDefault.cpp` SHA-256, writes a generated copy, and changes only the
-`DataViewFor` constructor's update bias from `DataView(element, 0)` to
-`DataView(element, -1000)`. CMake compiles that copy into `gal`; neither the
+`DataViewDefault.cpp` SHA-256, writes a generated copy, changes the
+`DataViewFor` update bias from `DataView(element, 0)` to `DataView(element, -1000)`,
+and inserts attribute-cache/release hooks. CMake compiles that copy into `gal`; neither the
 dependency checkout nor its static archive is edited. Python 3 is required for
 this guarded build step. A changed upstream source hash fails closed and requires
 review before upgrading the dependency.
@@ -206,6 +224,16 @@ evaluate a removed index before the loop removes that root; this reproduced as a
 now precede those same-depth views. RmlUi's ancestor-depth ordering is preserved
 (2,000 spacing with allowed bias −1,000..999). This does not introduce keyed diffing
 or change `data-if` semantics.
+
+The attribute hooks activate only for registered generic contexts. Legacy and
+other contexts immediately take the unchanged upstream attribute update path.
+The per-view cache is released with its RmlUi view, and cleared on identity/shape
+replacement. These hooks preserve ordinary `data-attr-*` authoring: pinned
+RmlUi's factory refuses replacement of built-in view instancers, while its dirty
+dependencies collapse all `state.*` expressions to the same top-level variable.
+A different custom view name would change authored syntax; dirtying `state` alone
+cannot preserve an unchanged field's draft. No new managed callbacks or widget
+registrations are involved.
 
 ## Bounds and resource boundary
 
@@ -274,9 +302,26 @@ LD_LIBRARY_PATH="$PWD/build-ui" dotnet managed/bin/Release/net10.0/GameAuthoring
 Add your SDL dependency-library paths where required. These commands describe the
 entry points; they are not a claim that this checkout has completed every gate.
 
-- Managed contract and native integration results: **pending final validation**
-- Three-example screenshot review: **pending final visual evidence**
-- Trimmed/package/NativeAOT validation of the new bridge: **pending final validation**
+The 2026-10-02 Linux software-Vulkan verification of the implementation and editing
+refinement passed:
+
+- Full JIT aggregate: **11,612 assertions**, including 29 generic CPU contracts;
+  eight native CTest contracts; Release managed build with no warnings/errors
+- Generic UI native suite: **87 assertions**, including all three fixtures,
+  nested shrink/reorder, exact keys, stale gestures/events, native source-file
+  rejection, failure retention, continuous/burst SDL text edits, draft/caret/preedit
+  retention on unrelated updates, external value replacement, and focus retirement
+- Legacy BoundUi native suite: **60 assertions**; the nine-frame public generic
+  demo also completed all three documents
+- Three 960×540 readbacks: visually reviewed and **21 pixel assertions** passed;
+  the inventory and settings examples intentionally use clipped scroll containers
+- Independent PackageReference JIT/NativeAOT and matched measurements are recorded
+  in [the verification report](UI_MODEL_VALIDATION.md)
+
+The unmodified pinned data-for object reproduced the inventory shrink failure
+(`state.items[2].equipped`); the generated priority-adjusted object passed the same
+scenario and nested structural cases. Logs and captures are generated locally,
+not shipped as source dependencies.
 
 Record completed runs and their environment in [validation](validation.md).
 Scripted pointer/text probes and software Vulkan do not establish physical-GPU,

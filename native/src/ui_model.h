@@ -3,8 +3,15 @@
 #include <RmlUi/Core.h>
 #include <array>
 #include <memory>
+#include <functional>
+#include <unordered_map>
 #include <string>
 #include <vector>
+
+namespace Rml { class DataView; }
+bool gal_ui_model_accept_attribute(Rml::DataView*,Rml::Element*,const Rml::String&,const Rml::String&);
+void gal_ui_model_release_view(Rml::DataView*);
+bool gal_ui_model_can_interact(Rml::Element*);
 
 class UiModelDocument final: public Rml::EventListener {
  struct Node { gal_ui_data_value value{};std::vector<Node> children; };
@@ -24,14 +31,23 @@ class UiModelDocument final: public Rml::EventListener {
  Node root,staged;std::vector<uint64_t> keys,staged_keys;
  std::array<gal_ui_event,64> events{};
  uint32_t generation=0,revision=0,pending_revision=0,first=0,count=0,overflow=0;
- bool registered=false,pressed=false,suppress_events=false,ready=false;
+ bool registered=false,pressed=false,suppress_events=false,ready=false,retargeted=false;
+ std::unordered_map<Rml::DataView*,Rml::String> attribute_values;
+ std::function<void(Rml::Element*,const Rml::String&)> before_attribute;
+ std::function<bool(Rml::Event&)> allow_event;
+ bool IdentityChanged(const Node&,const Node&)const;
+ bool HasKey(uint32_t)const;
+ bool Same(const Node&,const Node&)const;
  char diagnostic[256]{};
  Node Default(uint32_t);
  bool ReadNode(uint32_t,const gal_ui_data_value*,uint32_t,uint32_t&,Node&,std::string&);
  void Event(uint32_t,Rml::Event&,const Rml::VariantList&);
  void Drop(const char*);
  public:
- explicit UiModelDocument(Rml::Context*c):context(c){}
+ explicit UiModelDocument(Rml::Context*c,std::function<void(Rml::Element*,const Rml::String&)> before,std::function<bool(Rml::Event&)> allow):context(c),before_attribute(std::move(before)),allow_event(std::move(allow)){}
+ bool Attribute(Rml::DataView*,Rml::Element*,const Rml::String&,const Rml::String&);
+ void ReleaseView(Rml::DataView*v){attribute_values.erase(v);}
+ bool Retargeted()const{return retargeted;}
  ~UiModelDocument();
  bool Configure(const gal_ui_data_schema*,uint32_t,const gal_ui_command*,uint32_t,std::string&);
  void Attach(Rml::ElementDocument*);

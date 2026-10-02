@@ -60,13 +60,13 @@ if(GAL_ENABLE_RMLUI)
  find_package(Python3 COMPONENTS Interpreter REQUIRED)
  # Compile a hash-guarded copy of this one upstream object; the static archive's
  # original object is not extracted when these definitions already resolve it.
- # No dependency checkout edits and no additional template/runtime semantics.
+ # No dependency checkout edits; generic draft policy remains in ui_model.cpp.
  set(datafor_source "${GAL_RMLUI_SOURCE}/Source/Core/DataViewDefault.cpp")
  set(datafor_fixed "${CMAKE_CURRENT_BINARY_DIR}/gal-rmlui/DataViewDefault.cpp")
  execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/patches/patch-rmlui-datafor.py" "${datafor_source}" "${datafor_fixed}" COMMAND_ERROR_IS_FATAL ANY)
  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${datafor_source}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/patches/patch-rmlui-datafor.py")
  target_sources(gal PRIVATE "${datafor_fixed}")
- target_include_directories(gal PRIVATE "${GAL_RMLUI_SOURCE}/Source/Core")
+ target_include_directories(gal PRIVATE native/src "${GAL_RMLUI_SOURCE}/Source/Core")
  target_sources(gal PRIVATE native/src/ui_rml.cpp native/src/ui_bound.cpp native/src/ui_model.cpp "${GAL_RMLUI_SOURCE}/Backends/RmlUi_Platform_SDL.cpp" "${GAL_RMLUI_SOURCE}/Backends/RmlUi_Renderer_SDL_GPU.cpp")
  target_include_directories(gal PRIVATE "${GAL_RMLUI_SOURCE}/Include" "${GAL_RMLUI_SOURCE}/Backends")
  target_compile_definitions(gal PRIVATE GAL_ENABLE_RMLUI RMLUI_STATIC_LIB RMLUI_SDL_VERSION_MAJOR=3)

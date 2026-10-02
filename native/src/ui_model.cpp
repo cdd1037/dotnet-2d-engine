@@ -8,6 +8,59 @@
 #include <cstring>
 #include <limits>
 
+// Contexts and views are confined to the engine thread. There are at most the
+// current and candidate generic documents; no managed callback crosses this map.
+static std::unordered_map<Rml::Context*, UiModelDocument*> model_documents;
+bool gal_ui_model_can_interact(Rml::Element* element)
+{
+    for (auto* node = element; node; node = node->GetParentNode())
+        if (!node->IsVisible() || node->HasAttribute("disabled")) return false;
+    return true;
+}
+bool gal_ui_model_accept_attribute(Rml::DataView* view, Rml::Element* element,
+    const Rml::String& name, const Rml::String& value)
+{
+    auto owner = model_documents.find(element->GetContext());
+    return owner == model_documents.end() || owner->second->Attribute(view, element, name, value);
+}
+void gal_ui_model_release_view(Rml::DataView* view)
+{
+    for (auto& entry : model_documents) entry.second->ReleaseView(view);
+}
+bool UiModelDocument::Attribute(Rml::DataView* view, Rml::Element* element,
+    const Rml::String& name, const Rml::String& value)
+{
+    auto entry = attribute_values.find(view);
+    if (entry != attribute_values.end() && entry->second == value) return false;
+    attribute_values[view] = value;
+    before_attribute(element, name);
+    return true;
+}
+bool UiModelDocument::HasKey(uint32_t s) const
+{
+    if (schema[s].kind == GAL_DATA_KEY) return true;
+    if (schema[s].kind == GAL_DATA_ARRAY) return false; // Descendant rows do not identify their parent.
+    for (auto child : members[s]) if (HasKey(child)) return true;
+    return false;
+}
+bool UiModelDocument::Same(const Node& a, const Node& b) const
+{
+    if (std::memcmp(&a.value, &b.value, sizeof(a.value)) || a.children.size() != b.children.size()) return false;
+    for (size_t i = 0; i < a.children.size(); ++i) if (!Same(a.children[i], b.children[i])) return false;
+    return true;
+}
+bool UiModelDocument::IdentityChanged(const Node& a, const Node& b) const
+{
+    if (a.value.schema != b.value.schema || a.children.size() != b.children.size()) return true;
+    auto kind = schema[a.value.schema].kind;
+    if (kind == GAL_DATA_KEY) return a.value.key != b.value.key;
+    // Unkeyed arrays have no stable identity proof; conservatively retire drafts
+    // on any element change. Keyed records retain focus across scalar edits.
+    if (kind == GAL_DATA_ARRAY && !HasKey(members[a.value.schema][0]) && !Same(a,b)) return true;
+    for (size_t i = 0; i < a.children.size(); ++i) if (IdentityChanged(a.children[i], b.children[i])) return true;
+    return false;
+}
+
 static bool bad(std::string& e, const char* s)
 {
     e = s;
@@ -120,6 +173,7 @@ UiModelDocument::~UiModelDocument()
     }
     if (registered)
         context->RemoveDataModel("model");
+    model_documents.erase(context);
 }
 
 bool UiModelDocument::Configure(const gal_ui_data_schema* input, uint32_t n, const gal_ui_command* cmd,
@@ -185,6 +239,7 @@ bool UiModelDocument::Configure(const gal_ui_data_schema* input, uint32_t n, con
     if (!constructor)
         return bad(e, "could not create generic data model");
     registered = true;
+    model_documents[context] = this;
     handle = constructor.GetModelHandle();
 
     // Bind the root's stable address; snapshot commits replace its contents in place.
@@ -284,6 +339,7 @@ bool UiModelDocument::Stage(const gal_ui_data_snapshot& s, const gal_ui_data_val
         return false;
     if (cursor != s.count)
         return bad(e, "snapshot contains trailing values");
+    retargeted = IdentityChanged(root, staged);
     pending_revision = s.revision;
     return true;
 }
@@ -294,6 +350,7 @@ void UiModelDocument::Commit()
     // A snapshot change during a press invalidates every command from that gesture.
     if (pressed)
         suppress_events = true;
+    if (retargeted) attribute_values.clear();
     std::swap(root, staged);
     keys.swap(staged_keys);
     revision = pending_revision;
@@ -323,12 +380,10 @@ void UiModelDocument::Event(uint32_t c, Rml::Event& event, const Rml::VariantLis
 {
     if (!generation || !revision)
         return;
-    if (!ready || suppress_events)
+    if (!ready || suppress_events || !allow_event(event))
         return;
 
-    for (auto* p = event.GetCurrentElement(); p; p = p->GetParentNode())
-        if (p->HasAttribute("disabled") || !p->IsVisible())
-            return;
+    if (!gal_ui_model_can_interact(event.GetCurrentElement())) return;
 
     const auto& command = commands[c];
     if (args.size() != command.count) {
@@ -435,6 +490,13 @@ bool UiModelDocument::Test(uint32_t command, const char* id, uint32_t occurrence
             return bad(e, "probe text exceeds 255 bytes");
         v.arguments[0] = {};
         std::memcpy(v.arguments[0].text, text.data(), text.size());
+        return true;
+    }
+    if (command == 11) {
+        auto* input = dynamic_cast<Rml::ElementFormControlInput*>(element);
+        if (!input) return bad(e, "selection probe requires input");
+        const int length = int(Rml::StringUtilities::LengthUTF8(input->GetValue()));
+        input->SetSelectionRange(length, length);
         return true;
     }
     if (command == 10) {

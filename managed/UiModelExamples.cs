@@ -344,12 +344,16 @@ public static class UiModelExamples
 
         public bool Update()
         {
+            bool changed = false;
             for (var command = _session.Poll(); !command.IsEmpty; command = _session.Poll())
             {
                 if (!_session.IsCurrent(command)) continue;
                 if (command.CommandId == Next) return true;
-                if (_handle(_model, command)) _session.Apply(_model);
+                changed |= _handle(_model, command);
             }
+            // Drain the revision's commands first. Applying after each character
+            // would retire later text packets delivered in the same input frame.
+            if (changed) _session.Apply(_model);
             return false;
         }
 

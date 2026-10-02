@@ -19,7 +19,8 @@ GAL_API int GAL_CALL gal_ui_model_open(gal_context*,const char* path,const char*
 GAL_API int GAL_CALL gal_ui_model_apply(gal_context*,const gal_ui_data_snapshot*,const gal_ui_data_value*);
 GAL_API int GAL_CALL gal_ui_model_poll(gal_context*,gal_ui_event*);
 /* Probe-only exact ID + occurrence among cloned nodes. 1=dispatch click, 2=hit test
-   click, 3=pointer down, 4=pointer up, 5=read text, 6=set value/change, 7=focus, 8=queued preedit, 9=queued CJK commit, 10=scroll into view.
+   click, 3=pointer down, 4=pointer up, 5=read text, 6=set value/change, 7=focus, 8=queued preedit, 9=queued CJK commit, 10=scroll into view,
+   11=caret to end, 12=queued ASCII commit without refocusing.
    Packet generation/revision are checked before touching the element. */
 GAL_API int GAL_CALL gal_ui_model_test(gal_context*,uint32_t command,const char* id,uint32_t occurrence,gal_ui_event*);
 #ifdef __cplusplus

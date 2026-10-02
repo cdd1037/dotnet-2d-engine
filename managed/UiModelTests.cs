@@ -4,13 +4,14 @@ namespace GameAuthoringLab;
 internal static unsafe class UiModelTests
 {
     private sealed class Item(ulong id,string title){public ulong Id=id;public string Title=title;public bool Enabled=true;}
+    private sealed class Bucket(string title){public string Title=title;public List<Item> Items=[];}
     private sealed class Model {public string Title="Nested <text> & symbols";public bool Visible=true;public double Number=4;public List<Item> Items=[new(ulong.MaxValue,"Rope"),new(9007199254740993,"Map")];}
     private static UiRecord<Model> Schema()=>new UiRecord<Model>().Text("title",m=>m.Title).Boolean("visible",m=>m.Visible).Number("number",m=>m.Number)
         .Array("items",m=>m.Items,new UiRecord<Item>().Key("id",i=>i.Id).Text("title",i=>i.Title).Boolean("enabled",i=>i.Enabled));
     private static UiCommands Commands()=>new UiCommands().Add("choose",1,UiValueKind.Key).Add("edit",2,UiValueKind.Text).Add("typed",3,UiValueKind.Boolean,UiValueKind.Number,UiValueKind.Text);
     private const string Rml="""
         <rml><head><title>Generic bridge</title><link type="text/rcss" href="model.rcss"/></head><body data-model="model">
-        <main><h1 id="heading">{{state.title}}</h1><section data-if="state.visible"><input id="input" type="text" data-attr-value="state.title" data-event-change="edit(ev.value)" maxlength="64"/>
+        <main><h1 id="heading">{{state.title}}</h1><section data-if="state.visible" data-attrif-disabled="state.number &gt; 50"><input id="input" type="text" data-attr-value="state.title" data-event-change="edit(ev.value)" maxlength="64"/>
         <div data-for="item : state.items"><article><p>{{item.title}}</p><button id="choose" data-attrif-disabled="!item.enabled" data-event-click="choose(item.id)"><span>Choose</span></button></article></div>
         <button id="typed" data-event-click="typed(state.visible, state.number, state.title)">Typed</button></section></main></body></rml>
         """;
@@ -83,8 +84,19 @@ internal static unsafe class UiModelTests
         // A mouseup-bound command must also be invalidated across a positional reorder.
         fixture.Write(Rml.Replace("data-event-click=\"choose(item.id)\"","data-event-mouseup=\"choose(item.id)\""));ui.LoadAsset(fixture.Assets,"model.rml");Render();ui.Apply(model);Render();
         ui.Probe(3,"choose");model.Items.Reverse();ui.Apply(model);Render();ui.Probe(4,"choose");Check(ui.Poll().IsEmpty,"mouseup callback cannot bypass gesture invalidation");ui.Probe(2,"choose");Check(ui.Poll()[0].Key==model.Items[0].Id,"new gesture restores commands");
-        ui.Probe(8,"input");engine.PollInput();Check((ui.TextState.Flags&2)!=0,"generic queued preedit active");model.Title="Composition replacement";ui.Apply(model);Render();Check((ui.TextState.Flags&2)==0,"snapshot cancels preedit/focus before retargeting");
-        ui.Dispose();count+=RunExamples(engine);
+        ui.Probe(7,"input");ui.Probe(11,"input");engine.PollInput();
+        for(int i=0;i<3;i++){ui.Probe(12,"input");engine.PollInput();var typedEdit=ui.Poll();Check(typedEdit.CommandId==2&&typedEdit[0].Text.EndsWith('x'),"continuous SDL edit packet");model.Title=typedEdit[0].Text;ui.Apply(model);Render();Check((ui.TextState.Flags&1)!=0,"accepted keystroke retains text focus");}
+        ui.Probe(12,"input");ui.Probe(12,"input");engine.PollInput();var burstFirst=ui.Poll();var burstLast=ui.Poll();Check(burstFirst.CommandId==2&&burstLast.CommandId==2&&ui.IsCurrent(burstFirst)&&ui.IsCurrent(burstLast),"two text packets in one native input frame");model.Title=burstLast[0].Text;ui.Apply(model);Render();Check(model.Title.EndsWith("xx",StringComparison.Ordinal)&&(ui.TextState.Flags&1)!=0,"drain-before-apply retains final burst edit and focus");
+        ui.Probe(6,"input",value:"Unaccepted draft");_=ui.Poll();ui.Probe(11,"input");var draftBefore=ui.TextState;model.Number++;ui.Apply(model);Render();var draftAfter=ui.TextState;
+        Check(UiNative.Text(draftAfter.Value,512)=="Unaccepted draft"&&draftAfter.SelectionStart==draftBefore.SelectionStart&&(draftAfter.Flags&1)!=0,"unrelated scalar update preserves draft/caret/focus");
+        ui.Probe(8,"input");engine.PollInput();var preedit=ui.TextState;Check((preedit.Flags&2)!=0,"generic queued preedit active");Check(ui.Poll().IsEmpty,"preedit is not an accepted change command");
+        model.Number++;ui.Apply(model);Render();var afterUnrelated=ui.TextState;Check((afterUnrelated.Flags&2)!=0&&UiNative.Text(afterUnrelated.Value,512)==UiNative.Text(preedit.Value,512),"unrelated scalar update preserves active preedit");
+        model.Title="Composition replacement";ui.Apply(model);Render();var replaced=ui.TextState;Check((replaced.Flags&2)==0&&(replaced.Flags&1)!=0&&UiNative.Text(replaced.Value,512)==model.Title,"external bound value cancels preedit and wins without dropping focus");
+        ui.Probe(8,"input");engine.PollInput();model.Visible=false;ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"hidden ancestor retires input focus/preedit");ui.Probe(12,"input");engine.PollInput();Check(ui.Poll().IsEmpty,"hidden input cannot accept queued text");model.Visible=true;ui.Apply(model);Render();
+        ui.Probe(8,"input");engine.PollInput();model.Number=99;ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"disabled ancestor retires input focus/preedit");model.Number=4;ui.Apply(model);Render();
+        ui.Probe(8,"input");engine.PollInput();model.Items.Reverse();ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"identity reorder cancels preedit and focus");
+
+        ui.Dispose();count+=RunExamples(engine);count+=RunUnkeyedParent(engine);
         using var late=new UiModelSession<Model>(engine,Schema(),Commands());fixture.Write(Rml);late.LoadAsset(fixture.Assets,"model.rml");Render();late.Apply(model);Render();
         engine.Dispose();Check(late.IsDisposed,"engine-first invalidates owner");ui.Dispose();Console.WriteLine($"UI MODEL NATIVE PASS assertions={count} unchanged_bytes={allocations}");return count;
     }
@@ -113,6 +125,17 @@ internal static unsafe class UiModelTests
             model.Groups.Clear();ui.Apply(model);Render();Check(ui.Poll().IsEmpty,"empty nested arrays");
         }
         Console.WriteLine($"UI MODEL THREE EXAMPLES PASS assertions={count} captures={captures}");return count;
+    }
+
+    private static int RunUnkeyedParent(EngineHost engine)
+    {
+        using var fixture=new Fixture();fixture.Write("<rml><head><title>Nested identity</title><link type='text/rcss' href='model.rcss'/></head><body data-model='model'><div data-for='group : state.groups'><input id='draft' type='text' data-attr-value='group.title'/></div></body></rml>");
+        var schema=new UiRecord<List<Bucket>>().Array("groups",m=>m,new UiRecord<Bucket>().Text("title",m=>m.Title).Array("items",m=>m.Items,new UiRecord<Item>().Key("id",m=>m.Id)));
+        using var ui=new UiModelSession<List<Bucket>>(engine,schema);var model=new List<Bucket>{new("one"),new("two")};
+        void Render()=>engine.Draw(new Camera{Zoom=1},ReadOnlySpan<Sprite>.Empty);
+        ui.LoadAsset(fixture.Assets,"model.rml");Render();ui.Apply(model);Render();ui.Probe(8,"draft");engine.PollInput();if((ui.TextState.Flags&2)==0)throw new Exception("Nested identity preedit did not start");
+        model.Reverse();ui.Apply(model);Render();if((ui.TextState.Flags&3)!=0)throw new Exception("Nested child-key schema incorrectly identified an unkeyed parent");
+        return 2;
     }
 
 }

@@ -156,8 +156,9 @@ synchronize its values. `session.Poll()` returns a copied `UiCommandEvent`.
 Check `session.IsCurrent(command)` immediately before applying game behavior,
 accept or reject its draft in C#, then apply the next snapshot. Keys are exact
 `ulong` identities passed through RML expressions as decimal strings, never
-floating-point numbers. Each changed snapshot invalidates old commands and
-conservatively cancels focus/preedit; a gesture interrupted by a snapshot change
+floating-point numbers. Each changed snapshot retires old command packets. Stable
+scalar edits preserve focus/drafts/preedit; shape/key changes retire editing. Drain
+a revision's commands before one Apply. A gesture interrupted by a snapshot change
 cannot act on a positionally reused row. `data-for` is positional, and `data-if`
 hides rather than unmounts. Vue-style compilation, props and slots are deferred.
 
@@ -167,7 +168,7 @@ focus behavior remain documented in [legacy bindings/lists](UI_BINDINGS.md).
 `GameUiSession`, settings profiles and `UiModelExamples` belong to examples, not a
 reusable game-rule SDK. Both UI paths share rendering, staged resources and one
 exclusive owner per engine. [Text input](UI_TEXT_INPUT.md) describes the shared
-composition bridge; use the generic guide for its more conservative focus policy.
+composition bridge; use the generic guide for its explicit draft, focus and identity policy.
 Optional [SVG](UI_SVG.md) needs an SVG-on native build and remains off in the default
 package. RML/RCSS are RmlUi formats, not browser HTML/CSS.
 

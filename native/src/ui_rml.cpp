@@ -200,7 +200,9 @@ bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_
  if(!u->pending){u->DropCandidate();return fail(e,"could not create staging context");}
  u->pending->SetDensityIndependentPixelRatio(u->Density());
  if(!u->pending_renderer->Preload(u->pending,e)){remember(u,e.c_str());u->DropCandidate();return false;}
- if(schema){u->pending_model=std::make_unique<UiModelDocument>(u->pending);if(!u->pending_model->Configure(schema,schema_count,commands,command_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}}
+ if(schema){u->pending_model=std::make_unique<UiModelDocument>(u->pending,
+  [u](Rml::Element*element,const Rml::String&){if(u->ime.composing&&u->ime.input==element){u->ime.Cancel();u->ime.bounds_valid=false;}},
+  [u](Rml::Event&event){return !u->ime.composing||event.GetCurrentElement()!=u->ime.input||event.GetId()!=Rml::EventId::Change;});if(!u->pending_model->Configure(schema,schema_count,commands,command_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}}
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
  if(schema){if(valid)u->pending_model->Attach(u->candidate);}
@@ -374,7 +376,7 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
    }
   }
  }
- if(u->current){if(u->model)u->model->Updating();u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(u->Density());u->current->Update();u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}if(u->model)u->model->Updated();}
+ if(u->current){if(u->model)u->model->Updating();u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(u->Density());u->current->Update();if(auto*focus=u->current->GetFocusElement();u->model&&focus&&!gal_ui_model_can_interact(focus)){u->ime.Cancel();focus->Blur();}u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}if(u->model)u->model->Updated();}
  return true;
 }
 
@@ -404,19 +406,20 @@ bool ui_test_bound(UiRml*u,uint32_t command,gal_bound_ui_action&a,std::string&e)
 bool ui_apply_model(UiRml*u,const gal_ui_data_snapshot&s,const gal_ui_data_value*v,std::string&e){
  if(!u->model)return fail(e,"generic UI profile required");
  if(!u->model->Stage(s,v,e))return false;
- // A snapshot can retarget positional data-for inputs; cancel drafts/focus before it changes.
- u->ime.Cancel();u->ime.bounds_valid=false;
- if(auto*focus=u->current->GetFocusElement())focus->Blur();
+ // Scalar updates keep focus/drafts. Shape/key changes can retarget positional
+ // views, so cancel them before the new tree is installed.
+ if(u->model->Retargeted()){u->ime.Cancel();u->ime.bounds_valid=false;if(auto*focus=u->current->GetFocusElement())focus->Blur();}
  u->model->Commit();return true;
 }
 bool ui_poll_model(UiRml*u,gal_ui_event&v,std::string&e){if(!u->model)return fail(e,"generic UI profile required");return u->model->Poll(v,e);}
 bool ui_test_model(UiRml*u,uint32_t command,const char*id,uint32_t occurrence,gal_ui_event&v,std::string&e){
  if(!u->model)return fail(e,"generic UI profile required");
- if(command==8||command==9){
-  if(!u->model->Test(7,id,occurrence,v,e))return false;
+ if(command==8||command==9||command==12){
+  if(command==12){auto copy=v;if(!u->model->Test(5,id,occurrence,copy,e))return false;}
+  else if(!u->model->Test(7,id,occurrence,v,e))return false;
   SDL_Event event{};
   if(command==8){event.type=SDL_EVENT_TEXT_EDITING;event.edit.windowID=SDL_GetWindowID(u->window);event.edit.text="ni";event.edit.start=0;event.edit.length=2;}
-  else{event.type=SDL_EVENT_TEXT_INPUT;event.text.windowID=SDL_GetWindowID(u->window);event.text.text="你";}
+  else{event.type=SDL_EVENT_TEXT_INPUT;event.text.windowID=SDL_GetWindowID(u->window);event.text.text=command==12?"x":"你";}
   return SDL_PushEvent(&event)||fail(e,"could not queue generic text probe");
  }
  return u->model->Test(command,id,occurrence,v,e);
