@@ -1132,3 +1132,58 @@ Process-level out-of-memory recovery is not guaranteed. The change adds no nativ
 ABI, JSON schema/root, dependency, terrain/tileset tooling or save integration.
 No fresh AOT, package matrix, hardware/device or cross-platform result is claimed;
 the earlier SVG/camera AOT evidence remains historical for that earlier tree.
+
+## Capsule shapes and exact overlaps (2026-10-02)
+
+Verified against `d0447aa` plus this additive physics implementation. The public
+`AddCapsule`, `QueryCircle` and rotated `QueryBox` APIs preserve the old shape and
+query ABI. New version/size-checked records use body-local capsule endpoints in
+meters and caller-owned output spans. See [bounds and semantics](PHYSICS.md).
+
+- Final Release/JIT: **11,583 assertions**, zero warnings/errors, native CTest
+  **8/8**. One final aggregate reported **5 s** on this runner; this is one
+  measured invocation, not a benchmark
+- Physics contracts: **53 assertions**, including **37 new** layout, unit and
+  capsule-validation assertions. Real Box2D: **395 assertions**, including
+  **111 new** geometry, capsule collision/events, filters, ownership and allocation
+  assertions. Warmed circle/box queries allocate **zero managed bytes**
+- Enabled and disabled native profiles each pass **8/8** CTests. The new native
+  contract checks old/new C ABI layouts, size/version/reserved/finite guards,
+  `.01f` inclusive endpoint separation, 64-bit reciprocal masks and sensor modes,
+  stable 512-ID sorting, 511-slot failure without partial writes, retired IDs and
+  stale/context/thread/frame/close/reopen validation
+- Circle, rotated thin-box and capsule rounded-end AABB false positives are rejected
+  by actual narrow-phase tests. Capsule mass, body-local rotated endpoints, resting
+  contacts, sensor begin/end and removed-ID event retention are checked against
+  the real solver. The pinned upstream's .0005-meter query tolerance is explicit;
+  geometry at grazing boundaries is not an infinite-precision promise
+- Existing TileMap collision/edit regression: **243 assertions**; movement physics:
+  **62 assertions**, using the updated Box2D native binary
+- A focused AddressSanitizer/UndefinedBehaviorSanitizer native physics contract
+  passes. LeakSanitizer cannot run under this runner's ptrace environment and was
+  disabled for the passing sanitizer run; no leak-sanitizer result is claimed
+- The incremental native-build regression passes with the new eighth CTest target:
+  unchanged and C#-only reruns invoke no compiler; source/header/export changes,
+  flags/configuration/compiler changes and return to defaults remain covered
+- Rebuilt local packages pass a genuine external **PackageReference** consumer
+  in ordinary **JIT and one fresh NativeAOT** run, **56 assertions each**.
+  The same consumer combines camera follow, bounded animation markers/clip changes,
+  atomic TileMap edits and capsule/floor contact with exact queries, including
+  removal/fall/restoration, immutable snapshot/caller isolation and immediate
+  collision replacement. All **4,000 warmed queries** allocate zero managed bytes;
+  three headless frames submit and all body/shape/texture resources are released
+- The isolated proof uses its own two-pixel BMP and JSON map, a fresh local-only
+  feed/cache, SDK 10.0.401 and runtime 10.0.12. There is no source/project/friend
+  access or native library search path back into this checkout. Package engine
+  bytes match the final source build; JIT and AOT use identical native payloads
+- Independent read-only review found no blocking ABI, geometry, lifetime, filtering,
+  capacity, allocation or public-consumer issue
+
+Local logs and hashes are in `evidence/physics-extensions/`; the independent proof
+is `/tmp/dotnet2d-features-final-20261002`. Reproduce with
+`scripts/test-package-features.sh` and a new external output directory after
+rebuilding both local packages. This is a focused final public-API proof, not a
+repeat of the full package/trim/graphics/device matrix or a full-host AOT self-test.
+No new dependencies, serialization schema, managed callbacks, arbitrary polygons,
+joints, chains, shape casts, controller/navigation or cross-platform acceptance
+were added. No public package feed/release was published.

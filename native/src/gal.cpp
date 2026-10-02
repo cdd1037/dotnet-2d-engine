@@ -361,6 +361,7 @@ int GAL_CALL gal_physics_close(gal_context*c){return physics_call(c,PhysicsOp::C
 int GAL_CALL gal_physics_create_body(gal_context*c,const gal_body_def*def,uint64_t*out){return physics_call(c,PhysicsOp::CreateBody,def,out);}
 int GAL_CALL gal_physics_release_body(gal_context*c,uint64_t id){return physics_call(c,PhysicsOp::ReleaseBody,&id,nullptr);}
 int GAL_CALL gal_physics_create_shape(gal_context*c,uint64_t body,const gal_shape_def*def,uint64_t*out){PhysicsShapeRequest r{body,def};return physics_call(c,PhysicsOp::CreateShape,&r,out);}
+int GAL_CALL gal_physics_create_capsule_v1(gal_context*c,uint64_t body,const gal_capsule_def_v1*def,uint64_t*out){PhysicsCapsuleRequest r{body,def};return physics_call(c,PhysicsOp::CreateCapsule,&r,out);}
 int GAL_CALL gal_physics_release_shape(gal_context*c,uint64_t id){return physics_call(c,PhysicsOp::ReleaseShape,&id,nullptr);}
 int GAL_CALL gal_physics_body_command(gal_context*c,uint64_t body,uint32_t command,float x,float y,float z){PhysicsCommand r{body,command,x,y,z};return physics_call(c,PhysicsOp::BodyCommand,&r,nullptr);}
 int GAL_CALL gal_physics_get_body(gal_context*c,uint64_t id,gal_body_state*out){return physics_call(c,PhysicsOp::BodyState,&id,out);}
@@ -368,5 +369,6 @@ int GAL_CALL gal_physics_step(gal_context*c,gal_physics_step_result*out){return 
 int GAL_CALL gal_physics_events(gal_context*c,gal_physics_event*out,uint32_t cap,uint32_t*count){PhysicsEventsRequest r{out,cap};return physics_call(c,PhysicsOp::Events,&r,count);}
 int GAL_CALL gal_physics_ray_cast(gal_context*c,const gal_physics_ray*q,gal_physics_ray_hit*out){return physics_call(c,PhysicsOp::Ray,q,out);}
 int GAL_CALL gal_physics_query_aabb(gal_context*c,const gal_physics_aabb*q,uint64_t*out,uint32_t cap,uint32_t*count){PhysicsAabbRequest r{q,out,cap};return physics_call(c,PhysicsOp::Aabb,&r,count);}
+int GAL_CALL gal_physics_query_overlap_v1(gal_context*c,const gal_physics_overlap_query_v1*q,uint64_t*out,uint32_t cap,uint32_t*count){PhysicsOverlapRequest r{q,out,cap};return physics_call(c,PhysicsOp::Overlap,&r,count);}
 int GAL_CALL gal_physics_get_state(gal_context*c,gal_physics_state*out){return physics_call(c,PhysicsOp::State,nullptr,out);}
 }

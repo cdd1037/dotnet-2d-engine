@@ -101,8 +101,9 @@ actual offline PCM checks separately from dummy-device and physical audio accept
 
 ### Physics
 
-The opt-in [Box2D foundation](docs/PHYSICS.md) provides fixed-step bodies/shapes,
-filters, sensors, copied events and bounded ray/AABB queries. Start with
+The opt-in [Box2D foundation](docs/PHYSICS.md) provides fixed-step bodies,
+filters, sensors, circle/box/capsule shapes, copied events and bounded ray/AABB
+and exact circle/rotated-box overlap queries. Start with
 `scripts/test.sh quick physics`, then `bash scripts/test-physics.sh` for the real
 solver after dependency setup. The source-generated `basics.physics.json` fixture
 and `--physics-demo` show explicit meter/pixel conversion and scene cleanup.

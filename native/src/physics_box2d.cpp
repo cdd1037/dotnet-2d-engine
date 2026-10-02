@@ -60,8 +60,32 @@ static bool create_shape(PhysicsBackend&p,const PhysicsShapeRequest&r,uint64_t*o
  if(!b2Shape_IsValid(id))return error(e,"Box2D shape creation failed");
  *slot={next_physics_id++,body->id,id,true};*out=slot->id;return true;
 }
-struct Overlap {PhysicsBackend*p;std::array<uint64_t,max_shapes>ids{};uint32_t count=0;};
-static bool overlap_callback(b2ShapeId id,void*context){auto&result=*static_cast<Overlap*>(context);auto*s=result.p->lookup(id);if(s&&s->alive&&result.count<max_shapes)result.ids[result.count++]=s->id;return true;}
+static bool create_capsule(PhysicsBackend&p,const PhysicsCapsuleRequest&r,uint64_t*out,std::string&e){
+ if(!out)return error(e,"null physics shape output");
+ *out=0;auto*body=p.body(r.body);if(!body)return error(e,"stale or foreign physics body");const auto*d=r.def;
+ if(!d||d->size!=sizeof(*d)||d->version!=GAL_CAPSULE_VERSION||(d->flags&~uint32_t(GAL_SHAPE_SENSOR))||d->reserved||d->reserved2
+ ||!bounded(d->x1,100)||!bounded(d->y1,100)||!bounded(d->x2,100)||!bounded(d->y2,100)||!range(d->radius,.001f,100)
+ ||!range(d->density,0,10000)||!range(d->friction,0,10)||!range(d->restitution,0,1))return error(e,"invalid physics capsule definition/limits");
+ const double dx=double(d->x2)-double(d->x1),dy=double(d->y2)-double(d->y1);
+ constexpr double minimum=double(.01f);
+ if(dx*dx+dy*dy<minimum*minimum)return error(e,"physics capsule endpoint distance must be at least .01 meters");
+ auto slot=std::find_if(p.shapes.begin(),p.shapes.end(),[](const Shape&s){return !s.id;});
+ if(slot==p.shapes.end()||!next_physics_id)return error(e,"physics shape capacity exhausted (512 including retired identities until next step)");
+ auto def=b2DefaultShapeDef();def.density=d->density;def.material.friction=d->friction;def.material.restitution=d->restitution;
+ def.filter={d->category,d->mask,d->group};def.isSensor=(d->flags&GAL_SHAPE_SENSOR)!=0;def.enableSensorEvents=true;def.enableContactEvents=true;
+ const b2Capsule capsule{{d->x1,d->y1},{d->x2,d->y2},d->radius};
+ const auto id=b2CreateCapsuleShape(body->native,&def,&capsule);if(!b2Shape_IsValid(id))return error(e,"Box2D capsule creation failed");
+ *slot={next_physics_id++,body->id,id,true};*out=slot->id;return true;
+}
+struct Overlap {PhysicsBackend*p;std::array<uint64_t,max_shapes>ids{};uint32_t count=0;uint32_t flags=0;};
+static bool overlap_callback(b2ShapeId id,void*context){
+ auto&result=*static_cast<Overlap*>(context);auto*s=result.p->lookup(id);
+ if(s&&s->alive&&result.count<max_shapes){
+  if(result.flags){const bool sensor=b2Shape_IsSensor(id);if((result.flags==GAL_QUERY_EXCLUDE_SENSORS&&sensor)||(result.flags==GAL_QUERY_ONLY_SENSORS&&!sensor))return true;}
+  result.ids[result.count++]=s->id;
+ }
+ return true;
+}
 bool physics_dispatch(PhysicsBackend*&p,PhysicsOp op,const void*in,void*out,std::string&e){
  if(op==PhysicsOp::Open){
   const auto*c=static_cast<const gal_physics_config*>(in);
@@ -76,6 +100,7 @@ bool physics_dispatch(PhysicsBackend*&p,PhysicsOp op,const void*in,void*out,std:
  if(op==PhysicsOp::Close){physics_destroy(p);p=nullptr;return true;}
  if(op==PhysicsOp::CreateBody)return create_body(*p,static_cast<const gal_body_def*>(in),static_cast<uint64_t*>(out),e);
  if(op==PhysicsOp::CreateShape)return create_shape(*p,*static_cast<const PhysicsShapeRequest*>(in),static_cast<uint64_t*>(out),e);
+ if(op==PhysicsOp::CreateCapsule)return create_capsule(*p,*static_cast<const PhysicsCapsuleRequest*>(in),static_cast<uint64_t*>(out),e);
  if(op==PhysicsOp::ReleaseShape){auto*s=p->shape(*static_cast<const uint64_t*>(in));if(!s)return error(e,"stale or foreign physics shape");b2DestroyShape(s->native,true);s->alive=false;return true;}
  if(op==PhysicsOp::ReleaseBody){auto*b=p->body(*static_cast<const uint64_t*>(in));if(!b)return error(e,"stale or foreign physics body");for(auto&s:p->shapes)if(s.alive&&s.body==b->id)s.alive=false;b2DestroyBody(b->native);*b={};return true;}
  if(op==PhysicsOp::BodyState){auto*b=p->body(*static_cast<const uint64_t*>(in));auto*s=static_cast<gal_body_state*>(out);if(!b)return error(e,"stale or foreign physics body");if(!s||s->size!=sizeof(*s)||s->reserved)return error(e,"invalid physics body state size/reserved");
@@ -108,6 +133,17 @@ bool physics_dispatch(PhysicsBackend*&p,PhysicsOp op,const void*in,void*out,std:
   Overlap result{p,{},0};b2World_OverlapAABB(p->world,{{q->lower_x,q->lower_y},{q->upper_x,q->upper_y}},{q->category,q->mask},overlap_callback,&result);*count=result.count;
   if(r.capacity<result.count||(result.count&&!r.output))return error(e,"AABB output capacity insufficient");
   std::sort(result.ids.begin(),result.ids.begin()+result.count);std::copy_n(result.ids.data(),result.count,r.output);return true;
+ }
+ if(op==PhysicsOp::Overlap){const auto&r=*static_cast<const PhysicsOverlapRequest*>(in);const auto*q=r.query;auto*count=static_cast<uint32_t*>(out);
+  if(!q||q->size!=sizeof(*q)||q->version!=GAL_OVERLAP_QUERY_VERSION||q->type>GAL_SHAPE_BOX||q->flags>GAL_QUERY_ONLY_SENSORS||q->reserved
+  ||!bounded(q->x,10000)||!bounded(q->y,10000)||!bounded(q->angle,10000)||!range(q->a,.001f,100)
+  ||(q->type==GAL_SHAPE_CIRCLE?(q->b!=0||q->angle!=0):!range(q->b,.001f,100))||!count||r.capacity>max_shapes)return error(e,"invalid physics overlap query/limits");
+  b2ShapeProxy proxy{};
+  if(q->type==GAL_SHAPE_CIRCLE){const b2Vec2 center{q->x,q->y};proxy=b2MakeProxy(&center,1,q->a);}
+  else{const auto box=b2MakeOffsetBox(q->a,q->b,{q->x,q->y},b2MakeRot(q->angle));proxy=b2MakeProxy(box.vertices,box.count,box.radius);}
+  Overlap result{p,{},0,q->flags};b2World_OverlapShape(p->world,&proxy,{q->category,q->mask},overlap_callback,&result);*count=result.count;
+  if(r.capacity<result.count||(result.count&&!r.output))return error(e,"overlap output capacity insufficient");
+  std::sort(result.ids.begin(),result.ids.begin()+result.count);if(result.count)std::copy_n(result.ids.data(),result.count,r.output);return true;
  }
  if(op==PhysicsOp::State){auto*s=static_cast<gal_physics_state*>(out);if(!s||s->size!=sizeof(*s)||s->reserved)return error(e,"invalid physics state size/reserved");*s={sizeof(*s),0,0,0,p->steps,p->event_count,p->dropped,0};for(const auto&b:p->bodies)if(b.id)s->bodies++;for(const auto&shape:p->shapes)if(shape.id){if(shape.alive)s->shapes++;else s->retired_shapes++;}return true;}
  return error(e,"unsupported physics operation");

@@ -10,6 +10,8 @@ extern "C" {
 enum { GAL_PHYSICS_VERSION=1, GAL_BODY_STATIC=0,GAL_BODY_KINEMATIC=1,GAL_BODY_DYNAMIC=2 };
 enum { GAL_BODY_FIXED_ROTATION=1,GAL_BODY_BULLET=2, GAL_SHAPE_SENSOR=1 };
 enum { GAL_SHAPE_CIRCLE=0,GAL_SHAPE_BOX=1 };
+enum { GAL_CAPSULE_VERSION=1,GAL_OVERLAP_QUERY_VERSION=1 };
+enum { GAL_QUERY_EXCLUDE_SENSORS=1,GAL_QUERY_ONLY_SENSORS=2 };
 enum { GAL_BODY_POSE=1,GAL_BODY_VELOCITY=2,GAL_BODY_IMPULSE=3,GAL_BODY_FORCE=4 };
 enum { GAL_CONTACT_BEGIN=1,GAL_CONTACT_END=2,GAL_SENSOR_BEGIN=3,GAL_SENSOR_END=4 };
 enum { GAL_EVENT_REMOVED_A=1,GAL_EVENT_REMOVED_B=2 };
@@ -18,18 +20,25 @@ typedef struct { uint32_t size,version,type,flags;float x,y,angle,vx,vy,angular_
 /* Circle uses a=radius,b=0,angle=0; box uses a/b=positive half extents. Offset and
    angle are local to the body. Sensor shapes still contribute mass when density>0. */
 typedef struct { uint32_t size,version,type,flags;float offset_x,offset_y,angle,a,b,density,friction,restitution;uint64_t category,mask;int32_t group;uint32_t reserved; } gal_shape_def;
+/* Capsule endpoints are body-local meters, each component within +/-100.
+   Endpoint distance must be >=.01; radius is .001..100. No legacy ABI changes. */
+typedef struct { uint32_t size,version,flags,reserved;float x1,y1,x2,y2,radius,density,friction,restitution;uint64_t category,mask;int32_t group;uint32_t reserved2; } gal_capsule_def_v1;
 typedef struct { uint32_t size,flags;float x,y,angle,vx,vy,angular_velocity;uint32_t type,reserved; } gal_body_state;
 typedef struct { uint32_t size,events,dropped,step; } gal_physics_step_result;
 typedef struct { uint32_t type,flags;uint64_t shape_a,shape_b,body_a,body_b; } gal_physics_event;
 typedef struct { uint32_t size,version;float x,y,dx,dy;uint64_t category,mask; } gal_physics_ray;
 typedef struct { uint32_t size,hit;uint64_t shape,body;float x,y,normal_x,normal_y,fraction;uint32_t reserved; } gal_physics_ray_hit;
 typedef struct { uint32_t size,version;float lower_x,lower_y,upper_x,upper_y;uint64_t category,mask; } gal_physics_aabb;
+/* World-space circle (a=radius,b=angle=0) or rotated box (a/b=half extents).
+   Flags: 0 includes sensors, 1 excludes sensors, 2 selects only sensors. */
+typedef struct { uint32_t size,version,type,flags;float x,y,a,b,angle;uint32_t reserved;uint64_t category,mask; } gal_physics_overlap_query_v1;
 typedef struct { uint32_t size,bodies,shapes,retired_shapes,steps,events,dropped,reserved; } gal_physics_state;
 GAL_API int GAL_CALL gal_physics_open(gal_context*,const gal_physics_config*);
 GAL_API int GAL_CALL gal_physics_close(gal_context*);
 GAL_API int GAL_CALL gal_physics_create_body(gal_context*,const gal_body_def*,uint64_t* body);
 GAL_API int GAL_CALL gal_physics_release_body(gal_context*,uint64_t body);
 GAL_API int GAL_CALL gal_physics_create_shape(gal_context*,uint64_t body,const gal_shape_def*,uint64_t* shape);
+GAL_API int GAL_CALL gal_physics_create_capsule_v1(gal_context*,uint64_t body,const gal_capsule_def_v1*,uint64_t* shape);
 GAL_API int GAL_CALL gal_physics_release_shape(gal_context*,uint64_t shape);
 GAL_API int GAL_CALL gal_physics_body_command(gal_context*,uint64_t body,uint32_t command,float x,float y,float z);
 GAL_API int GAL_CALL gal_physics_get_body(gal_context*,uint64_t body,gal_body_state*);
@@ -42,6 +51,10 @@ GAL_API int GAL_CALL gal_physics_ray_cast(gal_context*,const gal_physics_ray*,ga
 /* Broad-phase AABB query, not exact shape overlap. Sorted stable engine IDs.
    Insufficient capacity reports required count and leaves the array unchanged. */
 GAL_API int GAL_CALL gal_physics_query_aabb(gal_context*,const gal_physics_aabb*,uint64_t*,uint32_t capacity,uint32_t* count);
+/* Narrow-phase overlap using Box2D shape proxies/tolerance, sorted stable IDs.
+   Reciprocal category/mask filtering ignores groups. At most 512 results.
+   Insufficient capacity reports required count and leaves the array unchanged. */
+GAL_API int GAL_CALL gal_physics_query_overlap_v1(gal_context*,const gal_physics_overlap_query_v1*,uint64_t*,uint32_t capacity,uint32_t* count);
 GAL_API int GAL_CALL gal_physics_get_state(gal_context*,gal_physics_state*);
 #ifdef __cplusplus
 }

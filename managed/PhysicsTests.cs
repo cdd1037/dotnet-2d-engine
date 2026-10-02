@@ -18,6 +18,7 @@ internal static unsafe class PhysicsTests
         var root=new AssetRoot();var fixture=PhysicsFixture.LoadAsset(root,"basics.physics.json");Check(fixture.Bodies.Count==6&&fixture.Settings.Substeps==4,"strict authored fixture");
         var json=JsonNode.Parse(File.ReadAllText(root.Resolve("basics.physics.json")))!;json["bodies"]![0]!["a"]=0;
         try{PhysicsFixture.Load(json.ToJsonString(),"test");throw new Exception("Bad fixture accepted");}catch(PhysicsFixtureException){n++;}
+        n+=PhysicsExtensionTests.RunContracts();
         Console.WriteLine($"PHYSICS CONTRACT PASS assertions={n}; layouts, units and sourcegen only");return n;
     }
     public static int RunSimulation()
@@ -127,6 +128,7 @@ internal static unsafe class PhysicsTests
         }
         using(var physics=engine.OpenPhysics())
         {var body=physics.CreateBody(new(PhysicsBodyType.Dynamic));var shape=body.AddShape(new(PhysicsShapeType.Circle,1));engine.Dispose();shape.Dispose();body.Dispose();Check(true,"engine teardown and late body/shape disposal safe");}
+        n+=PhysicsExtensionTests.RunSimulation();
         Console.WriteLine($"PHYSICS SIMULATION PASS assertions={n}; real single-threaded Box2D, no cross-platform determinism claim");return n;
     }
     private sealed class Owner:IBehavior{public void Update(Entity entity,float deltaSeconds){}}

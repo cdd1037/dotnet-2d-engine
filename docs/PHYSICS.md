@@ -1,7 +1,7 @@
 # Box2D foundation
 
 The opt-in physics module provides one **Box2D 3.1.1** world per engine context,
-static/dynamic/kinematic bodies, circle/box shapes, filters, sensors, fixed stepping,
+static/dynamic/kinematic bodies, circle/box/capsule shapes, filters, sensors, fixed stepping,
 center force/impulse, copied contact events and bounded queries. It is independent
 of SDL and can run in a headless native build. Rendering and game rules stay in
 managed consumers; this is not a character controller or full physics editor.
@@ -124,13 +124,57 @@ convenience API. A zero-length ray is rejected. `QueryAabb` is explicitly a
 at most 512 IDs, sorted by the engine handle, with no managed callback. Query
 category/mask filtering is separate from collision group overrides.
 
+`QueryCircle` and `QueryBox` use **narrow-phase shape overlap** against circles,
+rotated boxes and capsules. The circle takes a world-space center and radius; the
+box takes a world-space center, positive half width/height and a rotation in
+radians. Unlike `QueryAabb`, these remove broad-phase false positives using the
+pinned `b2World_OverlapShape` distance test. Box2D’s narrow-phase distance test allows separations up to
+**.0005 meters**, so “exact” here means its narrow-phase geometry,
+not infinite-precision mathematical intersection or a guaranteed grazing-edge
+decision. There is no shape casting or continuous sweep.
+
+Both methods write only into the caller’s `Span<ulong>`, returning the number of
+sorted stable shape IDs. Capacity is 0..512; a too-small span throws
+`ArgumentException` with the required count and leaves all elements unchanged.
+An empty span succeeds for no hits, otherwise reports capacity failure. Unused
+elements remain untouched. Native calls also return the required count on
+capacity failure. No managed callbacks or successful-query allocations are used.
+
+`PhysicsSensorQuery.Include` (default), `Exclude` and `Only` explicitly control
+sensor participation in the new queries. All modes still apply reciprocal
+filtering: `(query.Category & shape.Mask) != 0` and
+`(query.Mask & shape.Category) != 0`; shape collision groups do not override it.
+Queries inspect current geometry immediately, including before the first step
+and after teleport or TileMap collision replacement. They do not advance the
+world, emit events or require the queried body to be awake. Ray/AABB behavior
+and the original shape-definition ABI are unchanged.
+
+`PhysicsBody.AddCapsule(PhysicsCapsuleDefinition)` supplies **two body-local
+segment endpoints and a radius in meters**. The endpoints are the centers of
+the semicircular ends, not the outer tips; total end-to-end length is segment
+length plus twice the radius. Body translation/rotation applies normally, with
+no second capsule-local angle or automatic pixel conversion. For example,
+`new PhysicsCapsuleDefinition(0, scale.ToMeters(-25), 0, scale.ToMeters(25),
+scale.ToMeters(10))` at 50 pixels/meter has endpoints `(0,-.5)`/`(0,.5)`
+and radius `.2` meters. It is created by `b2CreateCapsuleShape`, shares ordinary
+shape material/filter/sensor semantics, stable IDs and body-owned lifetime, and
+participates in collision response, copied events, rays and all existing queries.
+The version-1 authored JSON fixture remains circle/box-only; this batch adds a
+programmatic capsule definition, not a new serialization schema.
+
 ## Numeric validation and authoring
 
 Definitions reject unknown versions/flags, nonfinite values and invalid extents
 before touching Box2D. Initial/teleport positions are bounded to ±10,000 meters;
 velocity components to ±1,000 and angular speed to ±100; gravity components to
 ±1,000. Shape half extents/radius are .001..100 meters, local offsets ±100, density
-0..10,000, friction 0..10 and restitution 0..1. These are input guards, not promises
+0..10,000, friction 0..10 and restitution 0..1. Capsule endpoint components are
+finite within ±100 meters and endpoint separation must be at least **.01 meters**
+(inclusive at the float representation of `.01f`). This excludes upstream’s tiny-
+segment fallback to a circle. Capsule radius is .001..100 meters. Exact-query
+centers are within ±10,000 meters, dimensions .001..100 and box angle ±10,000
+radians; unknown sensor modes and nonfinite inputs fail before the query.
+These are input guards, not promises
 of stable accuracy at every extreme. Prefer ordinary game-scale bodies around
 0.1..10 meters and a modest world extent. Solver speed clamping and ordinary
 floating-point/numerical limitations still apply as simulation evolves.
@@ -184,3 +228,17 @@ through a closed owner still fails. Settings and LastStep also check world acces
 Public query and body-command preflight reports invalid finite/range arguments
 with managed argument exceptions before native mutation; solver/native operation
 errors retain the existing InvalidOperationException diagnostics.
+
+
+## Additive capsule/overlap ABI
+
+The original `gal_shape_def` remains 72 bytes with its original circle/box
+interpretation. New exports `gal_physics_create_capsule_v1` and
+`gal_physics_query_overlap_v1` accept independent version-1 records:
+`gal_capsule_def_v1` (72 bytes, category offset 48) and
+`gal_physics_overlap_query_v1` (56 bytes, category offset 40). Exact size, version,
+flags and reserved fields are checked. No Box2D structures or callbacks cross
+the boundary. The same context/thread/frame checks apply; stale/foreign body
+IDs cannot create capsules. Disabled builds export both functions and report
+that the module is unavailable. Managed wrappers reject closed/disposed owners
+before access, including after a new physics world replaces the old one.

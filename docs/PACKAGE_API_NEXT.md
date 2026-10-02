@@ -110,3 +110,19 @@ source-generated/trim publish logs and AOT maps. Native artifacts and packages
 remain outside Git. Modern Linux/glibc, real IME, hardware graphics/audio and
 Windows/macOS acceptance remain separate gates. No public feed or release was
 published.
+
+## Focused follow-up feature proof
+
+The subsequent capsule/exact-overlap batch has its own focused
+`packaging/consumers/features` consumer and `scripts/test-package-features.sh`.
+After rebuilding both packages, it passes **56 assertions in JIT and one fresh
+NativeAOT run**, combining camera follow, animation markers/clip changes, atomic
+TileMap editing and capsule/floor physics. Exact circle/rotated-box queries preserve
+stable IDs, caller-span output, sensor/mask semantics and zero managed allocation
+across 4,000 warmed calls. It uses a fresh external local-only package feed/cache
+and caller-owned assets, with no friend identity or source/project references.
+
+This later result verifies the new public APIs together; the preceding broad
+module/negative-compile/minimal-trim matrix remains historical and was not repeated.
+See [current evidence](validation.md#capsule-shapes-and-exact-overlaps-2026-10-02)
+and [the physics contract](PHYSICS.md).

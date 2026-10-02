@@ -27,6 +27,22 @@ public readonly record struct PhysicsShapeDefinition(PhysicsShapeType Type,float
         PhysicsLimits.Bounded(OffsetX,100);PhysicsLimits.Bounded(OffsetY,100);PhysicsLimits.Bounded(Angle,10000);PhysicsLimits.Range(Density,0,10000);PhysicsLimits.Range(Friction,0,10);PhysicsLimits.Range(Restitution,0,1);
     }
 }
+/// <summary>A capsule defined by two body-local segment endpoints and a radius, all in meters. Endpoints must be at least .01 meters apart. Density is kg/m²; sensors contribute mass when density is nonzero.</summary>
+public readonly record struct PhysicsCapsuleDefinition(float X1,float Y1,float X2,float Y2,float Radius,float Density=1,float Friction=.6f,float Restitution=0,ulong Category=1,ulong Mask=ulong.MaxValue,int Group=0,bool Sensor=false)
+{
+    internal unsafe PhysicsCapsuleDef NativeValue()
+    {
+        Validate();
+        return new(){Size=(uint)sizeof(PhysicsCapsuleDef),Version=1,Flags=Sensor?1u:0,X1=X1,Y1=Y1,X2=X2,Y2=Y2,Radius=Radius,Density=Density,Friction=Friction,Restitution=Restitution,Category=Category,Mask=Mask,Group=Group};
+    }
+    public void Validate()
+    {
+        PhysicsLimits.Bounded(X1,100);PhysicsLimits.Bounded(Y1,100);PhysicsLimits.Bounded(X2,100);PhysicsLimits.Bounded(Y2,100);
+        double dx=(double)X2-X1,dy=(double)Y2-Y1,minimum=.01f;
+        if(dx*dx+dy*dy<minimum*minimum)throw new ArgumentOutOfRangeException(nameof(X2),"Capsule endpoints must be at least .01 meters apart.");
+        PhysicsLimits.Range(Radius,.001f,100);PhysicsLimits.Range(Density,0,10000);PhysicsLimits.Range(Friction,0,10);PhysicsLimits.Range(Restitution,0,1);
+    }
+}
 internal static class PhysicsLimits
 {
     internal static void Bounded(float value,float limit){if(!float.IsFinite(value)||Math.Abs(value)>limit)throw new ArgumentOutOfRangeException(nameof(value),$"Expected finite value within +/-{limit}.");}
@@ -140,6 +156,38 @@ public sealed unsafe class PhysicsWorld : IDisposable, IEngineOwned
         return (int)count;
     }
 
+    /// <summary>Writes sorted stable shape IDs overlapping a world-space circle in meters using Box2D narrow-phase geometry (including its .0005-meter tolerance). Includes sensors by default; category/mask filtering is reciprocal and ignores collision groups. Capacity is at most 512; insufficient capacity leaves the span unchanged.</summary>
+    public int QueryCircle(float x, float y, float radius, Span<ulong> shapes, ulong category = ulong.MaxValue, ulong mask = ulong.MaxValue, PhysicsSensorQuery sensors = PhysicsSensorQuery.Include)
+        => QueryOverlap(PhysicsShapeType.Circle, x, y, radius, 0, 0, shapes, category, mask, sensors);
+
+    /// <summary>Writes sorted stable shape IDs overlapping a world-space rotated box using Box2D narrow-phase geometry (including its .0005-meter tolerance). Center and positive half extents are meters; angle is radians. Includes sensors by default; category/mask filtering is reciprocal and ignores collision groups. Capacity is at most 512; insufficient capacity leaves the span unchanged.</summary>
+    public int QueryBox(float x, float y, float halfWidth, float halfHeight, float angle, Span<ulong> shapes, ulong category = ulong.MaxValue, ulong mask = ulong.MaxValue, PhysicsSensorQuery sensors = PhysicsSensorQuery.Include)
+        => QueryOverlap(PhysicsShapeType.Box, x, y, halfWidth, halfHeight, angle, shapes, category, mask, sensors);
+
+    private int QueryOverlap(PhysicsShapeType type, float x, float y, float a, float b, float angle, Span<ulong> shapes, ulong category, ulong mask, PhysicsSensorQuery sensors)
+    {
+        nint context = Context;
+        PhysicsLimits.Bounded(x, 10000);
+        PhysicsLimits.Bounded(y, 10000);
+        PhysicsLimits.Range(a, .001f, 100);
+        if (type == PhysicsShapeType.Box) PhysicsLimits.Range(b, .001f, 100);
+        PhysicsLimits.Bounded(angle, 10000);
+        if (sensors > PhysicsSensorQuery.Only) throw new ArgumentOutOfRangeException(nameof(sensors));
+        if (shapes.Length > 512) throw new ArgumentOutOfRangeException(nameof(shapes), "Query capacity must not exceed 512 shape IDs.");
+        var query = new PhysicsOverlapQuery { Size = (uint)sizeof(PhysicsOverlapQuery), Version = 1, Type = type, Flags = (uint)sensors, X = x, Y = y, A = a, B = b, Angle = angle, Category = category, Mask = mask };
+        uint count = 0;
+        fixed (ulong* output = shapes)
+        {
+            int status = PhysicsNative.Overlap(context, &query, output, (uint)shapes.Length, &count);
+            // Native validation and collection precede the copy. Include the required
+            // size on failure without allocating anything on the successful path.
+            if (status != 0 && count > shapes.Length)
+                throw new ArgumentException($"Query output requires {count} shape IDs; capacity is {shapes.Length}.", nameof(shapes));
+            Native.Check(status, "physics exact overlap query");
+        }
+        return (int)count;
+    }
+
     internal void ReleaseBody(ulong id) { AssertThread(); if (!_closed) Native.Check(PhysicsNative.ReleaseBody(Context, id), "release physics body"); }
     internal void ReleaseShape(ulong id) { AssertThread(); if (!_closed) Native.Check(PhysicsNative.ReleaseShape(Context, id), "release physics shape"); }
     void IEngineOwned.EngineDestroyed() => EngineDestroyed();
@@ -196,6 +244,16 @@ public sealed unsafe class PhysicsBody : IDisposable
         var def = definition.NativeValue();
         ulong shape = 0;
         Native.Check(PhysicsNative.CreateShape(context, _id, &def, &shape), "create physics shape");
+        return new(this, shape);
+    }
+
+    /// <summary>Adds a capsule from body-local endpoints and a radius in meters. The body's pose transforms the capsule; its wrapper follows ordinary shape ownership.</summary>
+    public PhysicsShape AddCapsule(PhysicsCapsuleDefinition definition)
+    {
+        nint context = Context;
+        var def = definition.NativeValue();
+        ulong shape = 0;
+        Native.Check(PhysicsNative.CreateCapsule(context, _id, &def, &shape), "create physics capsule");
         return new(this, shape);
     }
 

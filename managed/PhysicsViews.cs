@@ -2,6 +2,8 @@ namespace GameAuthoringLab;
 
 public enum PhysicsBodyType : uint { Static, Kinematic, Dynamic }
 public enum PhysicsShapeType : uint { Circle, Box }
+/// <summary>Controls sensor participation in exact overlap queries. Collision groups never override query category/mask filtering.</summary>
+public enum PhysicsSensorQuery : uint { Include, Exclude, Only }
 public enum PhysicsEventType : uint { ContactBegin = 1, ContactEnd, SensorBegin, SensorEnd }
 
 /// <summary>A copied world snapshot. Retired shape identities count against capacity until the next step.</summary>

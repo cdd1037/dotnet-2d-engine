@@ -15,6 +15,14 @@ _Static_assert(sizeof(gal_physics_config)==32, "physics config");
 _Static_assert(sizeof(gal_body_def)==56, "physics body");
 _Static_assert(sizeof(gal_shape_def)==72, "physics shape");
 _Static_assert(offsetof(gal_shape_def,category)==48, "physics filter offset");
+_Static_assert(GAL_CAPSULE_VERSION==1 && GAL_OVERLAP_QUERY_VERSION==1, "physics extension versions");
+_Static_assert(GAL_QUERY_EXCLUDE_SENSORS==1 && GAL_QUERY_ONLY_SENSORS==2, "overlap sensor flags");
+_Static_assert(sizeof(gal_capsule_def_v1)==72, "physics capsule");
+_Static_assert(offsetof(gal_capsule_def_v1,x1)==16 && offsetof(gal_capsule_def_v1,radius)==32, "capsule geometry offset");
+_Static_assert(offsetof(gal_capsule_def_v1,category)==48 && offsetof(gal_capsule_def_v1,group)==64 && offsetof(gal_capsule_def_v1,reserved2)==68, "capsule filter/reserved offsets");
+_Static_assert(sizeof(gal_physics_overlap_query_v1)==56, "physics overlap query");
+_Static_assert(offsetof(gal_physics_overlap_query_v1,x)==16 && offsetof(gal_physics_overlap_query_v1,angle)==32, "overlap geometry offset");
+_Static_assert(offsetof(gal_physics_overlap_query_v1,reserved)==36 && offsetof(gal_physics_overlap_query_v1,category)==40 && offsetof(gal_physics_overlap_query_v1,mask)==48, "overlap filter/reserved offsets");
 _Static_assert(sizeof(gal_physics_event)==40, "physics event");
 _Static_assert(sizeof(gal_physics_ray_hit)==48, "physics ray hit");
 _Static_assert(sizeof(gal_audio_config)==16, "audio config");
@@ -80,5 +88,12 @@ int main(void){
  if(gal_bound_ui_open_images(c,0,0,0,0,0,0)!=-1)return 12;
  if(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&binding,1,0,1)!=-1)return 13;
  if(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&binding,1,images,33)!=-1)return 14;
+ /* New exports remain callable from C in both enabled and disabled builds.
+    A world was deliberately never opened, so both calls must fail safely. */
+ gal_capsule_def_v1 capsule={0};capsule.size=sizeof(capsule);capsule.version=GAL_CAPSULE_VERSION;
+ gal_physics_overlap_query_v1 overlap={0};overlap.size=sizeof(overlap);overlap.version=GAL_OVERLAP_QUERY_VERSION;
+ uint64_t shape=0;uint32_t count=0;
+ if(gal_physics_create_capsule_v1(c,0,&capsule,&shape)!=-1)return 15;
+ if(gal_physics_query_overlap_v1(c,&overlap,0,0,&count)!=-1)return 16;
  return gal_destroy(c)!=0;
 }

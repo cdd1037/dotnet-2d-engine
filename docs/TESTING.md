@@ -59,7 +59,7 @@ scripted input, not physical GPU or real IME acceptance.
 ## Incremental headless builds
 
 `scripts/build-headless.sh` configures the existing CMake headless graph, builds
-only stale objects/links, and runs all seven native CTest contracts on every call
+only stale objects/links, and runs all eight native CTest contracts on every call
 (including bounded image-metadata and SVG-source contracts).
 Quick/JIT/AOT entry points keep using it. An unchanged rerun or a C#-only edit
 therefore runs the contracts without recompiling native code. Shared-library and
@@ -73,7 +73,7 @@ selected `CC`/`CXX`). It uses CMake from PATH, or the already-installed local
 CMake executable and optionally `CTEST` to its companion. `BUILD_JOBS` defaults to
 2. Native builds default to Release; `CMAKE_BUILD_TYPE`, `CFLAGS`, `CXXFLAGS`, and
 `LDFLAGS` may be set explicitly. The profile always disables SDL/RmlUi/mixer/Box2D
-and preserves strict warnings for the library and all seven tests.
+and preserves strict warnings for the library and all eight tests.
 
 Configuration is reapplied each time, so flag/build-type changes invalidate the
 appropriate objects or links. On a `CC`/`CXX` executable-path change, the script
@@ -97,7 +97,7 @@ python3 scripts/test-headless-build.py
 It copies sources into a temporary directory, logs compiler invocations, and
 checks unchanged/C#-only runs, native source/header/export-map invalidation,
 changed flags, compiler/configuration switches and returning to defaults. It
-reruns the same seven contracts each time, without editing the working source tree
+reruns the same eight contracts each time, without editing the working source tree
 or building optional native dependencies.
 
 On the 2026-10-02 Linux runner (GCC 14.2, CMake 3.31.6, two jobs), the isolated
@@ -246,3 +246,21 @@ step/retry behavior. With the prepared software Vulkan build,
 X/Y/XY flips, 15/16 chunk boundaries, unchanged sibling instances and exact restore.
 This managed-only API adds neither ABI nor serialization roots; one final JIT
 aggregate is sufficient for the batch, with no repeated full AOT/package matrix.
+
+
+## Capsule and exact-overlap boundary
+
+`quick physics` includes the additive C/C# record layouts and capsule numeric
+contracts. `scripts/test-physics.sh` also exercises the real solver's exact circle/
+rotated-box overlaps, capsule response and contact/sensor events, caller-span
+capacity, filtering and ownership. Its native `physics_contract` contract runs
+in both enabled and disabled builds, including malformed ABI and context/thread/
+frame guards. Follow with `--tilemap-physics-test` and `--movement-physics-test`
+on that same Box2D build for existing collision consumers.
+
+For the final combined public-API proof, rebuild the local engine/native packages,
+then run `PACKAGE_FEATURE_PROOF_ROOT=/tmp/dotnet2d-features-new bash
+scripts/test-package-features.sh`. It uses one ordinary external PackageReference
+consumer for camera follow, animation events/clip selection, transactional tile
+edits and capsule/exact queries, in JIT and one fresh NativeAOT publish. It does
+not repeat the earlier negative-compile, minimal-trim or graphics/device matrices.

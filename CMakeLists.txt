@@ -101,6 +101,12 @@ else()
  target_sources(gal PRIVATE native/src/physics_stub.cpp)
 endif()
 
+add_executable(gal_physics_contract_tests tests/physics_contract_tests.cpp)
+target_compile_features(gal_physics_contract_tests PRIVATE cxx_std_17)
+target_compile_definitions(gal_physics_contract_tests PRIVATE GAL_TEST_PHYSICS_ENABLED=$<BOOL:${GAL_ENABLE_PHYSICS}>)
+target_link_libraries(gal_physics_contract_tests PRIVATE gal Threads::Threads)
+add_test(NAME physics_contract COMMAND gal_physics_contract_tests)
+
 add_executable(gal_text_geometry_tests tests/text_input_geometry_tests.cpp)
 target_include_directories(gal_text_geometry_tests PRIVATE native/src)
 target_compile_features(gal_text_geometry_tests PRIVATE cxx_std_17)
@@ -119,7 +125,7 @@ add_test(NAME svg_validation COMMAND gal_svg_validation_tests)
 # The headless script previously applied strict warnings to every compiler call.
 # Keep that contract when it uses the shared CMake dependency graph.
 if(GAL_HEADLESS_ONLY)
- foreach(test_target gal_native_tests gal_backend_contract_tests gal_c_consumer gal_input_state_tests gal_text_geometry_tests gal_image_metadata_tests gal_svg_validation_tests)
+ foreach(test_target gal_native_tests gal_backend_contract_tests gal_c_consumer gal_input_state_tests gal_text_geometry_tests gal_image_metadata_tests gal_svg_validation_tests gal_physics_contract_tests)
   if(MSVC)
    target_compile_options(${test_target} PRIVATE /W4 /WX)
   else()
