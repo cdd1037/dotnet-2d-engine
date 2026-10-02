@@ -124,6 +124,12 @@ and exact circle/rotated-box overlap queries. Start with
 solver after dependency setup. The source-generated `basics.physics.json` fixture
 and `--physics-demo` show explicit meter/pixel conversion and scene cleanup.
 
+The independent [character-motion recipe](packaging/consumers/character-motion/README.md)
+shows game-owned slope support, translating-platform carry/detach and two-body
+pose interpolation using existing public physics APIs. Its headless package check
+is `bash scripts/test-character-motion.sh`; the gravity policy and narrow terrain
+bounds are explicit, and existing demos remain unchanged.
+
 Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use explicit clocks and lifetime ownership. Frame markers add bounded polled events with overflow counts, and explicit `Play` switches clips while preserving repeated-selection phase. Try `--animation-demo` or run `scripts/test.sh quick animation`.
 
 The [basic TileMap](docs/TILEMAP.md) loads bounded source-generated grids, culls atlas cells and optionally generates static Box2D collision. Try `--tilemap-demo` or `--tilemap-physics-demo`.

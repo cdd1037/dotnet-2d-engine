@@ -6,6 +6,11 @@ center force/impulse, copied contact events and bounded queries. It is independe
 of SDL and can run in a headless native build. Rendering and game rules stay in
 managed consumers; this is not a character controller or full physics editor.
 
+The [bounded character-motion recipe](../packaging/consumers/character-motion/README.md)
+is an independent public-package example of a game-local support probe, slope
+tangent motion and translating-platform carry. It documents the gravity and
+detach choices, limitations and focused native checks without changing this API.
+
 ## Verified dependency
 
 - [Official release v3.1.1](https://github.com/erincatto/box2d/releases/tag/v3.1.1),

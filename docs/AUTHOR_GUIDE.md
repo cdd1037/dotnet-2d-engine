@@ -150,6 +150,15 @@ platform rules are still game code. [Physics](PHYSICS.md) states current limits;
 cover synchronized cell/collision edits. The starter does not introduce a generic
 character controller or encode game-specific rules in the runtime.
 
+For one bounded slope and translating platform, copy the
+[character-motion recipe](../packaging/consumers/character-motion/README.md).
+It demonstrates a game-local support query with retained identity, explicit
+carry/jump/teleport lifecycle, caller-owned gravity and previous/current poses for
+both moving bodies. Its manual-gravity policy changes the measured flat jump
+rise from 127 to 132 px; it is an additive example, not a behavior-neutral update
+to the starter. The focused headless fixture checks actual native physics without
+rebuilding the runtime or claiming a general controller or rendered smoothness.
+
 ## 5. Add UI only when it helps the game
 
 Prefer public `UiModelSession<T>` for new UI. Register scalar/record/array data
