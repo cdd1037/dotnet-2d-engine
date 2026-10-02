@@ -21,6 +21,7 @@
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/FrameAnimation.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Tween.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/Timing.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/CameraFollow.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AudioNative.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AudioSession.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/AudioViews.cs" />

@@ -46,6 +46,7 @@ internal static class Program
             if(args.Contains("--tilemap-self-test",StringComparer.Ordinal)){TileMapTests.Run();return 0;}
             if(args.Contains("--tilemap-physics-test",StringComparer.Ordinal)){TileMapTests.RunPhysics();return 0;}
             if(args.Contains("--animation-self-test",StringComparer.Ordinal)){AnimationTests.Run();return 0;}
+            if(args.Contains("--camera-self-test",StringComparer.Ordinal)){CameraFollowTests.Run();return 0;}
             if(args.Contains("--animation-demo",StringComparer.Ordinal)||args.Contains("--animation-scenario",StringComparer.Ordinal))return AnimationDemo.Run(options.Headless,options.Frames,args.Contains("--animation-scenario",StringComparer.Ordinal));
             if(args.Contains("--physics-demo",StringComparer.Ordinal)||args.Contains("--physics-scenario",StringComparer.Ordinal)){if(options.Headless)throw new ArgumentException("Use --physics-self-test for device-free solver validation.");return PhysicsDemo.Run(options.Frames,args.Contains("--physics-scenario",StringComparer.Ordinal));}
             if(args.Contains("--physics-contract-test",StringComparer.Ordinal)){PhysicsTests.RunContracts();return 0;}
@@ -224,6 +225,7 @@ internal static class Program
         Console.WriteLine("Tile movement: --movement-demo | --movement-scenario | --movement-self-test | --movement-physics-test");
         Console.WriteLine("TileMap: --tilemap-demo | --tilemap-scenario | --tilemap-physics-demo | --tilemap-physics-scenario | --tilemap-self-test | --tilemap-physics-test");
         Console.WriteLine("Animation: --animation-demo | --animation-scenario [--headless] | --animation-self-test");
+        Console.WriteLine("Camera follow: --camera-self-test");
         Console.WriteLine("Physics: --physics-demo | --physics-scenario | --physics-contract-test | --physics-self-test (real solver)");
         Console.WriteLine("Audio: --audio-demo [--frames N] | --audio-self-test | --audio-offline-test | --audio-device-test");
         Console.WriteLine("Regions: --region-self-test (CPU) | --region-graphics-test (SDL texture regions/capture)");
@@ -258,7 +260,7 @@ internal static class Program
                     case "--target-self-test": case "--target-graphics-test": case "--target-demo":break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
-                    case "--tilemap-clip-demo": case "--tilemap-clip-scenario": case "--clip-self-test": case "--clip-graphics-test": case "--svg-disabled-test": case "--svg-self-test": case "--svg-graphics-test": case "--image-self-test": case "--image-graphics-test": case "--binding-self-test": case "--binding-native-test": case "--binding-demo": case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
+                    case "--tilemap-clip-demo": case "--tilemap-clip-scenario": case "--clip-self-test": case "--clip-graphics-test": case "--svg-disabled-test": case "--svg-self-test": case "--svg-graphics-test": case "--image-self-test": case "--image-graphics-test": case "--binding-self-test": case "--binding-native-test": case "--binding-demo": case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--camera-self-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;
                     case "--game-ui-self-test": break;

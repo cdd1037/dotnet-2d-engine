@@ -957,3 +957,28 @@ with an optional tracked mutation harness in `tests/svg_validation_mutation.cpp`
 This checkpoint covers JIT/native tests; no fresh SVG-enabled NativeAOT run is
 claimed at this checkpoint. Physical GPU/IME/audio, the
 package-consumer matrix and other operating systems were not rerun.
+
+## Camera follow managed checkpoint (2026-10-02)
+
+The additive [camera helper](CAMERA_FOLLOW.md) retains the existing camera ABI,
+uses caller-supplied timing and has no native or serialization changes.
+
+- Release build passes with **zero warnings/errors**
+- `scripts/test.sh quick camera` passes in **2 s** on this runner: all **7/7**
+  existing native contracts, three headless frames and **137 camera assertions**.
+  The headless graph was already current; no native object was recompiled
+- The same **137 assertions** pass in an isolated external managed executable
+  referencing the rebuilt public `Dotnet2D.Engine.dll`, without linked runtime
+  source, the friend assembly name or a native library. This is a public-assembly
+  check, not a repeated NuGet package matrix
+- Coverage includes fixed-target partitions, zoom/DPI/negative-world bounds,
+  small and zero-size worlds, exact-fit/float edge rounding, snap/teleport,
+  game pause/time scale/real time, invalid and extreme numbers, subnormal timing,
+  long-step residuals and zero allocation in 2,000 warmed bounded update/snap pairs
+- CLI/help registration, shell syntax and diff-whitespace checks pass
+
+Focused testing found and fixed exact-fit interval cancellation and tiny-delta
+smoothing cancellation before acceptance. Local logs are under
+`evidence/camera-follow/`. This checkpoint does not claim a camera graphics
+scenario, physical device result or a fresh NativeAOT publication; the combined
+feature pass is recorded separately.

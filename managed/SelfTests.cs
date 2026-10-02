@@ -32,6 +32,7 @@ internal static unsafe class SelfTests
         _assertions += AudioTests.RunContracts();
         _assertions += PhysicsTests.RunContracts();
         _assertions += AnimationTests.Run();
+        _assertions += CameraFollowTests.Run();
         _assertions += TileMapTests.Run();
         _assertions += TileMovementTests.RunContracts();
         _assertions += UiTextTests.RunContracts();

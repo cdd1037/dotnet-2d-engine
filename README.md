@@ -30,6 +30,8 @@ See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistenc
 
 [Versioned input and viewport contracts](docs/INPUT_VIEWPORT.md) separate window units from framebuffer pixels, preserve short key/button edges, route RmlUi-consumed input and expose configurable managed action maps. The mission uses the new poll path; legacy callers remain compatible.
 
+[Explicit camera follow](docs/CAMERA_FOLLOW.md) adds world-point framing, half-life smoothing, clock selection and zoom-aware world bounds without changing the camera ABI. `scripts/test.sh quick camera` runs its pure managed contracts.
+
 ## Complete playable loop
 
 `./scripts/run-game.sh` starts **RELAY / Archive Rescue** using the optional RmlUi build: title → start → two-room delivery mission → pause → win/lose → save/load → restart. See [controls, authored mission and verification](docs/PLAYABLE_MISSION.md). The original probes remain available.
