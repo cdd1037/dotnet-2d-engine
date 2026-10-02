@@ -48,6 +48,55 @@ also assume current JIT and `build-aot` outputs and prepared optional native UI
 dependencies; see [UI prototype](UI_PROTOTYPE.md). They use software Vulkan and
 scripted input, not physical GPU or real IME acceptance.
 
+## Incremental headless builds
+
+`scripts/build-headless.sh` configures the existing CMake headless graph, builds
+only stale objects/links, and runs all five native CTest contracts on every call.
+Quick/JIT/AOT entry points keep using it. An unchanged rerun or a C#-only edit
+therefore runs the contracts without recompiling native code. Shared-library and
+injected-backend tests remain separate, including their distinct `gal.cpp` objects.
+`build-headless/libgal.so` and the five executable paths remain unchanged.
+
+This Linux script needs CMake/CTest >=3.20 and Make in addition to GCC/G++ (or the
+selected `CC`/`CXX`). It uses CMake from PATH, or the already-installed local
+`.tools/cmake-3.31.6-linux-x86_64`; it never downloads tools. Set `CMAKE` to another
+CMake executable and optionally `CTEST` to its companion. `BUILD_JOBS` defaults to
+2. Native builds default to Release; `CMAKE_BUILD_TYPE`, `CFLAGS`, `CXXFLAGS`, and
+`LDFLAGS` may be set explicitly. The profile always disables SDL/RmlUi/mixer/Box2D
+and preserves strict warnings for the library and all five tests.
+
+Configuration is reapplied each time, so flag/build-type changes invalidate the
+appropriate objects or links. On a `CC`/`CXX` executable-path change, the script
+retains the previous CMake cache as `build-headless/CMakeCache.txt.previous` before
+reconfiguring. Objects and binaries are not cleaned. This avoids CMake's implicit
+compiler-change reset losing the headless profile. Updating a compiler in place
+at the same path is not detected automatically; move `build-headless` aside
+before rebuilding in that case. Do not run simultaneous builds with different configurations in this tree.
+
+The CMake Linux export map now also applies to this entry point: public `gal_*`
+C names are retained with `GAL_1` symbol versioning, and incidental C++ exports
+are hidden. Editing the export map invalidates the library link. Contract checks
+use always-on checks, including in Release builds.
+
+Run the opt-in workflow regression when changing native build orchestration:
+
+```sh
+python3 scripts/test-headless-build.py
+```
+
+It copies sources into a temporary directory, logs compiler invocations, and
+checks unchanged/C#-only runs, native source/header/export-map invalidation,
+changed flags, compiler/configuration switches and returning to defaults. It
+reruns the same five contracts each time, without editing the working source tree
+or building optional native dependencies.
+
+On the 2026-10-02 Linux runner (GCC 14.2, CMake 3.31.6, two jobs), the isolated
+first build took **4.653 s**, unchanged rerun **0.099 s**, and C#-only rerun
+**0.097 s**. Both reruns invoked the compiler **zero** times and passed all five
+contracts. Source and header changes rebuilt exactly their dependent targets;
+flag, build-type and compiler-path changes were also checked. These are measured
+native build/test costs, not a full managed, graphics, AOT or package benchmark.
+
 ## Milestones and research
 
 Run the necessary aggregate once against the final source tree before committing
@@ -144,3 +193,26 @@ compile sites must fail, while copied state views remain immutable and interop
 helpers remain inaccessible. Three fresh minimal trimmed publishes inspect unused
 module removal; this does not repeat every graphics/device matrix. See the
 [public boundary](PACKAGE_API_NEXT.md) for exact prerequisites, limits and sizes.
+
+## UI monotonic-clock regression
+
+With the existing optional RmlUi build and prepared SDL/software Vulkan dependencies,
+run this explicitly selected integration test from the repository root:
+
+```sh
+cmake -S . -B build-ui # refresh targets using the existing UI dependency cache
+cmake --build build-ui --target gal_ui_clock_tests
+source scripts/ui-env.sh
+build-ui/gal_ui_clock_tests "$PWD/assets/ui/settings.rml"
+```
+
+Use the CMake executable used to configure `build-ui` if it is not on PATH. The
+font defaults to `/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`; set
+`GAL_UI_FONT` to another compatible SC collection when needed. The test queues SDL
+mouse input into a real RmlUi text field, waits 1.1 seconds without rendering and
+checks that the next click remains a single click. An immediate following click
+must still select the word. It fails with the old render-count clock and passes
+with the inherited SDL performance-counter clock. This is software-rendered input
+integration, not a physical device or real OS IME test. Its optional target is
+excluded from the default build and CTest so CPU-only contracts stay independent
+of fonts, assets and graphics setup.

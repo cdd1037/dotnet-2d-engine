@@ -38,12 +38,12 @@ struct UiSystem final: SystemInterface_SDL {
  void DeactivateKeyboard()override{keyboard_requested=false;geometry_valid=false;area_sent=false;SDL_StopTextInput(window);SDL_SetTextInputArea(window,nullptr,0);}
  void WindowFocus(bool focused){window_focused=focused;UpdateKeyboard();}
  void WindowVisible(bool visible){window_visible=visible;UpdateKeyboard();}
- char diagnostic[512]{}; uint32_t warnings=0; double elapsed=0;
+ char diagnostic[512]{}; uint32_t warnings=0;
  bool LogMessage(Rml::Log::Type type,const Rml::String& message) override {
   if(type<=Rml::Log::LT_WARNING){warnings++;std::snprintf(diagnostic,sizeof(diagnostic),"upstream:%s",message.c_str());}
   return true;
  }
- double GetElapsedTime() override{return elapsed;}
+ // Inherit SDL's monotonic clock so interaction timing advances even without rendering.
  void Clear(){warnings=0;diagnostic[0]=0;}
 };
 
@@ -324,7 +324,6 @@ bool ui_input(UiRml*u,const SDL_Event&e){
 }
 bool ui_keyboard_focus(UiRml*u){if(!u->current)return false;auto*focused=u->current->GetFocusElement();return focused&&focused->GetTagName()=="input";}
 bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int h,std::string&e){
- u->system.elapsed+=1.0/60.0;
  if(u->pending){
   u->system.Clear();u->pending->SetDimensions({w,h});u->pending->Update();
   SDL_GPUTextureCreateInfo info{};info.type=SDL_GPU_TEXTURETYPE_2D;info.format=SDL_GetGPUSwapchainTextureFormat(u->device,u->window);info.usage=SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;info.width=w;info.height=h;info.layer_count_or_depth=1;info.num_levels=1;
