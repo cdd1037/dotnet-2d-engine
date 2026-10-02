@@ -120,3 +120,6 @@ payload; no public feed or stable SDK release is implied.
 [World rectangular clipping](docs/WORLD_CLIPPING.md) preserves ordered region
 draws inside explicit framebuffer scissors. Try `--tilemap-clip-demo` or the focused
 `scripts/test.sh quick clipping` tier.
+
+Optional [static SVG in bound UI](docs/UI_SVG.md) uses the official RmlUi SVG plugin
+with pinned LunaSVG, strict project-asset validation and pre-raster cache budgets.

@@ -896,3 +896,64 @@ font installation or complete native rebuild was performed. The ordinary package
 consumer matrix, Windows/macOS, hardware GPU/audio and real OS IME were not rerun.
 SVG and WebP remain excluded; the existing NanoSVG backend was assessed as a
 possible later restricted-icon path, not enabled by this batch.
+
+## 2026-10-02 — optional bounded SVG checkpoint
+
+`GAL_ENABLE_SVG=ON` adds the official pinned RmlUi SVG plugin with LunaSVG 3.5.0
+and bundled PlutoVG 1.3.1. It is confined to file-backed bound-UI SVG elements and
+decorators; world images and fixed UI profiles remain unchanged. See
+[accepted source profile, budgets and build](UI_SVG.md).
+
+Verified on the final SVG sources:
+
+- Release compile: zero warnings/errors; full JIT aggregate **11,217 assertions**,
+  including **164** managed SVG contracts
+- Optional SVG native build and headless: **7/7 CTest** contracts; the new source
+  validator is standalone and requires no SDL/LunaSVG
+- Managed/native validator parity: **125** meaningful fixtures with zero
+  accept/reject mismatches, including XML normalization, colors, path arities,
+  references, expansion and cumulative transform bounds
+- Native strict warning build, ASan/UBSan canonical contracts and **60,000**
+  deterministic mutated-source cases pass. LeakSanitizer remains unavailable
+  under ptrace; this is a robustness smoke, not exhaustive fuzzing
+- SVG software Vulkan integration: **179 assertions** with actual pixel readback.
+  Checks alpha/tint without double premultiplication, gradients, clipping, masks,
+  internal use/currentColor, group opacity, non-square viewBox and aspect policy,
+  snapshots surviving changed/deleted sources, hidden invalid sources, direct
+  native validation bypass attempts, missing manifests, all three raster budgets,
+  live-state preservation, repeated reloads and owner/engine-first cleanup
+- A direct C ABI replacement reuses the exact same RML/SVG paths while the old
+  document is still live. Old red pixels remain red after a source edit; the next
+  blue snapshot publishes blue after another edit and deletion of the files.
+  This exercises render-manager-scoped plugin cache identity independently of
+  the managed generation-specific staging paths
+- Software density **1×/1.5×/2×** and real SDL window resizes pass. No physical
+  high-DPI display or platform-specific device acceptance is claimed
+- SVG-disabled UI build: **12 assertions**, verifying the explicit disabled
+  diagnostic, preserved live model/action/pixels and a successful raster retry
+- Existing image integration **107**, bound UI **60**, game UI **28**, and UI clock
+  regressions pass. The existing image snapshot/ownership rules are preserved
+- The incremental headless workflow still passes all seven contracts on every
+  invocation, including zero compiler calls for unchanged and managed-only work
+- Invalid SVG-without-RmlUi configuration and a changed upstream patch-input
+  digest fail closed. Shell syntax, Python syntax and diff-whitespace checks pass
+
+Measured Linux binary cost against an otherwise equivalent SVG-disabled Release
+build with mixer and physics enabled: stripped `libgal.so` grows from **3,474,496**
+to **4,269,616 bytes**, an increase of **795,120 bytes (~776 KiB)**. Zlib level 9
+compression grows by **356,423 bytes (~348 KiB)**. This includes the native source
+validator and host hooks, beyond the earlier plugin-only assessment. It is not a
+cross-platform package-size guarantee.
+
+The source archive was reused from the prior verified official release and its
+SHA-256 checked again. LunaSVG builds with system-font discovery disabled; full
+LunaSVG/PlutoVG and embedded FreeType/stb notices are retained. No font install or
+unrelated dependency rebuild was required. Native SVG code links only with the
+opt-in flag; the existing package proof explicitly retains SVG-off behavior.
+
+Local logs and captures are under `evidence/ui-svg/`; the SVG native build is
+`build-svg/`. The canonical parser tests are `tests/svg_validation_tests.cpp`,
+with an optional tracked mutation harness in `tests/svg_validation_mutation.cpp`.
+This checkpoint covers JIT/native tests; no fresh SVG-enabled NativeAOT run is
+claimed at this checkpoint. Physical GPU/IME/audio, the
+package-consumer matrix and other operating systems were not rerun.

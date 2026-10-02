@@ -11,6 +11,7 @@ Every entry point prints elapsed wall time and its exit status.
 | UI authoring edit | `scripts/test.sh quick ui` | Default plus RML/RCSS preflight, no renderer |
 | Input/viewport edit | `scripts/test.sh quick input` | Default plus v2 layout, synthetic DPI, remapping, focus and fixed-step edge checks |
 | Image format/UI resource edit | `scripts/test.sh quick images` | Bounded raster metadata, static UI image grammar, snapshot/budget and headless ownership contracts; see [integration](UI_IMAGES.md) |
+| Static SVG authoring edit | `scripts/test.sh quick svg` | Strict SVG source/reference limits, bound profile and snapshots; [optional graphics integration](UI_SVG.md) |
 | Resource paths/cache edit | `scripts/test.sh quick resources` | Default plus focused CPU resource identity/lifetime/diagnostic checks |
 | Playable mission edit | `scripts/test.sh quick game` | Default plus focused CPU mission lifecycle/save checks |
 | Animation/tween/timer edit | `scripts/test.sh quick animation` | Default plus timing, lifetime, atlas residency and warmed-allocation checks |
@@ -57,8 +58,8 @@ scripted input, not physical GPU or real IME acceptance.
 ## Incremental headless builds
 
 `scripts/build-headless.sh` configures the existing CMake headless graph, builds
-only stale objects/links, and runs all six native CTest contracts on every call
-(including the bounded image-metadata contract).
+only stale objects/links, and runs all seven native CTest contracts on every call
+(including bounded image-metadata and SVG-source contracts).
 Quick/JIT/AOT entry points keep using it. An unchanged rerun or a C#-only edit
 therefore runs the contracts without recompiling native code. Shared-library and
 injected-backend tests remain separate, including their distinct `gal.cpp` objects.
@@ -71,7 +72,7 @@ selected `CC`/`CXX`). It uses CMake from PATH, or the already-installed local
 CMake executable and optionally `CTEST` to its companion. `BUILD_JOBS` defaults to
 2. Native builds default to Release; `CMAKE_BUILD_TYPE`, `CFLAGS`, `CXXFLAGS`, and
 `LDFLAGS` may be set explicitly. The profile always disables SDL/RmlUi/mixer/Box2D
-and preserves strict warnings for the library and all six tests.
+and preserves strict warnings for the library and all seven tests.
 
 Configuration is reapplied each time, so flag/build-type changes invalidate the
 appropriate objects or links. On a `CC`/`CXX` executable-path change, the script
@@ -95,7 +96,7 @@ python3 scripts/test-headless-build.py
 It copies sources into a temporary directory, logs compiler invocations, and
 checks unchanged/C#-only runs, native source/header/export-map invalidation,
 changed flags, compiler/configuration switches and returning to defaults. It
-reruns the same six contracts each time, without editing the working source tree
+reruns the same seven contracts each time, without editing the working source tree
 or building optional native dependencies.
 
 On the 2026-10-02 Linux runner (GCC 14.2, CMake 3.31.6, two jobs), the isolated

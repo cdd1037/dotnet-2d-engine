@@ -1,7 +1,20 @@
 namespace GameAuthoringLab;
 
 internal sealed record UiImageReference(string Path, string File, int Line, int Column, string Field);
-internal sealed record UiImageResource(string Path, ImageAsset Asset);
+// Preserve the raster-facing metadata/span contract while keeping SVG out of world images.
+internal sealed class UiImageAsset
+{
+    private readonly ImageAsset? _raster;
+    private readonly SvgAsset? _svg;
+    internal UiImageAsset(ImageAsset asset) => _raster = asset;
+    internal UiImageAsset(SvgAsset asset) => _svg = asset;
+    internal bool IsSvg => _svg is not null;
+    internal ReadOnlySpan<byte> Bytes => _svg is not null ? _svg.Bytes : _raster!.Bytes;
+    internal int EncodedLength => _svg is not null ? _svg.EncodedLength : _raster!.EncodedLength;
+    internal BitmapInfo Info => _svg is not null ? _svg.Info : _raster!.Info;
+    internal long DecodedBytes => _svg is not null ? _svg.DecodedBytes : _raster!.DecodedBytes;
+}
+internal sealed record UiImageResource(string Path, UiImageAsset Asset);
 internal sealed record BoundUiDocument(string Rml, string Rcss, string Stylesheet,
     IReadOnlyList<UiImageReference> References, IReadOnlyList<UiImageResource> Images);
 
@@ -13,18 +26,19 @@ internal static class UiImageResources
     internal const long MaximumEncodedBytes = 16 * 1024 * 1024;
     internal const long MaximumDecodedBytes = 64 * 1024 * 1024;
 
-    internal static bool ValidPath(string value)
+    internal static bool ValidPath(string value, bool svg = false)
     {
         if (value.Length is < 1 or > 255 || value.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '/' and not '.' and not '_' and not '-')) return false;
         if (value.Split('/').Any(s => s is "" or "." or ".." || s.EndsWith('.'))) return false;
         string ext = Path.GetExtension(value);
+        if (svg) return ext.Equals(".svg", StringComparison.OrdinalIgnoreCase);
         return ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase) || ext.Equals(".png", StringComparison.OrdinalIgnoreCase)
             || ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase) || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase);
     }
 
-    internal static void Add(List<UiImageReference> references, UiImageReference value)
+    internal static void Add(List<UiImageReference> references, UiImageReference value, bool svg = false)
     {
-        if (!ValidPath(value.Path)) throw Error(value, "Expected a relative ASCII BMP/PNG/JPEG path; URI syntax, aliases and traversal are unsupported.");
+        if (!ValidPath(value.Path, svg)) throw Error(value, "Expected a relative ASCII " + (svg ? "SVG" : "BMP/PNG/JPEG") + " path; URI syntax, aliases and traversal are unsupported.");
         if (references.Any(r => r.Path == value.Path)) return;
         if (references.Count == MaximumImages) throw Error(value, $"At most {MaximumImages} unique document images are supported.");
         references.Add(value);
@@ -38,7 +52,9 @@ internal static class UiImageResources
         {
             try
             {
-                var asset = ImageAsset.Read(assets, assets.Sibling(documentPath, reference.Path));
+                string logicalPath = assets.Sibling(documentPath, reference.Path);
+                UiImageAsset asset = reference.Path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+                    ? new(SvgAsset.Read(assets, logicalPath)) : new(ImageAsset.Read(assets, logicalPath));
                 encoded += asset.EncodedLength;
                 decoded += asset.DecodedBytes;
                 if (encoded > MaximumEncodedBytes || decoded > MaximumDecodedBytes)

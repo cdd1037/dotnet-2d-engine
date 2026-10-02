@@ -5,6 +5,9 @@
 #include <RmlUi/Core/RenderManager.h>
 #include <RmlUi/Core/Texture.h>
 #include <algorithm>
+#ifdef GAL_ENABLE_SVG
+#include "ui_svg.h"
+#endif
 
 // File images have explicit per-document ownership, independent of world textures.
 // Each document receives its own interface and render manager. Context teardown
@@ -13,6 +16,11 @@ class UiImageRenderer final: public RenderInterface_SDL_GPU {
  struct Image { Rml::String source,relative;std::vector<unsigned char> bytes;ImageMetadata metadata; };
  SDL_GPUDevice* device;
  std::vector<Image> images;
+ uint64_t raster_bytes=0;
+#ifdef GAL_ENABLE_SVG
+ gal_svg::Resources svg;
+#endif
+ static bool SvgPath(const Rml::String&p){return p.size()>=4&&p[p.size()-4]=='.'&&(p[p.size()-3]=='s'||p[p.size()-3]=='S')&&(p[p.size()-2]=='v'||p[p.size()-2]=='V')&&(p.back()=='g'||p.back()=='G');}
  Rml::String document_path,last_failure;
  std::vector<Rml::TextureHandle> file_textures;
  static const Image* Find(const std::vector<Image>&images,const Rml::String&source){
@@ -48,14 +56,35 @@ class UiImageRenderer final: public RenderInterface_SDL_GPU {
    if(!RelativePath(paths[i])){e="UI image manifest requires safe relative ASCII paths";return false;}
    Image image;image.relative=paths[i];Rml::GetSystemInterface()->JoinPath(image.source,document_path,image.relative);
    if(Find(images,image.source)){e="duplicate UI image manifest source";return false;}
+   if(SvgPath(image.source)){
+#ifdef GAL_ENABLE_SVG
+    std::unique_ptr<SDL_IOStream,decltype(&SDL_CloseIO)> input(SDL_IOFromFile(image.source.c_str(),"rb"),SDL_CloseIO);
+    if(!input){e=SDL_GetError();return false;}
+    const auto size=SDL_GetIOSize(input.get());
+    if(size<1||size>256*1024){e="SVG encoded size must be 1 byte..256 KiB";return false;}
+    image.bytes.resize(size_t(size));
+    if(SDL_ReadIO(input.get(),image.bytes.data(),image.bytes.size())!=image.bytes.size()){e="could not read complete SVG snapshot";return false;}
+    unsigned char extra=0;if(SDL_ReadIO(input.get(),&extra,1)){e="SVG changed while capturing snapshot";return false;}
+    encoded+=image.bytes.size();
+    if(encoded>image_max_encoded_bytes){e="UI image manifest exceeds 16 MiB encoded total";return false;}
+    if(!svg.Add(image.source,std::move(image.bytes),e))return false;
+    continue;
+#else
+    e="SVG support is disabled; rebuild with GAL_ENABLE_SVG=ON";return false;
+#endif
+   }
    if(!image_read(image.source.c_str(),image.bytes,image.metadata,e))return false;
    encoded+=image.bytes.size();decoded+=image.metadata.RgbaBytes();
    if(encoded>image_max_encoded_bytes||decoded>image_max_rgba_bytes){e="UI image manifest exceeds 16 MiB encoded or 64 MiB RGBA total";return false;}
    images.push_back(std::move(image));
   }
-  return true;
+  raster_bytes=decoded;return true;
  }
  bool Preload(Rml::Context*context,std::string&e){
+#ifdef GAL_ENABLE_SVG
+  svg.Attach(context->GetRenderManager(),raster_bytes);
+  if(!svg.Preload(e))return false;
+#endif
   for(const auto&image:images){
    // Use the same relative source/document pair as RML/RCSS. Upstream
    // JoinPath strips the leading slash if an already-absolute source is reused.
@@ -84,6 +113,27 @@ class UiImageRenderer final: public RenderInterface_SDL_GPU {
   return handle;
  }
  size_t FileTextureCount()const{return file_textures.size();}
+ size_t SvgSourceCount()const{
+#ifdef GAL_ENABLE_SVG
+  return svg.SourceCount();
+#else
+  return 0;
+#endif
+ }
+ size_t SvgVariantCount()const{
+#ifdef GAL_ENABLE_SVG
+  return svg.VariantCount();
+#else
+  return 0;
+#endif
+ }
+ uint64_t SvgRasterBytes()const{
+#ifdef GAL_ENABLE_SVG
+  return svg.RasterBytes();
+#else
+  return 0;
+#endif
+ }
  void ReleaseTexture(Rml::TextureHandle texture)override{
   const auto found=std::find(file_textures.begin(),file_textures.end(),texture);
   if(found!=file_textures.end()){

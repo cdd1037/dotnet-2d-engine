@@ -12,6 +12,9 @@ the project's MIT license does not relicense them. Retained upstream notices:
 - [stb_vorbis](docs/STB-VORBIS-LICENSE.txt): MIT selected from upstream dual license
 - [Box2D](docs/BOX2D-LICENSE.txt): MIT
 - [RmlUi](docs/RMLUI-LICENSE.txt): MIT
+- Optional [LunaSVG](docs/LUNASVG-LICENSE.txt) 3.5.0 and [PlutoVG](docs/PLUTOVG-LICENSE.txt) 1.3.1: MIT
+  with [embedded notices](docs/PLUTOVG-EMBEDDED-NOTICES.txt) and the
+  [FreeType License](docs/PLUTOVG-FREETYPE-LICENSE.txt) for its derived rasterizer
 
 See [dependency documentation](docs/dependencies.md) for versions and build
 requirements. Dependencies and fonts are not vendored in this source tree.

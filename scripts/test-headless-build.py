@@ -12,7 +12,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ("native_contract", "backend_contract", "c_abi_consumer",
-         "input_state_contract", "text_input_geometry", "image_metadata")
+         "input_state_contract", "text_input_geometry", "image_metadata", "svg_validation")
 
 
 def main():
@@ -73,7 +73,7 @@ def main():
         project_calls = [args for args in calls if "-c" in args and
                          any(str(source / directory) in args[args.index("-c") + 1]
                              for directory in ("native", "tests"))]
-        assert len(project_calls) == 13, project_calls
+        assert len(project_calls) == 14, project_calls
         for args in project_calls:
             assert all(flag in args for flag in ("-Wall", "-Wextra", "-Werror")), args
             standard = "-std=c11" if args[args.index("-c") + 1].endswith(".c") else "-std=c++17"
@@ -107,13 +107,13 @@ def main():
 
         flags = {"CXXFLAGS": "-DGAL_INCREMENTAL_FLAGS_PROBE=1"}
         _, compiled = run("changed-flags", **flags)
-        assert len(compiled) == 12 and all(path.endswith(".cpp") for path in compiled), compiled
+        assert len(compiled) == 13 and all(path.endswith(".cpp") for path in compiled), compiled
         calls, _ = run("unchanged-flags", **flags)
         assert not calls
 
         debug = dict(flags, CMAKE_BUILD_TYPE="Debug")
         _, compiled = run("changed-config", **debug)
-        assert len(compiled) == 13, compiled
+        assert len(compiled) == 14, compiled
         calls, _ = run("unchanged-config", **debug)
         assert not calls
 

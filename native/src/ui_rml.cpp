@@ -3,6 +3,9 @@
 #include "text_input_geometry.h"
 #include "RmlUi_Platform_SDL.h"
 #include "ui_image_renderer.h"
+#ifdef GAL_ENABLE_SVG
+#include "SVGPlugin.h"
+#endif
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/TextInputContext.h>
 #include <RmlUi/Core/Elements/ElementFormControlInput.h>
@@ -117,7 +120,8 @@ struct UiRml final: Rml::EventListener {
  std::unique_ptr<UiBoundDocument> bound,pending_bound;
  Rml::Context* current=nullptr;Rml::Context* pending=nullptr;
  Rml::ElementDocument* document=nullptr;Rml::ElementDocument* candidate=nullptr;
- uint32_t generation=0,serial=0;bool initialized=false;
+ uint32_t generation=0,serial=0;bool initialized=false;float test_density=0;
+ float Density()const{return test_density>0?test_density:SDL_GetWindowDisplayScale(window);}
  bool game=false,pending_game=false;uint32_t game_screen=0,game_flags=0;
  bool GameAllowed(uint32_t action)const{
   switch(action){case 10:return game_screen==0;case 11:return game_screen==2;case 12:return game_screen==2&&(game_flags&1);case 13:return (game_screen==0||game_screen==2)&&(game_flags&2);case 14:case 15:return game_screen>=2;case 16:return game_screen==1;default:return false;}
@@ -170,6 +174,9 @@ UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  Rml::SetSystemInterface(&u->system);
  // Explicit per-document interfaces keep upstream texture/cache ownership bounded.
  Rml::SetRenderInterface(nullptr);Rml::SetTextInputHandler(&u->ime);
+#ifdef GAL_ENABLE_SVG
+ Rml::SVG::Initialise();
+#endif
  if(!Rml::Initialise()){e="RmlUi initialization failed";return nullptr;}u->initialized=true;
  // Reuse the installed SC face explicitly; file loading owns font bytes.
  if(!Rml::LoadFontFace(font,"Noto Sans CJK SC",Rml::Style::FontStyle::Normal,Rml::Style::FontWeight::Normal,false,2)){
@@ -183,11 +190,11 @@ bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_
  u->DropCandidate();Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
  u->pending_renderer=std::make_unique<UiImageRenderer>(u->device,u->window);
  if(u->system.warnings){e=u->system.diagnostic;u->DropCandidate();return false;}
- if(!u->pending_renderer->StageImages(path,images,image_count,e)){u->DropCandidate();return false;}
+ if(!u->pending_renderer->StageImages(path,images,image_count,e)){remember(u,e.c_str());u->DropCandidate();return false;}
  int w=0,h=0;SDL_GetWindowSizeInPixels(u->window,&w,&h);
  u->pending=Rml::CreateContext("gal-stage-"+std::to_string(++u->serial),{w,h},u->pending_renderer.get());
  if(!u->pending){u->DropCandidate();return fail(e,"could not create staging context");}
- u->pending->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));
+ u->pending->SetDensityIndependentPixelRatio(u->Density());
  if(!u->pending_renderer->Preload(u->pending,e)){remember(u,e.c_str());u->DropCandidate();return false;}
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
@@ -360,7 +367,7 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
    }
   }
  }
- if(u->current){u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));u->current->Update();u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}}
+ if(u->current){u->system.Clear();u->current->SetDimensions({w,h});u->current->SetDensityIndependentPixelRatio(u->Density());u->current->Update();u->ime.RefreshGeometry(w,h);u->renderer->BeginFrame(cmd,target,w,h);u->current->Render();u->renderer->EndFrame();if(u->system.warnings){remember(u,u->system.diagnostic);return fail(e,u->diagnostic);}}
  return true;
 }
 
@@ -373,6 +380,10 @@ bool ui_apply_bound(UiRml*u,const gal_bound_ui_snapshot&s,const gal_bound_ui_val
 bool ui_poll_bound(UiRml*u,gal_bound_ui_action&a,std::string&e){if(!u->bound)return fail(e,"bound UI profile required");return u->bound->Poll(a,e);}
 bool ui_test_bound(UiRml*u,uint32_t command,gal_bound_ui_action&a,std::string&e){
  if(!u->bound)return fail(e,"bound UI profile required");
+ if(command==12){a.number=double((u->renderer?u->renderer->SvgVariantCount():0)+(u->pending_renderer?u->pending_renderer->SvgVariantCount():0));a.row=(u->renderer?u->renderer->SvgRasterBytes():0)+(u->pending_renderer?u->pending_renderer->SvgRasterBytes():0);return true;}
+ if(command==13){a.number=double((u->renderer?u->renderer->SvgSourceCount():0)+(u->pending_renderer?u->pending_renderer->SvgSourceCount():0));return true;}
+ if(command==14){if(!std::isfinite(a.number)||a.number<0.5||a.number>3)return fail(e,"SVG density probe requires 0.5..3");u->test_density=float(a.number);return true;}
+ if(command==15){if(!std::isfinite(a.number)||a.number<64||a.number>4096||a.row<64||a.row>4096)return fail(e,"SVG resize probe requires 64..4096");return SDL_SetWindowSize(u->window,int(a.number),int(a.row))||fail(e,SDL_GetError());}
  if(command==11){a.number=double((u->renderer?u->renderer->FileTextureCount():0)+(u->pending_renderer?u->pending_renderer->FileTextureCount():0));return true;}
  if(command==8||command==9||command==10){
   auto copy=a;if(!u->bound->Test(5,copy,u->current,e))return false;

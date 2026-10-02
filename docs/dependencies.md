@@ -110,3 +110,12 @@ fonts. The UI bootstrap calls it before its separate RmlUi/Freetype steps.
 `SDL3_IMAGE_PREFIX` selects another install location; its default stays
 `.deps/ui-install` to reuse existing prepared dependencies. Ordinary builds do
 not download or rebuild these dependencies. See [format and lifetime limits](UI_IMAGES.md).
+
+## Optional bounded SVG UI
+
+The separate `GAL_ENABLE_SVG=ON` option requires RmlUi and LunaSVG 3.5.0, with
+its bundled PlutoVG 1.3.1. `scripts/bootstrap-svg-deps.sh` explicitly fetches and
+verifies the official complete release archive (including PlutoVG), then builds
+static libraries with system font discovery disabled. No decoder is added to the
+world image path. See [SVG build/profile](UI_SVG.md) and retained notices linked
+from [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

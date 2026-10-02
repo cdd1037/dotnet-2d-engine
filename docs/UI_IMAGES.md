@@ -10,8 +10,9 @@ Catalogs, authored scenes, tile maps and texture leases use the common image pat
 No new decoder dependency was added. Every graphical native build now links the
 existing SDL_image package; headless builds still need neither SDL nor SDL_image.
 The pinned build uses embedded STB for PNG/JPEG. Its WebP backend is disabled, so
-WebP remains rejected. SVG, GIF, animated PNG and arbitrary formats supported by
-other SDL_image builds are deliberately excluded from this contract.
+WebP remains rejected. GIF, animated PNG and arbitrary formats supported by
+other SDL_image builds are deliberately excluded from this contract. World SVG is
+also excluded; optional bound-UI SVG uses a separate [strict vector profile](UI_SVG.md).
 
 ## Static images in bound UI
 
@@ -114,14 +115,10 @@ image manifest. This boundary requires one fresh NativeAOT publication, followed
 by the same focused integration and CPU aggregate. No full native dependency
 rebuild or platform/device matrix is necessary for each image edit.
 
-## SVG follow-on assessment
+## Optional SVG follow-on
 
-The pinned SDL_image build already compiles its bundled NanoSVG path, but the
-engine's explicit decoder selection does not expose it. NanoSVG is a restricted
-SVG rasterizer, not browser SVG. A separate follow-on should define the accepted
-SVG element/attribute subset, source/shape/path/gradient limits, raster size/scale,
-font/text policy, external-resource rejection and a retained raster-cache lifetime
-before enabling it. Reusing the existing backend could avoid a new dependency for
-simple icons; full SVG conformance would need a separate evaluation. This batch
-adds no SVG API or dependency and makes no claim that arbitrary SVG is safe or
-supported.
+The assessed NanoSVG path remains unexposed. Runtime UI vectors now have a separate
+opt-in [SVG profile](UI_SVG.md), using the official RmlUi plugin and pinned
+LunaSVG/PlutoVG. It preserves the snapshot/manifest ownership described above and
+adds defensive source/reference limits and pre-raster size/cache budgets. It does
+not expand the world image decoder or accept arbitrary uploaded SVG.

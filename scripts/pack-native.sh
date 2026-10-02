@@ -21,7 +21,7 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_
 
 # Keep the existing interactive/test builds and all dependency sources untouched.
 "$cm" -S "$root" -B "$root/build-package" -DCMAKE_BUILD_TYPE=Release \
- -DGAL_HEADLESS_ONLY=OFF -DGAL_ENABLE_RMLUI=ON -DGAL_ENABLE_MIXER=ON -DGAL_ENABLE_PHYSICS=ON \
+ -DGAL_HEADLESS_ONLY=OFF -DGAL_ENABLE_RMLUI=ON -DGAL_ENABLE_SVG=OFF -DGAL_ENABLE_MIXER=ON -DGAL_ENABLE_PHYSICS=ON \
  -DSDL3_DIR="$root/.deps/sdl-3.4.16-install/lib/cmake/SDL3" \
  -DSDL3_image_DIR="$root/.deps/ui-install/lib/cmake/SDL3_image" \
  -DSDL3_mixer_DIR="$root/.deps/mixer-3.2.4-install/lib/cmake/SDL3_mixer" \

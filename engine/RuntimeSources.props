@@ -36,6 +36,7 @@
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiSourceFiles.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiImageResources.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/ImageAsset.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/SvgAsset.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiSessionOwner.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiSession.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiAuthoring.cs" />

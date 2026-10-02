@@ -26,6 +26,7 @@ internal static unsafe class SelfTests
         _assertions += ResourceTests.Run();
         _assertions += ImageAssetTests.Run();
         _assertions += UiImageTests.RunContracts();
+        _assertions += UiSvgAuthoringTests.RunContracts();
         _assertions += InputTests.Run();
         _assertions += RegionTests.Run();
         _assertions += AudioTests.RunContracts();

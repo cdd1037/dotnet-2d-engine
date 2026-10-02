@@ -12,7 +12,7 @@ namespace GameAuthoringLab;
 internal static class BoundUiAuthoring
 {
     private static readonly HashSet<string> BodyTags = new(StringComparer.Ordinal)
-        { "div", "h1", "h2", "p", "label", "button", "input", "img" };
+        { "div", "h1", "h2", "p", "label", "button", "input", "img", "svg" };
     private static readonly string[] RangeParts = ["slidertrack", "sliderbar", "sliderprogress", "sliderarrowdec", "sliderarrowinc"];
     private static readonly string[] ScrollParts = ["scrollbarvertical", "scrollbarvertical slidertrack", "scrollbarvertical sliderbar",
         "scrollbarvertical sliderarrowdec", "scrollbarvertical sliderarrowinc"];
@@ -73,7 +73,7 @@ internal static class BoundUiAuthoring
                 {
                     "id" or "class" => content,
                     "for" => content && tag == "label",
-                    "src" or "width" or "height" => content && tag == "img",
+                    "src" or "width" or "height" => content && tag is "img" or "svg",
                     "href" => node == link,
                     "type" => node == link || content && tag == "input",
                     "value" or "maxlength" or "min" or "max" or "step" or "checked" => content && tag == "input",
@@ -105,18 +105,18 @@ internal static class BoundUiAuthoring
                 Require(!node.HasElements, "UI_STRUCTURE", file, node, "Text elements cannot contain nested markup.");
                 CheckText(node.Value.Trim(), 512, 256, file, node);
             }
-            if (tag == "img")
+            if (tag is "img" or "svg")
             {
                 var src = node.Attribute("src");
                 Require(src is not null, "UI_RESOURCE", file, node, "Image requires a src path.");
-                UiImageResources.Add(images, new(src!.Value, file, src.LineNumber, src.LinePosition, "img@src"));
+                UiImageResources.Add(images, new(src!.Value, file, src.LineNumber, src.LinePosition, tag + "@src"), svg: tag == "svg");
                 foreach (string dimension in new[] { "width", "height" })
                     if (node.Attribute(dimension) is { } size)
                         Require(size.Value.Length is >= 1 and <= 4 && size.Value.All(char.IsAsciiDigit)
                             && int.TryParse(size.Value, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n is >= 1 and <= 4096,
                             "UI_VALUE", file, size, "Image dimension must be an integer 1..4096.");
             }
-            if (tag is "input" or "link" or "img")
+            if (tag is "input" or "link" or "img" or "svg")
                 Require(!node.HasElements && string.IsNullOrWhiteSpace(node.Value), "UI_STRUCTURE", file, node, "This element must be empty.");
             if (tag is "input" or "button")
                 Require(node.Attribute("id") is { } controlId && schema.ContainsKey(controlId.Value),
@@ -244,12 +244,16 @@ internal static class BoundUiAuthoring
             if (property == "decorator")
             {
                 if (value == "none") return true;
-                if (!value.StartsWith("image(", StringComparison.Ordinal) || !value.EndsWith(')')) return false;
-                string path = value[6..^1];
-                if (!UiImageResources.ValidPath(path)) return false;
-                UiImageResources.Add(images, new(path, file, 1, 1, selector + "/decorator"));
+                bool svg = value.StartsWith("svg(", StringComparison.Ordinal);
+                if ((!svg && !value.StartsWith("image(", StringComparison.Ordinal)) || !value.EndsWith(')')) return false;
+                string path = value[(svg ? 4 : 6)..^1];
+                if (!UiImageResources.ValidPath(path, svg)) return false;
+                UiImageResources.Add(images, new(path, file, 1, 1, selector + "/decorator"), svg);
                 return true;
             }
+            if (property == "image-color") return UiAuthoring.ValidProperty(selector, "color", value);
+            if (property == "opacity") return value.Length is >= 1 and <= 16 && value.All(c => char.IsAsciiDigit(c) || c == '.')
+                && double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double opacity) && opacity is >= 0 and <= 1;
             if (property is "overflow-x" or "overflow-y")
                 return selector.StartsWith('#') && schema.TryGetValue(selector[1..], out var kind) && kind == UiBindingKind.List
                     && UiAuthoring.ValidProperty("#item-list", property, value);
