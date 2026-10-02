@@ -26,7 +26,8 @@ UNUSED = ("AudioSession", "PhysicsWorld", "PhysicsBody", "FrameClip", "FramePlay
           "TimingScope", "EngineTimer", "TileMap", "TileMapInstance", "TileMapCollision",
           "FramebufferClip", "ClippingNative", "DiagnosticLog", "CpuTimings", "DebugDrawBuffer",
           "MaterialCache", "MaterialLease", "MaterialAsset", "MaterialJsonContext", "MaterialDraw",
-          "MaterialParameters", "MaterialNative", "RenderTargetStore", "RenderTarget", "RenderPass", "TargetNative")
+          "MaterialParameters", "MaterialNative", "RenderTargetStore", "RenderTarget", "RenderPass", "TargetNative",
+          "CameraFollow", "CameraFollowOptions", "CameraBounds")
 SAMPLE_ONLY = ("MissionGame", "RoomGame", "Program", "SelfTests", "TileMovementClock", "TileMovementLevel", "TileMovementDemo")
 BASELINE = {"sprite-trim": 34127881, "sprite-aot": 12515604,
             "ui-trim": 34562636, "ui-aot": 13045585}

@@ -56,8 +56,8 @@ and NativeAOT do not remove unused code from those prebuilt shared libraries.
 | Excluded sidecar symbols | 5,905,280 | 6,843,768 |
 
 The full packaged engine DLL is 422,912 bytes. Its unused audio, physics,
-frame-animation/timing, TileMap, world-clipping, diagnostics/debug geometry,
-material and render-target families are absent from both trimmed metadata and
+frame-animation/timing, TileMap, camera-follow/bounds, world-clipping,
+diagnostics/debug geometry, material and render-target families are absent from both trimmed metadata and
 AOT symbol maps. Full-DLL positive controls first verify those types really exist
 in the package. Sprite retains authored-scene code and drops UI bindings; UI
 retains bindings. Sample-only mission/room/movement programs remain outside the
