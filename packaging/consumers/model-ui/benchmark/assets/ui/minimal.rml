@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rml><head><title>Minimal UI benchmark</title><link type="text/rcss" href="minimal.rcss" /></head><body data-model="model"><p id="caption">{{state.text}}</p></body></rml>

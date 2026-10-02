@@ -1288,3 +1288,14 @@ coverage, physical GPU/audio acceptance or a fresh trimmed/NativeAOT publish.
 No new native/dependency build or AOT publication was needed for this template/
 documentation-only batch. Original comparison fixtures, production game code and
 the frozen Godot fork were not changed.
+
+
+## Generic UI data/event bridge (2026-10-02)
+
+The [generic bridge verification report](UI_MODEL_VALIDATION.md) records source
+`3e3edbe`, the 11,612-assertion JIT aggregate, 87 generic native assertions, existing
+60/41 binding/text regressions, three actual-pixel fixtures and the independent
+PackageReference JIT/NativeAOT size/timing comparison. Ordinary RML composition is
+now available through `UiModelSession<T>`; Vue-style compilation remains deferred.
+Software Vulkan and queued SDL events do not establish physical-device or real
+IME acceptance. The generic draft hooks are isolated from legacy contexts.

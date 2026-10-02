@@ -39,6 +39,11 @@ The opt-in `scripts/bootstrap-ui-deps.sh` records exact download hashes for:
 
 - RmlUi 6.3, commit `ba95ffe8bfb6370efb2cdcca927eaad4710c5413` (MIT),
   [retained notice](RMLUI-LICENSE.txt)
+  The engine compiles a generated copy of `DataViewDefault.cpp` with structural
+  `data-for` priority adjusted before same-depth bindings and generic-context-only
+  draft/release hooks; see [scope and upgrade
+  guard](UI_MODELS.md#pinned-rmlui-ordering-and-draft-hooks). This UI build step needs
+  Python 3; the original dependency checkout and archive remain unmodified.
 - SDL3_image 3.2.4 (zlib), [retained notice](SDL3-IMAGE-LICENSE.txt)
 - Debian FreeType development package 2.13.3+dfsg-1+deb13u1; the current
   prototype links the system FreeType library, not a vendored copy

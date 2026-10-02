@@ -18,6 +18,7 @@ Every entry point prints elapsed wall time and its exit status.
 | Camera follow edit | `scripts/test.sh quick camera` | Default plus pure managed framing, half-life/clock, zoom/bounds and numeric/allocation contracts |
 | Tile movement sample edit | `scripts/test.sh quick movement` | Input/clock boundaries; follow with `--movement-physics-test` on the Box2D build and the [rendered scenario](TILE_MOVEMENT.md) when movement changes |
 | TileMap data/culling edit | `scripts/test.sh quick tilemap` | Default plus strict sourcegen data, atomic cell edits/residency, chunk order/culling, lifetime, CPU collision plans and warmed allocations |
+| Generic UI models | `scripts/test.sh quick model-ui` | Scalar/record/array schemas, ABI layouts, authoring/resource bounds, re-entry and thread contracts; renderer checks below |
 | Copied public-package starter | `DOTNET=/path/to/dotnet bash scripts/test-starter.sh` | Fresh external consumer/cache, fixed-step input/reset, real Box2D, owner cleanup, copied assets and startup failures; optional prepared software Vulkan smoke; no AOT |
 | Combined feature-authoring integration | `bash scripts/test-author-smoke.sh` | Existing PackageReference fixture; one default headless JIT run plus three actual-pixel phases with the explicitly prepared SVG-on source runtime; no AOT republish |
 | Feature batch | `scripts/test.sh jit` | Native contracts, compile, complete JIT self-test |
@@ -295,3 +296,28 @@ three-genre comparison inputs and never edits them. It adapts isolated copies of
 two hosts, records all source/helper line counts, builds/runs their existing native
 checks and validates extracted host-policy statements with synthetic input. See
 [the measured result and caveats](AUTHOR_ENTRY_COMPARISON.md).
+
+## Generic UI data/event bridge
+
+`bash scripts/test.sh quick model-ui` is the focused CPU tier. The full JIT
+aggregate includes it. With the prepared offscreen graphics dependencies:
+
+```sh
+source scripts/ui-env.sh
+../android-trim-tools/dotnet/dotnet managed/bin/Release/net10.0/GameAuthoringLab.dll --model-ui-native-test
+python3 scripts/validate-model-ui-pixels.py
+```
+
+Use your installed .NET executable instead of the workspace sibling when needed.
+The native suite exercises inventory card actions and images, dialogue choices,
+nested settings arrays, exact 64-bit keys, pointer gestures across reorders,
+failed projections/native batches/reloads, retired event generations, composition
+cancellation, queue overflow and disposal. It captures three actual 960×540
+software-rendered frames; `GAL_MODEL_UI_CAPTURE_DIR` changes the destination for
+both the executable and pixel checker. `--model-ui-demo --frames 9` separately
+checks public sample navigation through all three documents.
+
+The isolated `scripts/test-model-ui-packages.sh` is an opt-in PackageReference
+JIT/NativeAOT boundary and measurement tier, not part of each edit's loop. It needs
+already-built local packages and installed compiler/runtime packs; it does not
+publish remotely or install dependencies. See [generic model results](UI_MODELS.md).
