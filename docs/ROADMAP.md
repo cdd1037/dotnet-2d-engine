@@ -32,6 +32,23 @@ Advanced effects, async/hot-reload/prefab expansion, richer controllers, editor,
 mobile and Web remain deferred. The stages below retain the longer-term goals and
 acceptance criteria; they are not a new implementation queue.
 
+### Subsequently approved authoring iteration
+
+The later authoring sequence reopens these bounded tasks, in order:
+
+1. Close the [generic UI model/event bridge](UI_MODEL_VALIDATION.md)
+2. Prove [C# composition reuse](CSHARP_COMPOSITION.md) with parameterized typed
+   factories, nested instances, rollback and aggregate cleanup. The reusable
+   engine addition is destruction-only registration; factories remain game code
+3. Simplify common explicit loop/input/pause and physics-to-display wiring,
+   preserving caller-visible timing, ownership and game rules
+4. Compare pure-code authoring with Godot after those improvements; exclude
+   editor and visual-tooling differences from that comparison
+
+The first two are implemented at their documented validation boundaries. The
+remaining steps do not authorize broader deferred engine capabilities or public
+package distribution, and this sequence does not revive prefab inheritance.
+
 ## 1. Turn the sample into a repeatable small game
 
 Goal: extend the current two-room/pickup/save/menu slice into a representative

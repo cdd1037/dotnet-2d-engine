@@ -1299,3 +1299,55 @@ PackageReference JIT/NativeAOT size/timing comparison. Ordinary RML composition 
 now available through `UiModelSession<T>`; Vue-style compilation remains deferred.
 Software Vulkan and queued SDL events do not establish physical-device or real
 IME acceptance. The generic draft hooks are isolated from legacy contexts.
+
+## Typed C# composition and entity destruction ownership (2026-10-02)
+
+Source implementation **`c7264de`** adds one public runtime method,
+`World.OnDestroy(Entity, Action)`, and no public engine types, ABI changes or
+serialized schemas. Parameterized weapon/enemy/room factories and their typed
+instance references are ordinary application code, outside the engine package.
+The [guide](CSHARP_COMPOSITION.md) distinguishes entity versus behavior lifetime,
+permanent registrations, explicit resource ownership and bounded factory rollback.
+
+Verified on the existing Linux x64/.NET SDK **10.0.401**, runtime **10.0.12** runner:
+
+- Release source build: **zero warnings/errors**
+- Focused source checks: **34 lifecycle assertions** and **48 composition
+  assertions**, including 24 repeat room unload/recreate cycles
+- One final source JIT aggregate: **11,694 assertions**, retaining zero-allocation
+  warmed frame/extraction regressions. Direct invocation used the current built
+  executable and existing headless library
+- Existing native CTest contracts: **8/8**. Native sources/dependencies were
+  unchanged and were not rebuilt for this stage
+- An ordinary copied PackageReference consumer outside the checkout passes the
+  same **48 composition assertions in JIT and a fresh NativeAOT publish**, with
+  no warnings/errors emitted. It restores only from a fresh local feed/cache;
+  no source ProjectReference, friend assembly or linked engine source is used
+- The managed package DLL, source-build DLL and JIT-consumed DLL match
+  byte-for-byte. Consumer sources match the checked-in files. No `libgal` or
+  native engine package is present in either consumer publish
+
+Tests cover independent state/identity/animation, repeated names, parameterized
+creation, nested transforms, replacement AI retaining instance resources,
+construction failure after resource acquisition, original-plus-cleanup errors,
+subscriptions, persistent transfer and late/repeated wrapper disposal. Lifecycle
+tests additionally cover full ownership-chain ordering, persistent intermediaries,
+behavior-first cleanup, mutation reentrancy, all-errors-attempted, repaired numeric
+preflight and a 2,048-level iterative ownership chain. A separate read-only review
+found no blocking defect; its distinguishing cleanup-order regression was added.
+
+Reproduce with `scripts/test.sh quick composition`, `scripts/pack-managed.sh`, and
+`scripts/test-composition-packages.sh` as documented in the guide. Local raw logs
+are under `evidence/composition/`; the isolated package run is
+`/tmp/dotnet2d-composition-20261002-c7264de`, whose `results.json` records source and
+consumer hashes. Package SHA-256 is
+`d301bff503cc05d216deae1f1a4e0e4a9cd9df7795ba7f594cc062ceb6c19358`;
+engine DLL SHA-256 is
+`0b36ef2307e23bcf53f02bc768e36272386d77ece9f89dc295a01408330a30a2`.
+Subsequent validation/roadmap edits are documentation-only.
+
+The resource proof uses actual managed `FramePlayer` disposal and explicit .NET
+event unsubscription. CPU sprite extraction uses zero placeholder handles that
+are never rendered. There is **no fresh full-host AOT, native body/texture,
+graphics/audio/device, performance, authoring-speed or Godot-comparison claim**.
+Packages remain local; no remote push, release or feed publication was performed.
