@@ -1,0 +1,1082 @@
+{
+  "date": "2026-10-02",
+  "engine_commit": "a49d2ffbfdbbcf6bfb6af870b96705fee5d47620",
+  "godot": "4.6.3.stable.mono.official.7d41c59c4",
+  "independent_final_reproduction": {
+    "card-ui": {
+      "log": "evidence/review-card-ui.log",
+      "markers": [
+        "SHARED RULES PASS",
+        "RICH .NET2D UI PASS assertions=26",
+        "GODOT NESTED UI PASS checks=39",
+        "PIXEL CHECKS PASS assertions=14"
+      ],
+      "exit_code": 0,
+      "sha256": "b2cbc26572c8818c49018d28c52d4aa942d1e546ab9cc4f62cc7e37e9c958869"
+    },
+    "platformer": {
+      "log": "evidence/review-platformer.log",
+      "markers": [
+        "NATIVE_INTEGRATION_PASSED 18",
+        "LOOP_CONTRACT_PASSED 14",
+        "GODOT_NATIVE_INTEGRATION_PASSED 24",
+        "RENDER_PIXELS_PASSED 9",
+        "GODOT_RENDER_NOT_ATTEMPTED"
+      ],
+      "exit_code": 0,
+      "sha256": "479d94aeb7b164765e2a94fe6e8c1a1044df4da621de7ff81149a71ccf7eb707"
+    },
+    "topdown": {
+      "log": "evidence/review-topdown.log",
+      "markers": [
+        "TOPDOWN OURS PASS checks=49",
+        "TOPDOWN OURS NATIVE INPUT PASS checks=9",
+        "TOPDOWN CODE GODOT PASS checks=79",
+        "TOPDOWN RECTANGLE PIXELS PASS checks=7"
+      ],
+      "exit_code": 0,
+      "sha256": "6d72c2208aed0e746122224bf8b78233502158cb93764350a318c377907a86aa"
+    }
+  },
+  "consumed_runtime_identity": [
+    {
+      "path": "card-ui/ours/bin/Release/net10.0/Dotnet2D.Engine.dll",
+      "sha256": "0b36ef2307e23bcf53f02bc768e36272386d77ece9f89dc295a01408330a30a2"
+    },
+    {
+      "path": "card-ui/ours/bin/Release/net10.0/runtimes/linux-x64/native/libgal.so",
+      "sha256": "8c7e3c97d8e2bb467f4877cfaa27e7ebcb755983557e6d1a26230dae5ec0c9c3"
+    },
+    {
+      "path": "platformer/ours/bin/Release/net10.0/Dotnet2D.Engine.dll",
+      "sha256": "0b36ef2307e23bcf53f02bc768e36272386d77ece9f89dc295a01408330a30a2"
+    },
+    {
+      "path": "platformer/ours/bin/Release/net10.0/runtimes/linux-x64/native/libgal.so",
+      "sha256": "8c7e3c97d8e2bb467f4877cfaa27e7ebcb755983557e6d1a26230dae5ec0c9c3"
+    },
+    {
+      "path": "topdown/ours/bin/Release/net10.0/Dotnet2D.Engine.dll",
+      "sha256": "0b36ef2307e23bcf53f02bc768e36272386d77ece9f89dc295a01408330a30a2"
+    },
+    {
+      "path": "topdown/ours/bin/Release/net10.0/runtimes/linux-x64/native/libgal.so",
+      "sha256": "8c7e3c97d8e2bb467f4877cfaa27e7ebcb755983557e6d1a26230dae5ec0c9c3"
+    }
+  ],
+  "preserved_inputs": {
+    "original_source_files_checked": 110,
+    "original_report_checked": true,
+    "current_packages_checked": 2,
+    "engine_commit_tested": "a49d2ffbfdbbcf6bfb6af870b96705fee5d47620",
+    "engine_current_commit": "a49d2ffbfdbbcf6bfb6af870b96705fee5d47620",
+    "failures": []
+  },
+  "genre_results": {
+    "card-ui": {
+      "engine_commit": "a49d2ffbfdbbcf6bfb6af870b96705fee5d47620",
+      "godot_version": "4.6.3.stable.mono.official.7d41c59c4",
+      "scope": "Nested cards, two per-card actions, repeated sections/stats, state/persistence, reorder/removal; code-only authoring",
+      "final_script_exit": 0,
+      "builds": {
+        "ours": {
+          "passed": true,
+          "warnings": 0,
+          "errors": 0
+        },
+        "godot": {
+          "passed": true,
+          "warnings": 0,
+          "errors": 0
+        }
+      },
+      "tests": {
+        "shared_rules_assertions": 14,
+        "ours_native_ui_assertions": 26,
+        "godot_ui_assertions": 39,
+        "godot_public_pointer_clicks": 29,
+        "godot_explicit_signal_probes": 3,
+        "ours_pixel_assertions": 14
+      },
+      "rendering": {
+        "ours": "Two 960x540 native captures, visually inspected plus pixel checks",
+        "godot": "Not captured: display-server AF_UNIX listening sockets unavailable. Headless geometry/input checks only"
+      },
+      "production_counts": {
+        "ours_production_including_shared_once": {
+          "physical": 376,
+          "nonblank": 376,
+          "bytes": 18932
+        },
+        "ours_specific_excluding_shared": {
+          "physical": 248,
+          "nonblank": 248,
+          "bytes": 11421
+        },
+        "godot_production_including_shared_once": {
+          "physical": 355,
+          "nonblank": 345,
+          "bytes": 18538
+        },
+        "godot_specific_excluding_shared": {
+          "physical": 227,
+          "nonblank": 217,
+          "bytes": 11027
+        },
+        "suite_unique_production": {
+          "physical": 603,
+          "nonblank": 593,
+          "bytes": 29959
+        }
+      },
+      "artifacts": {
+        "report": "REPORT.md",
+        "run": "run-checks.sh",
+        "counts": "evidence/line-counts.json",
+        "migration": "evidence/migration.diff",
+        "provenance": "evidence/package-provenance.json",
+        "native_capture_initial": "evidence/ours-initial.png",
+        "native_capture_updated": "evidence/ours-updated.png"
+      },
+      "limits": [
+        "No editor/tooling or AI speed/token scores",
+        "No engine/runtime changes",
+        "No fresh AOT/export/device acceptance",
+        "Original-to-current diff mixes migration and richer feature requirements",
+        "Line counts are format-sensitive descriptive evidence"
+      ]
+    },
+    "platformer": {
+      "status": "behavior_verified_render_coverage_partial",
+      "ours": {
+        "native_gameplay": 18,
+        "extracted_host_contracts": 14,
+        "render_pixel_assertions": 9,
+        "render_captures": 3
+      },
+      "godot": {
+        "native_gameplay_and_input": 24,
+        "render_status": "blocked",
+        "render_blocker": "AF_UNIX socket creation denied, including escalation; Xvfb cannot create display; official Godot cannot create X11/Wayland display"
+      },
+      "builds": {
+        "ours": "0 warnings, 0 errors",
+        "godot": "0 warnings, 0 errors"
+      },
+      "production_csharp_nonblank_shared_once": {
+        "ours": 333,
+        "godot": 183
+      },
+      "runtime_config_nonblank": {
+        "ours": 354,
+        "godot": 226
+      },
+      "jump_rise_pixels": {
+        "ours": 127.0,
+        "godot": 132.001,
+        "design": 128
+      },
+      "no_engine_or_original_fixture_edits": true
+    },
+    "topdown": {
+      "status": "passed",
+      "baseline": "a49d2ffbfdbbcf6bfb6af870b96705fee5d47620",
+      "godot": "4.6.3-stable official .NET",
+      "verification": {
+        "ours_native_headless_checks": 49,
+        "ours_native_sdl_input_checks": 9,
+        "ours_software_vulkan_frames": 122,
+        "ours_software_vulkan_draw_calls": 122,
+        "ours_rectangle_pixel_checks": 7,
+        "godot_native_headless_checks": 79,
+        "repeated_room_cycles_each": 12,
+        "fresh_isolated_package_restore": true,
+        "engine_source_modified": false,
+        "physical_keyboard_verified": false,
+        "godot_rendered_verified": false,
+        "visual_parity_claimed": false
+      },
+      "source_totals": {
+        "ours": {
+          "production": {
+            "nonblank_lines": 472,
+            "bytes": 20931
+          },
+          "including_tests_tools": {
+            "nonblank_lines": 846,
+            "bytes": 45211
+          }
+        },
+        "godot": {
+          "production": {
+            "nonblank_lines": 406,
+            "bytes": 17905
+          },
+          "including_tests_tools": {
+            "nonblank_lines": 731,
+            "bytes": 41363
+          }
+        }
+      },
+      "report": "REPORT.md",
+      "reproduce": "bash run_checks.sh",
+      "source_counts": "evidence/source-counts.json",
+      "rendered_capture": "evidence/ours-initial.png"
+    }
+  },
+  "production_totals": {
+    "card-ui": {
+      "ours": {
+        "physical_lines": 376,
+        "nonblank_lines": 376,
+        "bytes": 18932
+      },
+      "godot": {
+        "physical_lines": 355,
+        "nonblank_lines": 345,
+        "bytes": 18538
+      }
+    },
+    "platformer": {
+      "ours": {
+        "physical_lines": 384,
+        "nonblank_lines": 354,
+        "bytes": 14707
+      },
+      "godot": {
+        "physical_lines": 245,
+        "nonblank_lines": 226,
+        "bytes": 8466
+      }
+    },
+    "topdown": {
+      "ours": {
+        "physical_lines": 516,
+        "nonblank_lines": 472,
+        "bytes": 20931
+      },
+      "godot": {
+        "physical_lines": 452,
+        "nonblank_lines": 406,
+        "bytes": 17905
+      }
+    }
+  },
+  "limits": [
+    "Source costs are not authoring-speed or AI-efficiency measurements",
+    "Original-to-current deltas mix richer scope and authoring-form migrations",
+    "Godot rendered capture blocked on tested executor; no pixel-parity/manual acceptance",
+    "No engine runtime edit, fresh NativeAOT publish or performance/device gate"
+  ],
+  "authored_source_accounting": {
+    "method": "Independent complete-file count. Each side includes shared sources/config once. All copied application helpers/factories remain included. Nonblank physical lines include comments, imports and braces. Binary assets contribute bytes only. Generated builds, engine libraries and tests excluded from production totals and disclosed separately by genre.",
+    "genres": {
+      "card-ui": {
+        "ours": {
+          "files": [
+            {
+              "path": "shared/CardGame.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 5655,
+              "physical_lines": 101,
+              "nonblank_lines": 101,
+              "sha256": "e6de9d3821beaa7732981177c35a0c33d19fb755712ed513561331dbc7d16860"
+            },
+            {
+              "path": "shared/catalog.json",
+              "category": "shared_data",
+              "shared": true,
+              "bytes": 1056,
+              "physical_lines": 10,
+              "nonblank_lines": 10,
+              "sha256": "5d1e515f05be56e5d1fcf2343aefac3bfe78b029f889e3c37e05eb75f2341cf3"
+            },
+            {
+              "path": "shared/Rules.csproj",
+              "category": "config",
+              "shared": true,
+              "bytes": 360,
+              "physical_lines": 9,
+              "nonblank_lines": 9,
+              "sha256": "21b9bfe506d5e0c472538a3269eb022486d889bc12c1d36a13175df07b4611f9"
+            },
+            {
+              "path": "NuGet.Config",
+              "category": "config",
+              "shared": true,
+              "bytes": 440,
+              "physical_lines": 8,
+              "nonblank_lines": 8,
+              "sha256": "9601357684cfc73d74783774d70d058bc9cb3e18fbc68879ce8ed1abb3da8b35"
+            },
+            {
+              "path": "ours/CardUi.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 3618,
+              "physical_lines": 100,
+              "nonblank_lines": 100,
+              "sha256": "a659add4ccd8bbf2eb0984da31cd62bf389d1ff5ee6240f5146d9040b5489cea"
+            },
+            {
+              "path": "ours/Program.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 680,
+              "physical_lines": 15,
+              "nonblank_lines": 15,
+              "sha256": "056367b28a94667248200a9e9f417e033b6d64e5a0e84e7a9468818c0672d843"
+            },
+            {
+              "path": "ours/InventorySchema.cs",
+              "category": "explicit_schema_commands",
+              "shared": false,
+              "bytes": 1800,
+              "physical_lines": 44,
+              "nonblank_lines": 44,
+              "sha256": "a026b343571ad021c8cbad332434a0aa9b524dc8dc1e445d975caad2ac480c0e"
+            },
+            {
+              "path": "ours/assets/ui/cards.rml",
+              "category": "view_style",
+              "shared": false,
+              "bytes": 2070,
+              "physical_lines": 35,
+              "nonblank_lines": 35,
+              "sha256": "572ca90f3fc353778ebed741ce78552379f0e2f3daaec89b381c37516e78dc45"
+            },
+            {
+              "path": "ours/assets/ui/cards.rcss",
+              "category": "view_style",
+              "shared": false,
+              "bytes": 2278,
+              "physical_lines": 34,
+              "nonblank_lines": 34,
+              "sha256": "49a21fe25b9e27016011bd11dfb92999a588785e2ce0c85b45fdd897986ad495"
+            },
+            {
+              "path": "ours/CardUi.csproj",
+              "category": "config",
+              "shared": false,
+              "bytes": 975,
+              "physical_lines": 20,
+              "nonblank_lines": 20,
+              "sha256": "221523287acdd3aa315915a24f0586929dc502292a08726e8f95f27b1b1de555"
+            }
+          ],
+          "categories": {
+            "application_csharp": {
+              "physical_lines": 115,
+              "nonblank_lines": 115,
+              "bytes": 4298
+            },
+            "config": {
+              "physical_lines": 37,
+              "nonblank_lines": 37,
+              "bytes": 1775
+            },
+            "explicit_schema_commands": {
+              "physical_lines": 44,
+              "nonblank_lines": 44,
+              "bytes": 1800
+            },
+            "shared_data": {
+              "physical_lines": 10,
+              "nonblank_lines": 10,
+              "bytes": 1056
+            },
+            "shared_rules_model": {
+              "physical_lines": 101,
+              "nonblank_lines": 101,
+              "bytes": 5655
+            },
+            "view_style": {
+              "physical_lines": 69,
+              "nonblank_lines": 69,
+              "bytes": 4348
+            }
+          },
+          "production_total": {
+            "physical_lines": 376,
+            "nonblank_lines": 376,
+            "bytes": 18932
+          }
+        },
+        "godot": {
+          "files": [
+            {
+              "path": "shared/CardGame.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 5655,
+              "physical_lines": 101,
+              "nonblank_lines": 101,
+              "sha256": "e6de9d3821beaa7732981177c35a0c33d19fb755712ed513561331dbc7d16860"
+            },
+            {
+              "path": "shared/catalog.json",
+              "category": "shared_data",
+              "shared": true,
+              "bytes": 1056,
+              "physical_lines": 10,
+              "nonblank_lines": 10,
+              "sha256": "5d1e515f05be56e5d1fcf2343aefac3bfe78b029f889e3c37e05eb75f2341cf3"
+            },
+            {
+              "path": "shared/Rules.csproj",
+              "category": "config",
+              "shared": true,
+              "bytes": 360,
+              "physical_lines": 9,
+              "nonblank_lines": 9,
+              "sha256": "21b9bfe506d5e0c472538a3269eb022486d889bc12c1d36a13175df07b4611f9"
+            },
+            {
+              "path": "NuGet.Config",
+              "category": "config",
+              "shared": true,
+              "bytes": 440,
+              "physical_lines": 8,
+              "nonblank_lines": 8,
+              "sha256": "9601357684cfc73d74783774d70d058bc9cb3e18fbc68879ce8ed1abb3da8b35"
+            },
+            {
+              "path": "godot/CardPanel.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 9730,
+              "physical_lines": 186,
+              "nonblank_lines": 180,
+              "sha256": "c2d4342ecd59cddc8341889c550f6c4bb769f94895546c3aed06552738609f02"
+            },
+            {
+              "path": "godot/Main.tscn",
+              "category": "view_style",
+              "shared": false,
+              "bytes": 235,
+              "physical_lines": 8,
+              "nonblank_lines": 8,
+              "sha256": "4303de11dab451cb1ef1579b9aa13009b699b6be0aaf8519f94f55a351261077"
+            },
+            {
+              "path": "godot/CardUiGodot.csproj",
+              "category": "config",
+              "shared": false,
+              "bytes": 582,
+              "physical_lines": 14,
+              "nonblank_lines": 14,
+              "sha256": "bd337913493c296857cf56eef94f47dc9d43dcd951bdf95375b4a99a74b73d1e"
+            },
+            {
+              "path": "godot/project.godot",
+              "category": "config",
+              "shared": false,
+              "bytes": 480,
+              "physical_lines": 19,
+              "nonblank_lines": 15,
+              "sha256": "2356809380d609f4b9d9b4131644202bcbac4198f889125188501045a6b3e569"
+            }
+          ],
+          "categories": {
+            "application_csharp": {
+              "physical_lines": 186,
+              "nonblank_lines": 180,
+              "bytes": 9730
+            },
+            "config": {
+              "physical_lines": 50,
+              "nonblank_lines": 46,
+              "bytes": 1862
+            },
+            "shared_data": {
+              "physical_lines": 10,
+              "nonblank_lines": 10,
+              "bytes": 1056
+            },
+            "shared_rules_model": {
+              "physical_lines": 101,
+              "nonblank_lines": 101,
+              "bytes": 5655
+            },
+            "view_style": {
+              "physical_lines": 8,
+              "nonblank_lines": 8,
+              "bytes": 235
+            }
+          },
+          "production_total": {
+            "physical_lines": 355,
+            "nonblank_lines": 345,
+            "bytes": 18538
+          }
+        }
+      },
+      "platformer": {
+        "ours": {
+          "files": [
+            {
+              "path": "common/GameRules.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 498,
+              "physical_lines": 20,
+              "nonblank_lines": 17,
+              "sha256": "8980118d4d2242c5b658f8da830edf32b147fb8b21d764026d952d8d2f1a35b9"
+            },
+            {
+              "path": "common/JumpGrace.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 570,
+              "physical_lines": 17,
+              "nonblank_lines": 16,
+              "sha256": "e4442b8ddb146b863598fff87df7ada5bb2fadf9be717670ca21007ecee08ce0"
+            },
+            {
+              "path": "common/SceneData.cs",
+              "category": "shared_data",
+              "shared": true,
+              "bytes": 746,
+              "physical_lines": 21,
+              "nonblank_lines": 20,
+              "sha256": "bddf9f91c4b78e49a98ab3c954eed7a7ac02519ca9ba1980c98951a82e200387"
+            },
+            {
+              "path": "NuGet.Config",
+              "category": "config",
+              "shared": true,
+              "bytes": 310,
+              "physical_lines": 7,
+              "nonblank_lines": 7,
+              "sha256": "64ce7a5d7add66677050846087ac17feed0f75fb3a403e3c7f60be9b2529cc56"
+            },
+            {
+              "path": "ours/Program.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 2147,
+              "physical_lines": 52,
+              "nonblank_lines": 51,
+              "sha256": "58443103e4425cf1e0b4c896e3a0821ad1e5f96a9a390909c7678dae91660ab3"
+            },
+            {
+              "path": "ours/Simulation.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 5018,
+              "physical_lines": 133,
+              "nonblank_lines": 122,
+              "sha256": "41126297b4f51a28f711b25009ec92065f5d1259920f1beac51d87834c4a7500"
+            },
+            {
+              "path": "ours/Presentation.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 1857,
+              "physical_lines": 48,
+              "nonblank_lines": 42,
+              "sha256": "8a8c4b835b28191e27d18fa22c83e808d3ff292cb7f5ac173bcf55819ebe7213"
+            },
+            {
+              "path": "ours/FixedStepInput.cs",
+              "category": "copied_application_helper",
+              "shared": false,
+              "bytes": 2922,
+              "physical_lines": 72,
+              "nonblank_lines": 65,
+              "sha256": "00ae098983294d3805a628e7ca1d99f324f4349cb361c7883eff9ae220857b8b"
+            },
+            {
+              "path": "ours/Platformer.csproj",
+              "category": "config",
+              "shared": false,
+              "bytes": 581,
+              "physical_lines": 14,
+              "nonblank_lines": 14,
+              "sha256": "25ba0c634bde9d8b47640d1d2d68ee4b36f7ca853cbf6a0de9b7e8b3dcb51239"
+            },
+            {
+              "path": "ours/assets/white.bmp",
+              "category": "binary_assets",
+              "shared": false,
+              "bytes": 58,
+              "physical_lines": 0,
+              "nonblank_lines": 0,
+              "sha256": "c0223f90691a3eff0bf1c2f1737aab1779b6f1a533364c5305832dd63a618794"
+            }
+          ],
+          "categories": {
+            "application_csharp": {
+              "physical_lines": 233,
+              "nonblank_lines": 215,
+              "bytes": 9022
+            },
+            "binary_assets": {
+              "physical_lines": 0,
+              "nonblank_lines": 0,
+              "bytes": 58
+            },
+            "config": {
+              "physical_lines": 21,
+              "nonblank_lines": 21,
+              "bytes": 891
+            },
+            "copied_application_helper": {
+              "physical_lines": 72,
+              "nonblank_lines": 65,
+              "bytes": 2922
+            },
+            "shared_data": {
+              "physical_lines": 21,
+              "nonblank_lines": 20,
+              "bytes": 746
+            },
+            "shared_rules_model": {
+              "physical_lines": 37,
+              "nonblank_lines": 33,
+              "bytes": 1068
+            }
+          },
+          "production_total": {
+            "physical_lines": 384,
+            "nonblank_lines": 354,
+            "bytes": 14707
+          }
+        },
+        "godot": {
+          "files": [
+            {
+              "path": "common/GameRules.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 498,
+              "physical_lines": 20,
+              "nonblank_lines": 17,
+              "sha256": "8980118d4d2242c5b658f8da830edf32b147fb8b21d764026d952d8d2f1a35b9"
+            },
+            {
+              "path": "common/JumpGrace.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 570,
+              "physical_lines": 17,
+              "nonblank_lines": 16,
+              "sha256": "e4442b8ddb146b863598fff87df7ada5bb2fadf9be717670ca21007ecee08ce0"
+            },
+            {
+              "path": "common/SceneData.cs",
+              "category": "shared_data",
+              "shared": true,
+              "bytes": 746,
+              "physical_lines": 21,
+              "nonblank_lines": 20,
+              "sha256": "bddf9f91c4b78e49a98ab3c954eed7a7ac02519ca9ba1980c98951a82e200387"
+            },
+            {
+              "path": "NuGet.Config",
+              "category": "config",
+              "shared": true,
+              "bytes": 310,
+              "physical_lines": 7,
+              "nonblank_lines": 7,
+              "sha256": "64ce7a5d7add66677050846087ac17feed0f75fb3a403e3c7f60be9b2529cc56"
+            },
+            {
+              "path": "godot/Game.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 1767,
+              "physical_lines": 52,
+              "nonblank_lines": 47,
+              "sha256": "42c130f7cc6f49bf36355f8fd9e696f0e09d37ca967f72a03a1b8eb08a1b0da6"
+            },
+            {
+              "path": "godot/Player.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 2774,
+              "physical_lines": 76,
+              "nonblank_lines": 68,
+              "sha256": "ed7fc9953d808a19e744234f83ccfe62f1349d9d28fce010389a7f25ff2cf160"
+            },
+            {
+              "path": "godot/Terrain.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 596,
+              "physical_lines": 16,
+              "nonblank_lines": 15,
+              "sha256": "37f70dc995eae2a5d2891309b40e1facd093c78bc752c98770309761bdb55025"
+            },
+            {
+              "path": "godot/Main.tscn",
+              "category": "view_style",
+              "shared": false,
+              "bytes": 149,
+              "physical_lines": 4,
+              "nonblank_lines": 4,
+              "sha256": "5562adb6ab0e16aed87665f9d7317176947aa4318db94869902c81a4f76488f4"
+            },
+            {
+              "path": "godot/Platformer.csproj",
+              "category": "config",
+              "shared": false,
+              "bytes": 484,
+              "physical_lines": 14,
+              "nonblank_lines": 14,
+              "sha256": "847ea85df5f4662fe3ac07c2a1783e451be0edab2f9c4f4feff7829fef6e1b81"
+            },
+            {
+              "path": "godot/project.godot",
+              "category": "config",
+              "shared": false,
+              "bytes": 572,
+              "physical_lines": 18,
+              "nonblank_lines": 18,
+              "sha256": "4b1b2beefe27c33b71f80a5ed87024a8951e2afed66a8d5a729943a25b894eb7"
+            }
+          ],
+          "categories": {
+            "application_csharp": {
+              "physical_lines": 144,
+              "nonblank_lines": 130,
+              "bytes": 5137
+            },
+            "config": {
+              "physical_lines": 39,
+              "nonblank_lines": 39,
+              "bytes": 1366
+            },
+            "shared_data": {
+              "physical_lines": 21,
+              "nonblank_lines": 20,
+              "bytes": 746
+            },
+            "shared_rules_model": {
+              "physical_lines": 37,
+              "nonblank_lines": 33,
+              "bytes": 1068
+            },
+            "view_style": {
+              "physical_lines": 4,
+              "nonblank_lines": 4,
+              "bytes": 149
+            }
+          },
+          "production_total": {
+            "physical_lines": 245,
+            "nonblank_lines": 226,
+            "bytes": 8466
+          }
+        }
+      },
+      "topdown": {
+        "ours": {
+          "files": [
+            {
+              "path": "shared/ArenaRules.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 1374,
+              "physical_lines": 50,
+              "nonblank_lines": 42,
+              "sha256": "0302268412c529bd692e45ead16e3788a3206263e0b5b75fe736f70a300928ac"
+            },
+            {
+              "path": "shared/GameContent.cs",
+              "category": "shared_data",
+              "shared": true,
+              "bytes": 613,
+              "physical_lines": 23,
+              "nonblank_lines": 20,
+              "sha256": "5e8d09b35d78a037a75cf6b7fb7053a875887a149a2191194a7e124bad4465bd"
+            },
+            {
+              "path": "ours/RoomInstance.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 3230,
+              "physical_lines": 66,
+              "nonblank_lines": 60,
+              "sha256": "3b9a836cc8dffee88d3b3faaf13877b63516149f51418c8b3c980573f261d9a5"
+            },
+            {
+              "path": "ours/Composition.cs",
+              "category": "factory_host_helpers",
+              "shared": false,
+              "bytes": 6718,
+              "physical_lines": 147,
+              "nonblank_lines": 138,
+              "sha256": "89009beaec6cb91e12acfa20ae24c44cc1f58a63eb049bb37501ddfe90c65b3a"
+            },
+            {
+              "path": "ours/Arena.cs",
+              "category": "factory_host_helpers",
+              "shared": false,
+              "bytes": 2493,
+              "physical_lines": 75,
+              "nonblank_lines": 68,
+              "sha256": "800bdb3a3f4ebb843c247cd458299c1c706eee23613496f5646da9cfb9e02dd8"
+            },
+            {
+              "path": "ours/GameHost.cs",
+              "category": "factory_host_helpers",
+              "shared": false,
+              "bytes": 1674,
+              "physical_lines": 36,
+              "nonblank_lines": 33,
+              "sha256": "582f85d46f4f149a95bcc8b2bc0e34fcad8d41719088d7414cf7637c242c9ddd"
+            },
+            {
+              "path": "ours/Program.cs",
+              "category": "factory_host_helpers",
+              "shared": false,
+              "bytes": 804,
+              "physical_lines": 22,
+              "nonblank_lines": 21,
+              "sha256": "58d1b1cc6c4410e9568a91c07b182231fb6647aae0630047283a70cd460de0e7"
+            },
+            {
+              "path": "ours/FixedStepInput.cs",
+              "category": "copied_application_helper",
+              "shared": false,
+              "bytes": 2922,
+              "physical_lines": 72,
+              "nonblank_lines": 65,
+              "sha256": "00ae098983294d3805a628e7ca1d99f324f4349cb361c7883eff9ae220857b8b"
+            },
+            {
+              "path": "ours/Topdown.csproj",
+              "category": "config",
+              "shared": false,
+              "bytes": 853,
+              "physical_lines": 19,
+              "nonblank_lines": 19,
+              "sha256": "a7a4b5605c733b8f9d739230eb7383049c7f9987845f835b885fdae8a1bf9040"
+            },
+            {
+              "path": "NuGet.Config",
+              "category": "config",
+              "shared": false,
+              "bytes": 182,
+              "physical_lines": 6,
+              "nonblank_lines": 6,
+              "sha256": "3910e1bf4e7ae776feba4100b523e5ee2d5a7dfb5e8111b3d1d45f847cc45c40"
+            },
+            {
+              "path": "ours/assets/white.png",
+              "category": "binary_assets",
+              "shared": false,
+              "bytes": 68,
+              "physical_lines": 0,
+              "nonblank_lines": 0,
+              "sha256": "7ac2abfce2be8b46dd9826d597d94edeefc1570b4a992622721b90a1850e3ee9"
+            }
+          ],
+          "categories": {
+            "application_csharp": {
+              "physical_lines": 66,
+              "nonblank_lines": 60,
+              "bytes": 3230
+            },
+            "binary_assets": {
+              "physical_lines": 0,
+              "nonblank_lines": 0,
+              "bytes": 68
+            },
+            "config": {
+              "physical_lines": 25,
+              "nonblank_lines": 25,
+              "bytes": 1035
+            },
+            "copied_application_helper": {
+              "physical_lines": 72,
+              "nonblank_lines": 65,
+              "bytes": 2922
+            },
+            "factory_host_helpers": {
+              "physical_lines": 280,
+              "nonblank_lines": 260,
+              "bytes": 11689
+            },
+            "shared_data": {
+              "physical_lines": 23,
+              "nonblank_lines": 20,
+              "bytes": 613
+            },
+            "shared_rules_model": {
+              "physical_lines": 50,
+              "nonblank_lines": 42,
+              "bytes": 1374
+            }
+          },
+          "production_total": {
+            "physical_lines": 516,
+            "nonblank_lines": 472,
+            "bytes": 20931
+          }
+        },
+        "godot": {
+          "files": [
+            {
+              "path": "shared/ArenaRules.cs",
+              "category": "shared_rules_model",
+              "shared": true,
+              "bytes": 1374,
+              "physical_lines": 50,
+              "nonblank_lines": 42,
+              "sha256": "0302268412c529bd692e45ead16e3788a3206263e0b5b75fe736f70a300928ac"
+            },
+            {
+              "path": "shared/GameContent.cs",
+              "category": "shared_data",
+              "shared": true,
+              "bytes": 613,
+              "physical_lines": 23,
+              "nonblank_lines": 20,
+              "sha256": "5e8d09b35d78a037a75cf6b7fb7053a875887a149a2191194a7e124bad4465bd"
+            },
+            {
+              "path": "godot/Main.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 3627,
+              "physical_lines": 83,
+              "nonblank_lines": 74,
+              "sha256": "9c6236583fc7f1179c4800767040d4ac3f85c8dbc7b3f23601384b65961917cf"
+            },
+            {
+              "path": "godot/Shapes.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 1195,
+              "physical_lines": 35,
+              "nonblank_lines": 31,
+              "sha256": "97f994ceb3426aa1ea6e70e5e5ad553b7010b5539568c7411c8726ed39dc4369"
+            },
+            {
+              "path": "godot/Room.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 4444,
+              "physical_lines": 96,
+              "nonblank_lines": 87,
+              "sha256": "67a86fbe00ed4ddd05789d6ca816d7a8a401646660299d6cfab53a665fb9436a"
+            },
+            {
+              "path": "godot/Weapon.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 2791,
+              "physical_lines": 64,
+              "nonblank_lines": 60,
+              "sha256": "dfb1bb2ad27ff00b6c9b8b5a3beec010bb73c18d571fba91dbc7f817a687796e"
+            },
+            {
+              "path": "godot/Enemy.cs",
+              "category": "application_csharp",
+              "shared": false,
+              "bytes": 1653,
+              "physical_lines": 39,
+              "nonblank_lines": 35,
+              "sha256": "72a1ac0c48fa6a8c5ee5a7751ed69ac62cb075829f7dede0c533664b381ad2f2"
+            },
+            {
+              "path": "godot/Main.tscn",
+              "category": "view_style",
+              "shared": false,
+              "bytes": 149,
+              "physical_lines": 4,
+              "nonblank_lines": 4,
+              "sha256": "9728d8e064526575ff38789d97a8fbd5925b20853d919e9da4a2d66cbf7829b2"
+            },
+            {
+              "path": "godot/TopdownGodot.csproj",
+              "category": "config",
+              "shared": false,
+              "bytes": 525,
+              "physical_lines": 14,
+              "nonblank_lines": 14,
+              "sha256": "5165a89f65e5b8df436c10b2bef318cf806dfcd90618365ce71f93d0de0a4497"
+            },
+            {
+              "path": "godot/project.godot",
+              "category": "config",
+              "shared": false,
+              "bytes": 480,
+              "physical_lines": 20,
+              "nonblank_lines": 15,
+              "sha256": "50f010ff9624ea8f8973cd4653a1b430a0f9b74e43314ab55feb08d71d46f549"
+            },
+            {
+              "path": "godot/NuGet.Config",
+              "category": "config",
+              "shared": false,
+              "bytes": 289,
+              "physical_lines": 7,
+              "nonblank_lines": 7,
+              "sha256": "739bde3d8d18e59a8a9c3c794eed0b8ea04efd84a2db10d9d7cebdab8f4a6424"
+            },
+            {
+              "path": "godot/run.sh",
+              "category": "optional_interactive_launcher",
+              "shared": false,
+              "bytes": 765,
+              "physical_lines": 17,
+              "nonblank_lines": 17,
+              "sha256": "eb1d0891442d293e685730c0688412960f4d5486b6f9f0f16659442d8f5845a0"
+            }
+          ],
+          "categories": {
+            "application_csharp": {
+              "physical_lines": 317,
+              "nonblank_lines": 287,
+              "bytes": 13710
+            },
+            "config": {
+              "physical_lines": 41,
+              "nonblank_lines": 36,
+              "bytes": 1294
+            },
+            "optional_interactive_launcher": {
+              "physical_lines": 17,
+              "nonblank_lines": 17,
+              "bytes": 765
+            },
+            "shared_data": {
+              "physical_lines": 23,
+              "nonblank_lines": 20,
+              "bytes": 613
+            },
+            "shared_rules_model": {
+              "physical_lines": 50,
+              "nonblank_lines": 42,
+              "bytes": 1374
+            },
+            "view_style": {
+              "physical_lines": 4,
+              "nonblank_lines": 4,
+              "bytes": 149
+            }
+          },
+          "production_total": {
+            "physical_lines": 452,
+            "nonblank_lines": 406,
+            "bytes": 17905
+          }
+        }
+      }
+    }
+  },
+  "source_evidence_archive": {
+    "archive": "/workspace/scratch/196948ae630a/authoring-current-comparison/deliverables/current-code-authoring-comparison.zip",
+    "files": 179,
+    "bytes": 339679,
+    "sha256": "87e1fc48b78ebad61f99ae23bddc5e6b9727b98f3fd14ab78ddf84daba883957",
+    "scope": "179 source/report/evidence files, no engine binaries, SDKs, dependencies or fonts; archive byte/hash verified"
+  },
+  "review": "No blocking findings after source, behavior, identity, accounting and evidence review; see companion evidence/review-final.txt",
+  "companion_report_sha256": "b1e1825559d0178de868bf25de274535e0d71ba59915a847ea343c59b28c1839",
+  "engine_runtime_changed": false
+}
