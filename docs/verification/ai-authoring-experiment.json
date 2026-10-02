@@ -1,0 +1,641 @@
+{
+  "schema_version": 1,
+  "study_id": "ai-authoring-maintenance-2026-10-02",
+  "date_utc": "2026-10-02",
+  "scope": "Four fresh sequential AI maintenance attempts, two matched tasks across .NET2D and official Godot 4.6.3 .NET, pure code only. No repeats.",
+  "outcome": "Both engines passed both evaluator-owned native acceptance suites and unchanged existing regressions on their first submitted candidate. No general productivity or reliability advantage established.",
+  "baseline": {
+    "dotnet2d_guide_commit": "974a5506d748a60abd087a8b48af398691bf3e11",
+    "sample_origin": "authoring-current-comparison, prepared source comparison at a49d2ff",
+    "checkout_head_at_study": "67992d5dcd9fa1c8423865a4331ca3baf2617f1e",
+    "godot": "4.6.3 stable .NET official portable",
+    "dotnet_sdk": "10.0.401",
+    "runtime_sha256": {
+      "Dotnet2D.Engine.0.1.0-preview.1.nupkg": "d301bff503cc05d216deae1f1a4e0e4a9cd9df7795ba7f594cc062ceb6c19358",
+      "Dotnet2D.Native.Linux.x64.0.1.0-preview.1.nupkg": "a5b203f64856ed92e98b1a53b3d1544054831caeeed2fe6696e9a2ca2479040c",
+      "Godot_v4.6.3-stable_mono_linux.x86_64": "cabf9ac16c55f8ca662da62e1f5908d3c35f765e312be62f104097bd8f78b987"
+    },
+    "source_hash_algorithm": "SHA-256",
+    "source_hashes": {
+      "ui-godot": {
+        "godot/CardUiGodot.csproj": "bd337913493c296857cf56eef94f47dc9d43dcd951bdf95375b4a99a74b73d1e",
+        "godot/CardPanel.cs": "c2d4342ecd59cddc8341889c550f6c4bb769f94895546c3aed06552738609f02",
+        "godot/project.godot": "2356809380d609f4b9d9b4131644202bcbac4198f889125188501045a6b3e569",
+        "godot/Main.tscn": "4303de11dab451cb1ef1579b9aa13009b699b6be0aaf8519f94f55a351261077",
+        "docs/SOURCE.txt": "521eebdf9fcad40fd41dc9f6b3ed447f04d324d92322d3976005450bb6603ae5",
+        "docs/engine-reference.xml": "0802f25a4eb57629f0cb0bccd491670ea6b6eff3bae2b8f56931211de0a614f0",
+        "tests/GodotSmoke.cs": "6a782234cecc3b6942fe168140cd78f3de72a84fe61707c5e9fed3d179b735e1",
+        "tests/RulesTests.cs": "ce9aadbc5cbef86c627b07ac71fe40f2c6462c0c4b2b7e3cff346794eec21e5a",
+        "tests/RulesTests.csproj": "9059fe3bc31c34826167504d1e4482a3e0198c775ed0e0919fed14276c009e1a",
+        "shared/Rules.csproj": "21b9bfe506d5e0c472538a3269eb022486d889bc12c1d36a13175df07b4611f9",
+        "shared/catalog.json": "5d1e515f05be56e5d1fcf2343aefac3bfe78b029f889e3c37e05eb75f2341cf3",
+        "shared/CardGame.cs": "e6de9d3821beaa7732981177c35a0c33d19fb755712ed513561331dbc7d16860"
+      },
+      "ui-ours": {
+        "docs/engine-reference.md": "7055ff2801d2a5df0b36547cca77eff7b51abc551c9351b1ed4bd866c4399ef6",
+        "tests/SdlInput.cs": "e398a8b748fd16c4c9d9e7f372d38aa2d1a153ed1920b0b2901a2ceb8e7ae4a5",
+        "tests/Smoke.cs": "8fb6fdfd9878d4335fcbbbf83a772ee9a054c27cf54b9e74d5b805824ab60688",
+        "tests/RulesTests.cs": "ce9aadbc5cbef86c627b07ac71fe40f2c6462c0c4b2b7e3cff346794eec21e5a",
+        "tests/RulesTests.csproj": "9059fe3bc31c34826167504d1e4482a3e0198c775ed0e0919fed14276c009e1a",
+        "shared/Rules.csproj": "21b9bfe506d5e0c472538a3269eb022486d889bc12c1d36a13175df07b4611f9",
+        "shared/catalog.json": "5d1e515f05be56e5d1fcf2343aefac3bfe78b029f889e3c37e05eb75f2341cf3",
+        "shared/CardGame.cs": "e6de9d3821beaa7732981177c35a0c33d19fb755712ed513561331dbc7d16860",
+        "ours/Program.cs": "056367b28a94667248200a9e9f417e033b6d64e5a0e84e7a9468818c0672d843",
+        "ours/InventorySchema.cs": "a026b343571ad021c8cbad332434a0aa9b524dc8dc1e445d975caad2ac480c0e",
+        "ours/CardUi.csproj": "221523287acdd3aa315915a24f0586929dc502292a08726e8f95f27b1b1de555",
+        "ours/CardUi.cs": "a659add4ccd8bbf2eb0984da31cd62bf389d1ff5ee6240f5146d9040b5489cea",
+        "ours/assets/ui/cards.rcss": "49a21fe25b9e27016011bd11dfb92999a588785e2ce0c85b45fdd897986ad495",
+        "ours/assets/ui/cards.rml": "572ca90f3fc353778ebed741ce78552379f0e2f3daaec89b381c37516e78dc45"
+      },
+      "lifecycle-ours": {
+        "docs/engine-reference.md": "50fd868acb54bfb2f9ff6bdc91eaf7ce0a1fabab6d134f500d98a78ba78b7ed0",
+        "tests/OursContracts.cs": "f3d4c9bbb5651bfabc98939bcd0ad3193bc75a7cc727875f76e9f9e462b99481",
+        "tests/NativeInputContracts.cs": "adcce8c329a8fd61064c101a7aee79bd812a982cfd45c212db0453ebac543ada",
+        "shared/ArenaRules.cs": "0302268412c529bd692e45ead16e3788a3206263e0b5b75fe736f70a300928ac",
+        "shared/GameContent.cs": "5e8d09b35d78a037a75cf6b7fb7053a875887a149a2191194a7e124bad4465bd",
+        "ours/Program.cs": "58d1b1cc6c4410e9568a91c07b182231fb6647aae0630047283a70cd460de0e7",
+        "ours/Composition.cs": "89009beaec6cb91e12acfa20ae24c44cc1f58a63eb049bb37501ddfe90c65b3a",
+        "ours/RoomInstance.cs": "3b9a836cc8dffee88d3b3faaf13877b63516149f51418c8b3c980573f261d9a5",
+        "ours/FixedStepInput.cs": "00ae098983294d3805a628e7ca1d99f324f4349cb361c7883eff9ae220857b8b",
+        "ours/Topdown.csproj": "a7a4b5605c733b8f9d739230eb7383049c7f9987845f835b885fdae8a1bf9040",
+        "ours/GameHost.cs": "582f85d46f4f149a95bcc8b2bc0e34fcad8d41719088d7414cf7637c242c9ddd",
+        "ours/Arena.cs": "800bdb3a3f4ebb843c247cd458299c1c706eee23613496f5646da9cfb9e02dd8",
+        "ours/assets/white.png": "7ac2abfce2be8b46dd9826d597d94edeefc1570b4a992622721b90a1850e3ee9"
+      },
+      "lifecycle-godot": {
+        "godot/Contracts.cs": "dcf40a580ee7ee66f1293ec577ac0b049229c2d09c61997ccc43657bd1369142",
+        "godot/Room.cs": "67a86fbe00ed4ddd05789d6ca816d7a8a401646660299d6cfab53a665fb9436a",
+        "godot/Shapes.cs": "97f994ceb3426aa1ea6e70e5e5ad553b7010b5539568c7411c8726ed39dc4369",
+        "godot/TopdownGodot.csproj": "5165a89f65e5b8df436c10b2bef318cf806dfcd90618365ce71f93d0de0a4497",
+        "godot/Main.cs": "9c6236583fc7f1179c4800767040d4ac3f85c8dbc7b3f23601384b65961917cf",
+        "godot/project.godot": "50f010ff9624ea8f8973cd4653a1b430a0f9b74e43314ab55feb08d71d46f549",
+        "godot/Main.tscn": "9728d8e064526575ff38789d97a8fbd5925b20853d919e9da4a2d66cbf7829b2",
+        "godot/Weapon.cs": "dfb1bb2ad27ff00b6c9b8b5a3beec010bb73c18d571fba91dbc7f817a687796e",
+        "godot/Enemy.cs": "72a1ac0c48fa6a8c5ee5a7751ed69ac62cb075829f7dede0c533664b381ad2f2",
+        "docs/SOURCE.txt": "521eebdf9fcad40fd41dc9f6b3ed447f04d324d92322d3976005450bb6603ae5",
+        "docs/engine-reference.xml": "4e22542af98c592926d800bdd3d46660e412ec1ce6078b67582c5b4e3dadbd77",
+        "shared/ArenaRules.cs": "0302268412c529bd692e45ead16e3788a3206263e0b5b75fe736f70a300928ac",
+        "shared/GameContent.cs": "5e8d09b35d78a037a75cf6b7fb7053a875887a149a2191194a7e124bad4465bd"
+      }
+    },
+    "reference_sizes": {
+      "ui-godot": {
+        "SOURCE.txt": {
+          "bytes": 283,
+          "lines": 2
+        },
+        "engine-reference.xml": {
+          "bytes": 10669,
+          "lines": 92
+        }
+      },
+      "ui-ours": {
+        "engine-reference.md": {
+          "bytes": 18134,
+          "lines": 330
+        }
+      },
+      "lifecycle-ours": {
+        "engine-reference.md": {
+          "bytes": 10756,
+          "lines": 197
+        }
+      },
+      "lifecycle-godot": {
+        "SOURCE.txt": {
+          "bytes": 283,
+          "lines": 2
+        },
+        "engine-reference.xml": {
+          "bytes": 8919,
+          "lines": 60
+        }
+      }
+    }
+  },
+  "procedure": {
+    "fresh_workers": 4,
+    "inherited_conversation": false,
+    "same_inherited_model": true,
+    "model_identifier": null,
+    "model_identifier_note": "Not exposed; no model override was used.",
+    "reasoning_effort": "xhigh",
+    "order": [
+      "01-ui-ours",
+      "02-ui-godot",
+      "03-lifecycle-godot",
+      "04-lifecycle-ours"
+    ],
+    "only_one_solver_active": true,
+    "blind_to_engine": false,
+    "other_attempt_solution_access": "Prohibited by task scope, no prior conversation; not OS security isolation.",
+    "starting_information": "Same behavioral task; equivalent working source samples and immutable regression tests; relevant local API docs; prevalidated commands. No feature solution supplied.",
+    "acceptance_frozen_utc": "2026-10-02T13:37:08.319246+00:00",
+    "acceptance_source_sha256": {
+      "PulseOursAcceptance.cs": "685738781cf4beba24cb90eec602fe6a40c9ff83f02c8341e22c39550b731c7a",
+      "evaluate.py": "74e80dcd65f8c57fbc2f1151611a99d0344f02395c58742b94ddc7b69f17339c",
+      "PulseGodotAcceptance.cs": "de6eacb9e6ca6dee629da3d46e82ddebf0e4027d23c2071984a543e0b502e08e",
+      "UiGodotAcceptance.cs": "0305ebc9278e2becd3a20d6b9b2f0d50ba1bc66660fad82cf9ef154c0fd9904e",
+      "UiOursAcceptance.cs": "ef912ef1178456ea89337ed182835e843408a49fc4892a42e07be1a99b56a11f",
+      "RuleAcceptance.cs": "dccf89be0bbe2e653fa8ea0ae8568dc5a370887a2daa5ae5447d7e981750eeee"
+    },
+    "acceptance_changed_during_attempts": false,
+    "solver_received_repair_feedback": false
+  },
+  "acceptance_contracts": {
+    "inventory": [
+      "Third per-card Discard action; CardGame.Discard(ulong) bool; ItemView.CanDiscard; existing command numeric IDs unchanged.",
+      "Exactly one stock removed only when unpaused, visible and positive stock. No health/gold/selection/visibility mutation. Unknown, removed, empty and paused attempts are safe no-ops.",
+      "Availability mirrors the rule; disabled native input; full ulong key routing above 2^53 after reorder/shrink; save/load/restart; original regressions unchanged.",
+      "Evaluator runs its shared rule checks and native SDL pointer/Godot viewport input checks, then unchanged UI regressions. .NET disabled capture inspected; Godot pixels not verified."
+    ],
+    "lifecycle": [
+      "PulseEnabled and SetPulseEnabled(bool) on enemy handle; optional pulseEnabled=true factory parameter propagated through room.",
+      "Disabled instance has zero subscriptions/deliveries; repeated enable/disable is idempotent; one handler when enabled; independent instances.",
+      "Toggle preserves native body/node and weapon identities. Completed enemy/room destruction sets false; retained-handle toggles are safe no-ops and cannot resubscribe.",
+      "Native factories check exact subscriber counts, state changes, identity, destruction, external parent destruction and invalid-size rollback; original gameplay/lifecycle regression runs afterward."
+    ]
+  },
+  "measurement": {
+    "wall_start": "UTC immediately before first logged shell session reads TASK.md",
+    "wall_end": "UTC immediately before explicit date -u submission-marker shell command starts",
+    "includes": [
+      "Model deliberation between logged commands",
+      "Source inspection and editing",
+      "Solver-authored verification",
+      "Command/tool latency inside window",
+      "Build/restore/runtime work inside window"
+    ],
+    "excludes": [
+      "Pre-first-read planning/startup",
+      "Study design/evaluator construction",
+      "Local preflight and baseline setup",
+      "Admission/orchestration gaps",
+      "Post-submission independent evaluation"
+    ],
+    "timing_precision": "Fractional UTC timestamps retained; observed elapsed, not isolated thinking time.",
+    "untimed_baseline_preflight_approx_seconds": 64,
+    "setup_note": "Existing workspace/local packages; no downloads, installation or network waits. Optional rules-test project assets metadata was not pre-restored and caused one run-01 failure inside its timed window.",
+    "command_metric": "Count of logged shell-session start events, not total model tool calls. Sessions may bundle multiple builds/tests.",
+    "logger_caveat": "Run 01 concurrent build/test used duplicate session ID 8; category, UTC and distinct output files preserve both. Count start events. Summed command durations overlap and cannot simply be subtracted from wall time.",
+    "token_usage": null,
+    "token_metric_available": false,
+    "context_token_metric_available": false
+  },
+  "failures": [
+    {
+      "run": "01-ui-ours",
+      "type": "optional-test setup",
+      "failed_sessions": 1,
+      "detail": "Rules test invoked --no-restore without project.assets.json. Normal local restore succeeded."
+    },
+    {
+      "run": "01-ui-ours",
+      "type": "unexplained build execution",
+      "failed_sessions": 2,
+      "detail": "New test-project parallel builds failed with zero warnings/errors; single-node -m:1 succeeded without source changes. Exact cause unestablished."
+    }
+  ],
+  "runs": [
+    {
+      "run": "01-ui-ours",
+      "first_task_read_utc": "2026-10-02T13:37:48.950245+00:00",
+      "submission_marker_utc": "2026-10-02T13:43:35.804028+00:00",
+      "observed_wall_seconds": 346.853783,
+      "logged_command_sessions": 17,
+      "categories": {
+        "build": {
+          "sessions": 5,
+          "nonzero_exits": 3,
+          "command_elapsed_seconds_sum": 25.11793091899017
+        },
+        "edit": {
+          "sessions": 3,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.12066353698901366
+        },
+        "inspect": {
+          "sessions": 4,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.09213077601452824
+        },
+        "other": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.011177959997439757
+        },
+        "test": {
+          "sessions": 4,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 3.6819973090168787
+        }
+      },
+      "production": {
+        "files": 5,
+        "added_lines": 17,
+        "removed_lines": 5
+      },
+      "tests": {
+        "files": 2,
+        "added_lines": 179,
+        "removed_lines": 0
+      },
+      "changes": [
+        {
+          "file": "ours/CardUi.cs",
+          "kind": "production",
+          "added_lines": 3,
+          "removed_lines": 0,
+          "before_bytes": 3618,
+          "after_bytes": 3745,
+          "sha256": "c76ac6aab352efea6aec2dad29eb44c8de49cd83a5debd53ccfaead38ca240a9"
+        },
+        {
+          "file": "ours/InventorySchema.cs",
+          "kind": "production",
+          "added_lines": 3,
+          "removed_lines": 1,
+          "before_bytes": 1800,
+          "after_bytes": 1919,
+          "sha256": "1ac21ca9d6f7ab1a1db4a90c990a475007a4fd06431b9381f46aabda92f6bd4b"
+        },
+        {
+          "file": "ours/assets/ui/cards.rcss",
+          "kind": "production",
+          "added_lines": 1,
+          "removed_lines": 1,
+          "before_bytes": 2278,
+          "after_bytes": 2294,
+          "sha256": "173e54b732a2813e56da38e2469e685bfa4c68d2101688c081da2439449483ff"
+        },
+        {
+          "file": "ours/assets/ui/cards.rml",
+          "kind": "production",
+          "added_lines": 1,
+          "removed_lines": 0,
+          "before_bytes": 2070,
+          "after_bytes": 2244,
+          "sha256": "5baae46026d07808db562d6428fdb21e010d2c62cd50da24915a0ac66a2045d3"
+        },
+        {
+          "file": "shared/CardGame.cs",
+          "kind": "production",
+          "added_lines": 9,
+          "removed_lines": 3,
+          "before_bytes": 5655,
+          "after_bytes": 5920,
+          "sha256": "b9a01998678815497713e5d8e5dab7e667afdfabd85826a45128e71df6f33160"
+        },
+        {
+          "file": "tests/discard/DiscardTests.cs",
+          "kind": "test",
+          "added_lines": 167,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 8420,
+          "sha256": "9465440ae7c2adab2cefddab776dda266d646393b7303c2d73f5fa7cc75005c4"
+        },
+        {
+          "file": "tests/discard/DiscardTests.csproj",
+          "kind": "test",
+          "added_lines": 12,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 559,
+          "sha256": "afe1e70c1380bab6a24a0e6ffb19e2e9b20d9380f2d8eeb90f13e2cf1d6110e8"
+        }
+      ],
+      "dispatch_recorded_utc": "2026-10-02T13:37:25.004211+00:00",
+      "submission_received_recorded_utc": "2026-10-02T13:43:47Z",
+      "first_candidate_accepted": true,
+      "independent_evaluation": {
+        "candidate": "01-ui-ours",
+        "submission": "submission1",
+        "started_utc": "2026-10-02T13:43:56.857371+00:00",
+        "build_exit": 0,
+        "runtime_exit": 0,
+        "ended_utc": "2026-10-02T13:44:06.580471+00:00"
+      },
+      "independent_evidence_sha256": {
+        "evaluator-build.log": "e78d1056648383e24907ccce496a3aabea28ebbd4c2784f956d6d11854689466",
+        "evaluator-runtime.log": "62ad5eb37010fbe60007dfb85acd6c7ef45fe2eb6179bc54ef086de7113f1d2b",
+        "evaluation.json": "96850de04f96cebea370280ac3e47700757812d2a033326998ab7c65e22ab518"
+      },
+      "solver_command_event_sha256": "db3cbb91a57dc694e11692db59eb502d71f8a183b9b9f5010a6909c77e06d688",
+      "verification_scope_note": "New optional test project and explicit pixel assertions; build/setup failures included in wall time."
+    },
+    {
+      "run": "02-ui-godot",
+      "first_task_read_utc": "2026-10-02T13:44:40.213338+00:00",
+      "submission_marker_utc": "2026-10-02T13:49:01.292823+00:00",
+      "observed_wall_seconds": 261.079485,
+      "logged_command_sessions": 9,
+      "categories": {
+        "build": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 12.611620488998597
+        },
+        "edit": {
+          "sessions": 2,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.08729447399673518
+        },
+        "inspect": {
+          "sessions": 4,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.05843294299847912
+        },
+        "other": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.017643279003095813
+        },
+        "test": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 4.666196628997568
+        }
+      },
+      "production": {
+        "files": 2,
+        "added_lines": 14,
+        "removed_lines": 5
+      },
+      "tests": {
+        "files": 2,
+        "added_lines": 195,
+        "removed_lines": 0
+      },
+      "changes": [
+        {
+          "file": "godot/CardPanel.cs",
+          "kind": "production",
+          "added_lines": 5,
+          "removed_lines": 2,
+          "before_bytes": 9730,
+          "after_bytes": 10000,
+          "sha256": "67910645ffdbca812c4c6f0888ab852a348c0def8b276b8500da2baee95e2543"
+        },
+        {
+          "file": "godot/DiscardSmoke.cs",
+          "kind": "test",
+          "added_lines": 189,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 12269,
+          "sha256": "fa8f7a0bf704f93ece7b5836c49b0dc7e5a8acaf4b95d39b830c13f115db4feb"
+        },
+        {
+          "file": "godot/DiscardSmoke.tscn",
+          "kind": "test",
+          "added_lines": 6,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 165,
+          "sha256": "908cc6ffd4be96dbdc2a8099e7f223315eb54f3f889607e47f69121a76496034"
+        },
+        {
+          "file": "shared/CardGame.cs",
+          "kind": "production",
+          "added_lines": 9,
+          "removed_lines": 3,
+          "before_bytes": 5655,
+          "after_bytes": 5920,
+          "sha256": "b9a01998678815497713e5d8e5dab7e667afdfabd85826a45128e71df6f33160"
+        }
+      ],
+      "dispatch_recorded_utc": "2026-10-02T13:44:17.476156+00:00",
+      "submission_received_recorded_utc": "2026-10-02T13:49:21Z",
+      "first_candidate_accepted": true,
+      "independent_evaluation": {
+        "candidate": "02-ui-godot",
+        "submission": "submission1",
+        "started_utc": "2026-10-02T13:49:31.811342+00:00",
+        "build_exit": 0,
+        "runtime_exit": 0,
+        "ended_utc": "2026-10-02T13:49:45.634251+00:00"
+      },
+      "independent_evidence_sha256": {
+        "evaluator-build.log": "fbcdaff094e822e0a64f19c03bb4797d996ff1546cf74529b6ff7fac9843afd1",
+        "evaluator-runtime.log": "49b2c5b42efcb4f2aa5934da0e36daab838dec09ce5e614e41cd9b3b2bf60165",
+        "evaluation.json": "79564e91fca8d266a3038de98b07c7293b79aa52b0663591d91c35f0beaebf5a"
+      },
+      "solver_command_event_sha256": "bffc2564a1fca8fd187fc5a5d73f572b92afc64dd2d1c2b30a6868d485db111e"
+    },
+    {
+      "run": "03-lifecycle-godot",
+      "first_task_read_utc": "2026-10-02T13:50:19.498700+00:00",
+      "submission_marker_utc": "2026-10-02T13:54:03.697470+00:00",
+      "observed_wall_seconds": 224.19877,
+      "logged_command_sessions": 10,
+      "categories": {
+        "build": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 4.140051776994369
+        },
+        "edit": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.03986002900637686
+        },
+        "inspect": {
+          "sessions": 5,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.07340298498456832
+        },
+        "other": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.007116740001947619
+        },
+        "test": {
+          "sessions": 2,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 2.5024604339996586
+        }
+      },
+      "production": {
+        "files": 2,
+        "added_lines": 44,
+        "removed_lines": 7
+      },
+      "tests": {
+        "files": 2,
+        "added_lines": 180,
+        "removed_lines": 0
+      },
+      "changes": [
+        {
+          "file": "godot/Enemy.cs",
+          "kind": "production",
+          "added_lines": 42,
+          "removed_lines": 5,
+          "before_bytes": 1653,
+          "after_bytes": 2671,
+          "sha256": "b466478505bfc9b2bd14f37e70d7e386468b0db27de2c3f4771e0732ca8d9f02"
+        },
+        {
+          "file": "godot/PulseContracts.cs",
+          "kind": "test",
+          "added_lines": 176,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 9775,
+          "sha256": "0b27c75eca1db6609f3257943f8fb3a02a8ef6aa000ec836ef39abce0e5baa74"
+        },
+        {
+          "file": "godot/PulseContracts.tscn",
+          "kind": "test",
+          "added_lines": 4,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 169,
+          "sha256": "e178b12e84a8e85e6053d6be8b07cecb0cd65f8067e724367805fa0b0e586fad"
+        },
+        {
+          "file": "godot/Room.cs",
+          "kind": "production",
+          "added_lines": 2,
+          "removed_lines": 2,
+          "before_bytes": 4444,
+          "after_bytes": 4484,
+          "sha256": "b2e35460166445e1f8f24d91f314001f5c3d5d26b244fa98190bf276464a9126"
+        }
+      ],
+      "dispatch_recorded_utc": "2026-10-02T13:49:57.011940+00:00",
+      "submission_received_recorded_utc": "2026-10-02T13:54:18Z",
+      "first_candidate_accepted": true,
+      "independent_evaluation": {
+        "candidate": "03-lifecycle-godot",
+        "submission": "submission1",
+        "started_utc": "2026-10-02T13:54:29.825800+00:00",
+        "build_exit": 0,
+        "runtime_exit": 0,
+        "ended_utc": "2026-10-02T13:54:38.781492+00:00"
+      },
+      "independent_evidence_sha256": {
+        "evaluator-build.log": "0f831924495328874b8e02e4b02463c1790975f31c08f9aeda5bf057cef75272",
+        "evaluator-runtime.log": "390926ab72a86ad0c01df3c65788300a14384985173be1aa259119d8d94b37d9",
+        "evaluation.json": "bc28e39e620101c2c8bc8c426ed678494941b56beb68c3a6da2973565e3592b6"
+      },
+      "solver_command_event_sha256": "e1d60df5f5d7d5b166d816bb72a59eae4b21a8c68180c6c1845a892ef72ba28a"
+    },
+    {
+      "run": "04-lifecycle-ours",
+      "first_task_read_utc": "2026-10-02T13:55:10.142257+00:00",
+      "submission_marker_utc": "2026-10-02T13:59:10.260975+00:00",
+      "observed_wall_seconds": 240.118718,
+      "logged_command_sessions": 11,
+      "categories": {
+        "build": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 4.386545477987966
+        },
+        "edit": {
+          "sessions": 2,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.04554179600381758
+        },
+        "inspect": {
+          "sessions": 5,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.07155195700761396
+        },
+        "other": {
+          "sessions": 1,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.009010744994156994
+        },
+        "test": {
+          "sessions": 2,
+          "nonzero_exits": 0,
+          "command_elapsed_seconds_sum": 0.2834360640117666
+        }
+      },
+      "production": {
+        "files": 1,
+        "added_lines": 47,
+        "removed_lines": 14
+      },
+      "tests": {
+        "files": 2,
+        "added_lines": 168,
+        "removed_lines": 1
+      },
+      "changes": [
+        {
+          "file": "ours/Composition.cs",
+          "kind": "production",
+          "added_lines": 47,
+          "removed_lines": 14,
+          "before_bytes": 6718,
+          "after_bytes": 7765,
+          "sha256": "22323f738852014da94dded44f1ec9b47dc58eec3282c4e6df3ca13757d11d99"
+        },
+        {
+          "file": "ours/Program.cs",
+          "kind": "test",
+          "added_lines": 3,
+          "removed_lines": 1,
+          "before_bytes": 804,
+          "after_bytes": 920,
+          "sha256": "bec527ac82e742d0bc7a66fd5b6e11c3a95539583e7fdd85804926950bb383e2"
+        },
+        {
+          "file": "ours/PulseContracts.cs",
+          "kind": "test",
+          "added_lines": 165,
+          "removed_lines": 0,
+          "before_bytes": 0,
+          "after_bytes": 9110,
+          "sha256": "a6dca50f7b35a10f999585e1c9b0f66700e963a403fd98fccaad096da96db999"
+        }
+      ],
+      "dispatch_recorded_utc": "2026-10-02T13:54:46.810083+00:00",
+      "submission_received_recorded_utc": "2026-10-02T13:59:21Z",
+      "first_candidate_accepted": true,
+      "independent_evaluation": {
+        "candidate": "04-lifecycle-ours",
+        "submission": "submission1",
+        "started_utc": "2026-10-02T13:59:41.581137+00:00",
+        "build_exit": 0,
+        "runtime_exit": 0,
+        "ended_utc": "2026-10-02T13:59:47.863199+00:00"
+      },
+      "independent_evidence_sha256": {
+        "evaluator-build.log": "05875bc5ad2432e159ed4add7c97ae7e7b65f9d8a0549700c941e4cd1940ff9d",
+        "evaluator-runtime.log": "a41dbc3cd40625200c15d9c7dc08b30ebc9454d56a7e205c2d7cb99121c38fd6",
+        "evaluation.json": "9609af94fcacb226ce52b4c89c934d2c9a8ad690037be8775977ec8fa3f7dfae"
+      },
+      "solver_command_event_sha256": "f4ce72d1bd9e332e11d012d77d44b1026ce888c41204d41eea33e724fbd6c0ea",
+      "classification_note": "ours/Program.cs changed solely for new --pulse-test entry; counted with verification. Production change is Composition.cs."
+    }
+  ],
+  "integrity": {
+    "original_source_data_hashes_checked": 98,
+    "original_inputs_unchanged": true,
+    "runtime_packages_unchanged": true,
+    "immutable_tests_scripts_unchanged": true,
+    "frozen_acceptance_unchanged": true,
+    "engine_working_tree_clean": true,
+    "runtime_changes": false,
+    "remote_push": false
+  },
+  "limitations": [
+    "One attempt per task/engine; convenience sample, no significance or aggregate productivity ratio.",
+    "Different starting architectures, documentation formats/lengths, model prior familiarity and chosen verification effort are uncontrolled.",
+    "Lifecycle task close to newly designed .NET2D ownership API may favor that starting point.",
+    "Headless/offscreen Linux only; excludes visual-editor/tooling differences, manual playability, physical input, Godot pixels, performance, cross-platform and AOT.",
+    "This repository record preserves outcomes, contracts and identities, not a self-contained executable study. Full source/captures/logs were in the companion scratch directory and may be unavailable after cleanup."
+  ],
+  "companion_evidence": {
+    "historical_directory": "../ai-authoring-efficiency/",
+    "report_sha256": "3645e7f2b0e30e2b7cb956a40e58aa556d86edae1a337dd97e74a0385a70950a",
+    "protocol_sha256": "5fe8a116840cbea7da25ce4c4dc01498f022a372919d097f793d2b0ef2ffb12c",
+    "evidence_manifest_sha256": "db391e6e0a3f385ab8f46e3d98746b89a55d833261ebe4d2c683bcba805ba3b4",
+    "all_deliverable_identity_list_sha256": "facae3d1d7aa2119d3303ba532ee882a401a92d9aeb6e6f332bb719024d59cca"
+  }
+}

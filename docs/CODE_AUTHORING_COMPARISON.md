@@ -17,6 +17,11 @@ but the author also maintains more of those connections. This is source/executio
 evidence, not measured human productivity, AI tokens/speed or a universal winner.
 Visual-editor/tooling differences were explicitly excluded.
 
+A later [four-attempt AI maintenance experiment](AI_AUTHORING_EXPERIMENT.md)
+records first-candidate correctness, observed task windows and build/setup friction.
+Both engines passed both tasks; its small sample and confounds do not support a
+general AI productivity ranking. This is separate from the source totals below.
+
 ## Matched tasks and findings
 
 | Slice | What was actually exercised | Source-level result |
