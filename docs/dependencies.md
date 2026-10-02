@@ -98,3 +98,15 @@ from `scripts/generate-audio-fixtures.py`, using Python/ffmpeg for authoring onl
 file blobs were verified. `scripts/build-box2d.sh` builds only the static C17
 library, with no samples/GLFW/enkiTS/ImGui downloads. The full MIT notice is
 retained. Native physics and helper scripts require explicit opt-in.
+
+## Common raster decoding
+
+All graphical builds now require the same pinned SDL_image 3.2.4 package; CPU
+headless builds remain independent of it. `scripts/bootstrap-image-deps.sh` is
+the explicit opt-in preparation step for the existing embedded-STB profile and
+checks the same official archive hash used by the UI bootstrap. It requires the
+prepared SDL 3.4.16 installation and CMake and does not build RmlUi or install
+fonts. The UI bootstrap calls it before its separate RmlUi/Freetype steps.
+`SDL3_IMAGE_PREFIX` selects another install location; its default stays
+`.deps/ui-install` to reuse existing prepared dependencies. Ordinary builds do
+not download or rebuild these dependencies. See [format and lifetime limits](UI_IMAGES.md).

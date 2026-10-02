@@ -1,7 +1,7 @@
 # Resource foundation
 
 This slice provides a synchronous filesystem-backed resource root and an explicit
-BMP texture lifetime. It is shared by the authored-scene sample, two-room/RELAY
+raster texture lifetime. BMP/PNG/JPEG support is described in [UI images and common formats](UI_IMAGES.md). It is shared by the authored-scene sample, two-room/RELAY
 hosts and the settings/game UI source preflight. No native ABI, JSON schema,
 source-generation strategy or bounded XmlReader profile changed in the original resource slice.
 The subsequent [texture-region slice](TEXTURE_REGIONS.md) extends catalog metadata,
@@ -43,7 +43,7 @@ There is no silent change to version-1 resource meaning or second scene schema.
 profiles still allow only sibling `settings.rcss` or `game.rcss`; they gain no
 external images, scripts, arbitrary URLs or bindings. Native UI staging consumes
 the exact validated strings, retaining its prior usable document on rejection.
-RmlUi's internal font/UI GPU objects remain owned by its adapter, not the BMP cache.
+The bound UI profile now separately supports [document-owned images](UI_IMAGES.md). RmlUi's internal font/UI GPU objects remain owned by its adapter, not the world texture cache.
 
 ## Texture ownership
 
@@ -65,9 +65,9 @@ process-global cache and no sharing across native contexts.
   Retaining an existing entry does not consume another slot. Direct low-level native
   texture loads also consume native capacity and can make an upload fail earlier.
   Candidate and retained old resources must fit together during transactional replacement;
-  the cache never silently evicts a live lease
+  a 256 MiB resident RGBA budget also applies; the cache never silently evicts a live lease
 - Headless uses the same validation, key, capacity and ownership contracts with
-  handle zero and no native uploads. It does not decode/render BMP pixels
+  handle zero and no native uploads. It does not decode/render image pixels
 
 `TextureBank.Sync(world)` owns one lease per used catalog key. It first validates
 all uncached additions, then acquires candidate leases before releasing old ones.
@@ -90,7 +90,7 @@ release, so ordinary failed release can be retried.
 `LogicalPath`: `ASSET_ROOT`, `ASSET_PATH`, `ASSET_KEY`, `ASSET_MISSING`, `ASSET_LINK`,
 `ASSET_FILE`, `ASSET_BMP`, `ASSET_UPLOAD` and `ASSET_CAPACITY`. Scene adapters retain
 `SCENE_RESOURCE` plus the exact JSON field; UI adapters retain `UI_FILE` plus the
-resource diagnostic as the inner cause. BMP header/dimensions preflight is shared;
+resource diagnostic as the inner cause. The additive common-format APIs use `ASSET_IMAGE_FORMAT`, `ASSET_IMAGE_SIZE` and `ASSET_IMAGE`; legacy BMP-only APIs keep `ASSET_BMP`. Image header/dimensions preflight is shared;
 native decoding is authoritative, and an apparently plausible header can still
 fail upload.
 
@@ -112,5 +112,5 @@ textures. It is a focused lifetime/integration check, not a pixel-quality, physi
 GPU, latency or cross-platform acceptance test.
 
 [Texture regions](TEXTURE_REGIONS.md) now map multiple IDs to one resident texture.
-Async loading, general asset formats, package files, hot reload, automatic atlas packing,
+Async loading, additional asset formats, package files, hot reload, automatic atlas packing,
 GPU eviction and a global resource database remain separate work.

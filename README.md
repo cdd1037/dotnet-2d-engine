@@ -6,14 +6,14 @@ Start with the [milestone overview](docs/MILESTONE.md) for project structure, cu
 
 ## Authoring principle
 
-This project is primarily designed for AI-driven authoring and iteration. Prefer standard GLSL/HLSL, C#, BMP and explicit versioned JSON over a new language dialect. Verbosity is acceptable when schemas, ownership and behavior are unambiguous. Keep the full workflow accessible through files and CLI commands, with reproducible tests and errors that identify the file, field and cause. Useful abstractions and visual tools remain welcome; essential state must not live only in an editor. A future visual editor is explicitly welcome: it must read/write the same canonical scene/resource formats, stable IDs and validated operations used by AI tools. Human visual edits and AI code/data edits should interoperate without a separate hidden source of truth. Versioned extension metadata and lossless round-tripping need an explicit design before such an editor is built; this milestone does not build one.
+This project is primarily designed for AI-driven authoring and iteration. Prefer standard GLSL/HLSL, C#, standard raster images and explicit versioned JSON over a new language dialect. Verbosity is acceptable when schemas, ownership and behavior are unambiguous. Keep the full workflow accessible through files and CLI commands, with reproducible tests and errors that identify the file, field and cause. Useful abstractions and visual tools remain welcome; essential state must not live only in an editor. A future visual editor is explicitly welcome: it must read/write the same canonical scene/resource formats, stable IDs and validated operations used by AI tools. Human visual edits and AI code/data edits should interoperate without a separate hidden source of truth. Versioned extension metadata and lossless round-tripping need an explicit design before such an editor is built; this milestone does not build one.
 
 ## Implemented
 
 - Minimal ordinary-object C# World: stable entity IDs, separate transform parent/lifetime owner/scene, persistent player and pickup/drop semantics
 - Main-thread lifecycle, error/status ABI, struct version/size checks, atomic batch rejection, explicit frame abort
 - C# world loop and reusable 259-sprite batch, camera keyboard pan/wheel zoom, Space tone and Escape exit
-- Direct SDL_GPU backend: Vulkan/SPIR-V, real BMP textures, affine/rotated sprites, ordered per-texture batches, upload cycling, input and audio
+- Direct SDL_GPU backend: Vulkan/SPIR-V, real BMP/PNG/JPEG textures, affine/rotated sprites, ordered per-texture batches, upload cycling, input and audio
 - Two-room sample: fixed-step AABB movement, world-stable pickup/drop, room cleanup, JSON save/validate/restart restore
 - Offline compiled and embedded SPIR-V; no runtime shader compiler
 - Explicit headless contract-validation mode; never substitutes for a graphics test
@@ -22,7 +22,9 @@ See the [two-room playable milestone](docs/TWO_ROOM.md) for controls, persistenc
 
 ## Resource foundation
 
-[Shared asset roots and texture leases](docs/RESOURCES.md) give authored scenes and UI consistent logical-path validation, copied key mappings, context-owned BMP caching and transactional world resource replacement. `scripts/test.sh quick resources` runs the focused CPU contract checks.
+[Shared asset roots and texture leases](docs/RESOURCES.md) give authored scenes and UI consistent logical-path validation, copied key mappings, context-owned raster caching and transactional world resource replacement. `scripts/test.sh quick resources` runs the focused CPU contract checks.
+
+[Common formats and static UI images](docs/UI_IMAGES.md) add bounded PNG/JPEG decoding through the existing SDL_image backend and document-owned RmlUi images/backgrounds with failed-reload retention. `scripts/test.sh quick images` covers the CPU contracts.
 
 ## Input and viewport foundation
 
@@ -52,6 +54,7 @@ Requires .NET SDK 10.0.401 (validated runtime 10.0.12). This workspace reused `.
 Install SDL3 3.4.16 from its official release and CMake >=3.20, then:
 
 ```sh
+SDL3_PREFIX=/path/to/sdl3/install bash scripts/bootstrap-image-deps.sh # explicit one-time SDL_image setup
 SDL3_PREFIX=/path/to/sdl3/install ./scripts/build-sdl.sh
 LD_LIBRARY_PATH="$PWD/build:/path/to/sdl3/install/lib" dotnet managed/bin/Release/net10.0/GameAuthoringLab.dll --frames 600
 ```
@@ -75,7 +78,7 @@ Explicit attachment ownership and efficient stable sorting: [semantics and valid
 
 ## Small authored-scene slice
 
-Flat authored JSON now has a separate validate/load/run path with stable GUIDs, explicit BMP resource mappings and file/JSON-path/entity diagnostics. The two-instance example preserves equal-layer array ordering. This does not generalize the two-room gameplay save or implement prefab inheritance. See `docs/AUTHORED_SCENES.md`.
+Flat authored JSON now has a separate validate/load/run path with stable GUIDs, explicit image resource mappings and file/JSON-path/entity diagnostics. The two-instance example preserves equal-layer array ordering. This does not generalize the two-room gameplay save or implement prefab inheritance. See `docs/AUTHORED_SCENES.md`.
 
 ### Texture regions
 

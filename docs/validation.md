@@ -844,3 +844,55 @@ archive correction retained the exact executed assembly. Measurements, negative
 compiler diagnostics and AOT maps are in the ignored external module-proof folder.
 See [the public contract and categories](PACKAGE_API_NEXT.md). Real IME, hardware
 GPU/audio, Windows/macOS and broader distribution acceptance remain open.
+
+## Bounded common images and document-owned UI images (2026-10-02)
+
+Feature source: `23c191e976d3073c6da1af09746e1a160c3b8640`. The subsequent documentation
+commit does not change executed code. Linux x64, .NET SDK 10.0.401/runtime 10.0.12,
+SDL 3.4.16, SDL_image 3.2.4 embedded STB and RmlUi 6.3; offscreen Vulkan/lavapipe
+with the existing external Noto CJK font. Dependencies were reused, not rebuilt.
+See [accepted formats, paths, budgets and ownership](UI_IMAGES.md).
+
+- Final complete JIT: **11,053 assertions**, zero build warnings/errors, **3 s**
+  for the incremental native contracts + managed build + aggregate invocation
+- One fresh, isolated NativeAOT publication: zero warnings/errors; its complete
+  CPU self-test also passes **11,053 assertions**
+- Focused image authoring/metadata CPU coverage: **241 common-image +106 UI-image
+  checks**, included in both aggregates rather than a separate full matrix
+- JIT and that fresh AOT each pass **107** actual software-rendered image checks:
+  intrinsic/explicit sizing, nested paths, PNG alpha/zero-alpha, JPEG/BMP,
+  backgrounds, source deletion/edit retention, hidden/hover decode failures,
+  failed first open and retry, pending replacement, 12 alternating reloads,
+  world/UI isolation and normal/engine-first cleanup
+- All **23 JIT/AOT BMP captures are byte-identical**. The initial image readback
+  was also visually inspected; pixel assertions run inside the test itself
+- Existing typed binding native regression: **60 checks**, including composition,
+  repeated lists, generation/revision retirement and zero-allocation unchanged
+  batches. Existing game UI native: **28 checks**. Native UI monotonic-clock
+  regression also passes with the per-document renderer ownership
+- Headless, SDL and UI native builds each pass **6/6 CTest** contracts, including
+  new image metadata and C/native OpenImages boundary checks. Direct actual
+  BMP/PNG/JPEG native GPU uploads end with zero world textures
+- Native metadata helper passes ASan+UBSan. LeakSanitizer is unavailable under
+  this runner's ptrace configuration, so no leak-sanitizer pass is claimed
+- The isolated incremental-build workflow still passes: unchanged **0.105 s**
+  and C#-only **0.114 s**, both with zero compiler invocations; all six contracts
+  run. Its fresh headless build took **5.107 s**. These are one-run observations
+- The opt-in XML differential project builds again with the extracted source-file
+  helper and common-image metadata linked; its large research corpus was not run
+
+Integration exposed and fixed a real URI-lifetime bug before acceptance: preloading
+an already-absolute image URL through RmlUi's JoinPath twice removed its leading
+slash. Manifest preloading now uses the same relative-source/document pair as
+ordinary RML/RCSS resolution. Per-document render managers ensure upstream cache
+keys and queued releases cannot accumulate across arbitrary reloads. Synchronous
+reload may recreate pipelines and regenerate font resources; no reload-latency
+benchmark or hard process-memory sandbox is claimed.
+
+Logs, fresh output and captures are local ignored evidence under
+`evidence/ui-images/`, `build-image-aot/` and `build-image-aot-artifacts/`.
+Bootstrap script changes received shell syntax checks; no dependency download,
+font installation or complete native rebuild was performed. The ordinary package
+consumer matrix, Windows/macOS, hardware GPU/audio and real OS IME were not rerun.
+SVG and WebP remain excluded; the existing NanoSVG backend was assessed as a
+possible later restricted-icon path, not enabled by this batch.
