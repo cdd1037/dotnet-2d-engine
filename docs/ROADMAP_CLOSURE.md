@@ -1,6 +1,6 @@
 # Original roadmap closure audit
 
-Audit begun at the local package proof and updated after tile movement acceptance, 2026-10-01.
+Audit begun at the local package proof; current feature-wave closure, 2026-10-02.
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
@@ -9,15 +9,23 @@ instruction to add every gap found in another engine.
 The project has a repeatable authored playable loop; stable identities and
 explicit world/scene/behavior ownership; bounded resource leases and failure
 retention; atlas regions/flips/stable ordering; frame animation/tweens/timers;
-action mapping and coordinate contracts; optional bounded audio/Box2D/tilemap
-modules; typed UI lists and a synthetic composition bridge; and independent
+action mapping and coordinate contracts; explicit camera follow; optional bounded
+audio/Box2D/tilemap modules including capsules, exact overlap and transactional
+cell/collision edits; polled frame markers; typed UI lists, raster images, optional
+static SVG and a synthetic composition bridge; and independent
 local NuGet consumers in ordinary JIT, trimmed JIT and NativeAOT modes.
 
 These are implemented and exercised. Their documented bounds and software-versus-
 physical validation distinctions remain part of the result. The package proof is
 an integration milestone, not completion of the roadmap.
 
-## Remaining original functional work
+The [combined author smoke](AUTHOR_SMOKE.md) now exercises the recent features
+together in the existing external feature consumer, with three actual framebuffer
+readbacks. [Current package measurements](MILESTONE_PACKAGE_SIZES.md) refresh only
+Sprite/UI trimmed JIT and NativeAOT, preserving the SVG-off baseline and labeling
+the optional SVG delta. This bounded closure ends the current feature wave.
+
+## Original functional work status
 
 | Area | Current evidence | Smallest useful remaining work |
 | --- | --- | --- |
@@ -26,7 +34,7 @@ an integration milestone, not completion of the roadmap.
 | Public render targets/basic post-processing | Owned paired RGBA8 targets, bounded explicit passes, transparent alpha resolve, tint/desaturation and final-window UI; see [contract](RENDER_TARGETS.md) | Current basic software Vulkan slice delivered; no HDR, arbitrary formats, render graph or advanced effect claim |
 | Debug drawing/logging/timing | Bounded line/rectangle buffer, typed log FIFO, opt-in explicit CPU frame/phase timing and native draw counters; see [contract](DIAGNOSTICS.md) | Current bounded slice is delivered; no general profiler, GPU timing or editor claim |
 | Basic tile movement acceptance | [A controllable game fixture](TILE_MOVEMENT.md) now exercises flat-floor standing, both walls, jump/landing, triggers/queries, fixed-step input boundaries and repeatable restart; scripted and displayed cloud X11 checks pass | Current bounded example delivered; richer character helpers remain deferred |
-| Reusable composition/resources | Synchronous BMP cache and flat authored scene loads are repeatable and isolated | Keep current limitations explicit; add only a demonstrated original composition need, with stable IDs and ownership. Async/hot-reload/prefab expansion is deferred |
+| Reusable composition/resources | Synchronous BMP/PNG/JPEG cache and flat authored scene loads are repeatable and isolated | Keep current limitations explicit; add only a demonstrated original composition need, with stable IDs and ownership. Async/hot-reload/prefab expansion is deferred |
 
 The world scissor batch is now complete at its documented software-validation
 boundary: framebuffer coordinates, window/world conversions, stable run ordering,
@@ -47,13 +55,15 @@ is implied by this audit.
 
 ## Acceptance and portability gates
 
-- **Latest distribution proof:** fresh packages from `d07a6ab` pass independent
-  empty/sprite/UI framework-dependent, trimmed JIT and AOT runs. Current renderer
-  and diagnostic modules have positive untrimmed controls and unused-root removal
-  checks; full native payload preservation is explicit. The following [public module boundary](PACKAGE_API_NEXT.md) exposes animation/
-  timing, audio, physics and TileMap to an independent combined consumer. Raw
-  interop, probes and planning/sourcegen internals stay hidden; this remains an
-  experimental local package API with no public package publication
+- **Latest distribution proof:** the [current small-consumer refresh](MILESTONE_PACKAGE_SIZES.md)
+  measures Sprite/UI trimmed JIT and NativeAOT, with positive full-assembly controls,
+  unused managed-module removal checks, byte-identical full native payloads and
+  copied notices. Package source stamps and current-byte equivalence are recorded
+  explicitly. The [public module boundary](PACKAGE_API_NEXT.md) and the recent
+  independent feature consumer establish the experimental APIs in JIT/AOT; the
+  [author smoke](AUTHOR_SMOKE.md) adds a focused SVG-on graphical integration run.
+  Raw interop/probes remain hidden. None of these is public package publication,
+  a stable SDK guarantee or fresh-machine/device acceptance
 - **UI:** a targeted cloud X11 check changed both name and slider, scrolled to the
   bottom, then restored both defaults with one Reset click. A second changed draft
   after scrolling back to the top also reset with one click. This narrow sequence
@@ -86,9 +96,9 @@ is implied by this audit.
 
 The later scope decision takes precedence over earlier proposed bullets. Async
 loading, hot reload, prefab overrides, richer animation tracks/transitions,
-slopes/one-way/moving-platform helpers, custom shape/polygon APIs, rich camera/
-parallax/multiview and expanded TileMap/editor workflows are not reactivated by
-this audit. Basic movement acceptance above remains a game fixture using current
+slopes/one-way/moving-platform helpers, custom shape/polygon APIs, camera features
+beyond the delivered explicit follow/bounds, parallax/multiview and TileMap/editor
+workflows beyond bounded runtime cell editing are not reactivated by this audit. Basic movement acceptance above remains a game fixture using current
 primitives, not an expanded character controller.
 
 Particles, lights/shadows, navigation/pathfinding, skeletal animation, mass-unit
@@ -99,10 +109,12 @@ is an original renderer item; do not relabel it as deferred advanced effects.
 A preliminary Godot/Unity2D inventory is useful now. The requested comprehensive
 **near-completion** comparison is now reasonable with the public package boundary explicitly exercised:
 the core batch status is explicit and desktop acceptance gaps have named blockers.
-Read-only comparison and a UI candidate assessment can proceed autonomously;
-permanent UI selection and actual Windows/macOS/IME/hardware acceptance still need
+Any comparison remains assessment only; this closure does not reopen feature work.
+Permanent UI selection and actual Windows/macOS/IME/hardware acceptance still need
 their respective decision or environment. The comparison must not turn newly
 discovered engine gaps into automatic scope.
+
+Read-only comparison and a UI candidate assessment can inform the next decision.
 
 ## Evidence pointers
 

@@ -1,0 +1,5 @@
+<rml><head><title>Feature author smoke</title><link type="text/rcss" href="author.rcss" /></head><body>
+<div id="panel"><p id="caption">Preparing marker-driven floor</p>
+<img id="palette" src="palette.bmp" width="64" height="32" />
+<svg id="badge" src="badge.svg" width="32" height="32" />
+</div></body></rml>

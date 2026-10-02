@@ -18,6 +18,7 @@ Every entry point prints elapsed wall time and its exit status.
 | Camera follow edit | `scripts/test.sh quick camera` | Default plus pure managed framing, half-life/clock, zoom/bounds and numeric/allocation contracts |
 | Tile movement sample edit | `scripts/test.sh quick movement` | Input/clock boundaries; follow with `--movement-physics-test` on the Box2D build and the [rendered scenario](TILE_MOVEMENT.md) when movement changes |
 | TileMap data/culling edit | `scripts/test.sh quick tilemap` | Default plus strict sourcegen data, atomic cell edits/residency, chunk order/culling, lifetime, CPU collision plans and warmed allocations |
+| Combined feature-authoring integration | `bash scripts/test-author-smoke.sh` | Existing PackageReference fixture; one default headless JIT run plus three actual-pixel phases with the explicitly prepared SVG-on source runtime; no AOT republish |
 | Feature batch | `scripts/test.sh jit` | Native contracts, compile, complete JIT self-test |
 | Interop/trimming/serialization/publish change | `AOT_APP=/absolute/path/to/fresh/app scripts/test.sh aot` | Native contracts and full self-test of the explicitly selected NativeAOT binary |
 | Renderer change | `scripts/test.sh graphics` | Existing software Vulkan pixel checks, requires prepared SDL/ICD environment |

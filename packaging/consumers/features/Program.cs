@@ -2,6 +2,7 @@ using System.Numerics;
 using GameAuthoringLab;
 
 // This ordinary PackageReference caller has no engine source/friend access.
+bool authorSmoke = args.Contains("--author-smoke", StringComparer.Ordinal);
 int assertions = 0;
 void Check(bool condition, string label)
 {
@@ -25,7 +26,7 @@ var assets = new AssetRoot(Path.Combine(AppContext.BaseDirectory, "assets"));
 var loaded = TileMapAsset.LoadAsset(assets, "level.tilemap.json");
 loaded.Source.Layers[0].Cells[0] = 2;
 Check(loaded.Map.Layers[0].Cell(0) == 0, "authored caller DTO does not mutate loaded grid");
-using var engine = EngineHost.Create(headless: true, maxSprites: 32);
+using var engine = EngineHost.Create(headless: !authorSmoke, maxSprites: 32);
 using var physics = engine.OpenPhysics();
 using var map = TileMapInstance.CreateEditable(engine, loaded, new(0, 0));
 using var sibling = new TileMapInstance(engine, loaded, new(256, 0));
@@ -195,6 +196,9 @@ camera = CameraFollow.Snap(camera, new(actor.LocalTransform.X, actor.LocalTransf
 for (int i = 0; i < 3; i++) engine.Draw(camera, batch.RegionDraws);
 Check(engine.GetStats().Frames == 3, "combined public feature scene submits through packaged native library");
 
+if (authorSmoke)
+    assertions += AuthorSmoke.Run(engine, assets, physics, actorBody, map, collision, scale, world, actor, textures, batch);
+
 // Measure only successful warmed public queries; setup, errors and edits allocate.
 for (int i = 0; i < 256; i++)
 {
@@ -216,4 +220,4 @@ Check(physics.State is { Bodies: 0, Shapes: 0, RetiredShapes: 0 } && engine.Text
     "all combined public feature owners release physics and texture resources");
 Check(copiedContact.Type == PhysicsEventType.ContactBegin && retainedMarker.EventId == 20,
     "copied contact and animation events survive owner cleanup");
-Console.WriteLine($"PACKAGE FEATURES PASS assertions={assertions} frames=3 capsule-contact=verified tile-edit=coherent exact-queries=verified query-bytes={queryAllocation} bodies=0 textures=0");
+Console.WriteLine($"PACKAGE FEATURES PASS assertions={assertions} frames={engine.GetStats().Frames} capsule-contact=verified tile-edit=coherent exact-queries=verified query-bytes={queryAllocation} bodies=0 textures=0");

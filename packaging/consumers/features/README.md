@@ -45,3 +45,14 @@ The consumer checks:
 This establishes public package/AOT boundaries and real Box2D behavior. Headless
 submission is not a pixel-rendering, physical-GPU or device test. It is a focused
 integration proof rather than a repetition of the complete engine test suite.
+
+## Opt-in rendered author smoke
+
+`bash scripts/test-author-smoke.sh` copies this same fixture into a fresh external
+folder, runs its normal packaged headless path, then invokes `--author-smoke`
+against an explicitly named **SVG-on source-runtime overlay**. Three frame markers
+close/open/restore the floor and drive the actor image, collision queries, camera
+follow and typed UI with raster/SVG art. The script checks three real framebuffer
+captures and releases all owners. See [the author-smoke guide](../../../docs/AUTHOR_SMOKE.md)
+for prepared dependencies, profile identity and verification limits. The default
+native package stays SVG-off; this focused JIT check does not republish AOT.

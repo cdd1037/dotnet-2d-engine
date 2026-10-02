@@ -1,9 +1,24 @@
-# .NET 2D Engine — foundation milestone
+# .NET 2D Engine — current milestone
 
 Status: experimental independent engine, not a production release. The repository
 name is `dotnet-2d-engine`. Source directories, `GameAuthoringLab`
 managed names and the `gal` native ABI remain unchanged to avoid a disruptive
 rename during integration.
+
+## Current closure (2026-10-02)
+
+The approved basic feature wave is closed; further feature implementation pauses
+here. Recent delivered work includes static raster/UI SVG, camera follow, bounded
+frame-entry events, transactional runtime TileMap cell/collision updates, capsule
+shapes and exact circle/rotated-box queries. See the [current roadmap](ROADMAP.md)
+and [closure audit](ROADMAP_CLOSURE.md) for what remains gated.
+
+The [existing author fixture](AUTHOR_SMOKE.md) combines those features in a small
+three-state rendered scenario. The [small-consumer package refresh](MILESTONE_PACKAGE_SIZES.md)
+separates full uncompressed trimmed-JIT/AOT output, managed trimming, unchanged
+native-profile content and optional SVG overhead. SVG remains off in the default
+native package. Earlier follow-on sections below are historical descriptions;
+current verification/provenance is linked above and in [validation](validation.md).
 
 ## What is here
 
@@ -53,7 +68,7 @@ Current final regression results and executable measurements are maintained in
 [validation](validation.md). Earlier reports retain stage-specific numbers and
 must not be interpreted as the final aggregate executable. NativeAOT executable
 size excludes native shared libraries, assets, fonts and other shipping files.
-No existing package archive is replaced by this source milestone.
+Local experimental packages were rebuilt for the documented proofs; no public package release is implied.
 
 ## Known limits and next decisions
 
@@ -149,8 +164,8 @@ and consistent-build footprint comparisons are recorded in [validation](validati
 ## Physics follow-on
 
 The optional [Box2D foundation](PHYSICS.md) provides fixed-step static/dynamic/
-kinematic bodies, circle/box shapes, filters/sensors, copied begin/end events and
-bounded closest-ray/broad-phase AABB queries. Units and transform authority are
+kinematic bodies, circle/box/capsule shapes, filters/sensors, copied begin/end events,
+bounded closest-ray/broad-phase AABB and exact circle/rotated-box queries. Units and transform authority are
 explicit; scene ownership uses existing teardown hooks. The strict source-generated
 fixture and tests do not establish a full character controller, rich authoring
 workflow or cross-platform determinism guarantee.

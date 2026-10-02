@@ -1192,3 +1192,49 @@ repeat of the full package/trim/graphics/device matrix or a full-host AOT self-t
 No new dependencies, serialization schema, managed callbacks, arbitrary polygons,
 joints, chains, shape casts, controller/navigation or cross-platform acceptance
 were added. No public package feed/release was published.
+
+## Bounded feature-wave closure (2026-10-02)
+
+The current wave stops after docs, one useful combined author fixture and the
+small-consumer footprint refresh. No additional engine feature or dependency was
+introduced in this closure.
+
+- The existing external feature consumer's default **SVG-off packaged native**
+  headless path still passes **56 assertions**, three frames, zero managed bytes
+  across 4,000 warmed exact queries, and zero remaining bodies/textures
+- Its opt-in [author smoke](AUTHOR_SMOKE.md) uses an explicitly named **SVG-on
+  source-runtime overlay**. It passes **71 additional integration assertions**,
+  **127 total**, and seven frames including setup. Three actual 960×540 readbacks
+  show marker-driven floor closed/open/restored states, exact-query/collision
+  coherence, capsule fall/restoration, camera follow, animated atlas selection,
+  typed UI updates, raster image and SVG pixels. All captures were visually checked
+- The first fixture attempt used an exact-color expectation at the center of a
+  magnified two-pixel raster; linear filtering differs by four intensity levels.
+  The final assertion has that explicit bounded tolerance. The clear color is
+  sampled from the same frame instead of assuming another test fixture's color.
+  These were smoke-oracle corrections; no engine integration bug or speculative
+  runtime change resulted
+- The [package refresh](MILESTONE_PACKAGE_SIZES.md) performs exactly **four** focused
+  publishes: Sprite/UI trimmed JIT and NativeAOT. All four run, retain required
+  assets/notices and the byte-identical full SVG-off native profile, and pass unused
+  managed-root checks with full-DLL positive controls. UI trim/AOT readbacks are
+  byte-identical. There is no repeated empty/FDD/negative-compile matrix
+- Source provenance is explicit: the managed archive retains an earlier revision
+  stamp, but rebuilding current managed sources with that recorded stamp produces
+  its DLL byte-for-byte. The native package's inputs match its revision. The size
+  report retains the hashes and caveat rather than silently equating both stamps
+- One final `scripts/test.sh jit` aggregate passes **11,583 assertions**, native
+  CTest **8/8**, and zero compiler warnings/errors. The invocation reported **13 s**;
+  this is one run, not a benchmark. Native targets were already current
+
+The original 56-assertion recent-feature JIT/AOT proof is retained separately.
+This closure's new combined graphical mode was not AOT-published, and there is no
+new full-host AOT, real OS IME, physical GPU/audio, Windows/macOS or clean-machine
+acceptance claim. Default package SVG is still off; optional SVG footprint is a
+separate same-profile native comparison. No public package feed/release was made.
+
+Evidence: `evidence/milestone-closure/final-jit.log`, the source/hashes in
+`/tmp/dotnet2d-author-smoke-final-20261002`, and the independently copied package
+proof `/tmp/dotnet2d-small-milestone-20261002`. The roadmap and closure audit now
+point to this status instead of treating historical feature follow-ons as a new
+work queue.

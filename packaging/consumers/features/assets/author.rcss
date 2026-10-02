@@ -1,0 +1,5 @@
+body { font-family: "Noto Sans CJK SC"; font-size: 18px; color: #ffffff; }
+#panel { position: absolute; left: 16px; top: 16px; width: 320px; height: 104px; background-color: #203040; }
+#caption { position: absolute; left: 16px; top: 8px; margin: 0px; }
+#palette { position: absolute; left: 16px; top: 48px; }
+#badge { position: absolute; left: 112px; top: 48px; }

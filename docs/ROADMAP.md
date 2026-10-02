@@ -5,35 +5,32 @@ proposed delivery stages, not claims of implemented support or approval to insta
 publish or deploy anything. Use small playable examples to validate general-purpose engine capabilities;
 one sample is a starting point, not the engine feature ceiling.
 
-## Current progress and immediate order
+## Current milestone closure (2026-10-02)
 
-Phase 1's playable loop is committed locally as `105eb06`. Continued incremental
-engine implementation is authorized (2026-10-01); external publication and new
-dependency selections remain separate decisions. The resource batch adds
-shared root/path validation, stable key mappings and explicit context-owned BMP
-texture leases; see [resource foundation](RESOURCES.md).
+The agreed basic Linux capability slice is delivered at its documented CPU and
+software-Vulkan boundaries. Recent additions are [raster UI images](UI_IMAGES.md),
+[optional static SVG](UI_SVG.md), [camera follow](CAMERA_FOLLOW.md),
+[polled frame markers/clip selection](ANIMATION_TIMING.md),
+[transactional runtime TileMap edits](TILEMAP.md), and
+[capsule shapes/exact circle and rotated-box overlap](PHYSICS.md).
+They extend the existing resource/input/atlas, clipping/material/target,
+audio/physics, typed-binding and bounded-diagnostics foundations.
 
-The input/viewport batch now adds versioned raw/routed edges, coordinate helpers
-and managed action bindings; see [input contract](INPUT_VIEWPORT.md). Rendering
-now includes [texture regions/atlas UVs](TEXTURE_REGIONS.md) and managed
-[frame animation, tweening and timers](ANIMATION_TIMING.md), plus
-[world rectangular clipping](WORLD_CLIPPING.md) and bounded
-[sprite materials/offline GLSL](MATERIALS.md), plus explicit
-[RGBA8 targets/basic post-processing](RENDER_TARGETS.md). Box2D and SDL_mixer
-evaluation/integration are authorized after version, license, footprint and platform
-validation. The separate [SDL 3.4.16 upgrade](SDL_UPGRADE.md) is now validated.
-The minimal [SDL_mixer audio module](AUDIO.md) now covers clips, streams, gains and
-explicit lifetimes. The [Box2D foundation](PHYSICS.md) now adds bounded bodies,
-shapes, events and queries with explicit units/ownership. The managed
-[basic TileMap](TILEMAP.md) adds bounded authored grids, chunk-assisted visibility
-culling and optional generated static collision.
-The [UI text-input/ownership follow-on](UI_TEXT_INPUT.md) now validates the
-composition bridge and candidate-coordinate contract synthetically. The
-[typed UI binding/list profile](UI_BINDINGS.md) adds explicit C# projections and
-bounded stable-ID list mutations. Real desktop IME acceptance remains outstanding.
-The advanced-effects group remains deferred.
-The delivery stages below remain useful acceptance targets, not a replacement for
-this engine-capability order.
+The existing independent feature fixture now has a small
+[combined author smoke](AUTHOR_SMOKE.md): frame markers edit a floor, exact queries
+and a real capsule observe the same collision change, the camera follows, and a
+typed UI with raster/SVG artwork renders the result. Current
+[Sprite/UI package sizes and trimming](MILESTONE_PACKAGE_SIZES.md) are measured
+separately from that SVG-on source-profile smoke. The default native package
+continues to disable SVG; optional SVG overhead is identified explicitly.
+
+This closes the approved feature wave. Pause feature implementation here; do not
+turn historical proposals or newly discovered gaps into automatic scope. The
+remaining decisions are platform/device acceptance, real OS IME, permanent UI
+choice and broader distribution, as enumerated in the [closure audit](ROADMAP_CLOSURE.md).
+Advanced effects, async/hot-reload/prefab expansion, richer controllers, editor,
+mobile and Web remain deferred. The stages below retain the longer-term goals and
+acceptance criteria; they are not a new implementation queue.
 
 ## 1. Turn the sample into a repeatable small game
 
@@ -101,8 +98,8 @@ editor adds a second authoring surface. A Godot fork is outside this project.
 ## Engine capability track (alongside the stages above)
 
 The stages above describe integration, authoring and delivery. They do not replace
-building reusable 2D engine functionality. Phase 1 is complete and focused resource/input/rendering
-batches are being advanced incrementally. The following remains a prioritized
+building reusable 2D engine functionality. Phase 1 and the agreed focused resource/input/rendering
+feature wave are complete at the documented validation boundaries. The following remains a prioritized
 roadmap, not a dependency selection or instruction to implement everything immediately.
 
 ### A. Resources, scenes, rendering and animation
@@ -167,7 +164,7 @@ to avoid designing the entire engine around one game.
 - Scope small edits to quick compile and related CPU checks
 - Full JIT once per feature batch; AOT/graphics when the affected boundary needs it
 - One necessary final aggregate per milestone; preserve evidence provenance
-- No remote publication, releases or new platform-support claims by implication
+- No releases, new package-feed publication or new platform-support claims by implication
 - No full ECS, generic physics framework or editor expansion without a concrete
   need demonstrated by representative game examples
 

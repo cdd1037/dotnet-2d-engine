@@ -95,7 +95,16 @@ no font bytes are packaged. This is not a fully self-contained OS/driver/font im
 See [native packaging](NATIVE_PACKAGE.md) for the glibc/C++ baseline, loader checks,
 complete selected notices and excluded host dependencies.
 
-## Measured results
+## Current refresh
+
+The [2026-10-02 small-consumer refresh](MILESTONE_PACKAGE_SIZES.md) supersedes the
+Sprite/UI footprint figures for the latest feature wave. It keeps the default
+SVG-off native profile, identifies current package/source bytes explicitly and
+reports optional SVG overhead separately. The historical nine-mode matrix below
+is retained as evidence for its own source revision; it is not rerun for every edit.
+The [combined author smoke](AUTHOR_SMOKE.md) is a separate focused graphical proof.
+
+## Historical measured results
 
 Refreshed on 2026-10-01 from runtime/native source `d07a6ab`, after clipping,
 diagnostics, materials, render targets and movement acceptance. Both package

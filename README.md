@@ -4,6 +4,11 @@ An independent, AI-authoring-first 2D engine prototype: .NET 10 main executable 
 
 Start with the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. The [closure audit](docs/ROADMAP_CLOSURE.md) distinguishes delivered foundations, remaining original work and deferred expansion.
 
+The approved basic feature wave is now closed. The [combined author smoke](docs/AUTHOR_SMOKE.md)
+exercises camera follow, animation markers, live tile/collision edits and UI images/SVG;
+the [current package-size refresh](docs/MILESTONE_PACKAGE_SIZES.md) preserves the default
+SVG-off native profile. Platform/device, real IME and distribution gates remain open.
+
 ## Authoring principle
 
 This project is primarily designed for AI-driven authoring and iteration. Prefer standard GLSL/HLSL, C#, standard raster images and explicit versioned JSON over a new language dialect. Verbosity is acceptable when schemas, ownership and behavior are unambiguous. Keep the full workflow accessible through files and CLI commands, with reproducible tests and errors that identify the file, field and cause. Useful abstractions and visual tools remain welcome; essential state must not live only in an editor. A future visual editor is explicitly welcome: it must read/write the same canonical scene/resource formats, stable IDs and validated operations used by AI tools. Human visual edits and AI code/data edits should interoperate without a separate hidden source of truth. Versioned extension metadata and lossless round-tripping need an explicit design before such an editor is built; this milestone does not build one.
