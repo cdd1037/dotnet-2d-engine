@@ -23,12 +23,12 @@ internal static class GameUiAuthoring
     }
     public static (string Rml, string Rcss) ValidateAsset(AssetRoot assets, string logicalPath)
     {
-        var files = UiAuthoring.ReadAssetFiles(assets, logicalPath, "game.rcss");
+        var files = UiSourceFiles.ReadAssetFiles(assets, logicalPath, "game.rcss");
         return Validate(files.Rml, files.Rcss, files.RmlFile, files.RcssFile);
     }
     internal static (string Rml,string Rcss) Validate(ReadOnlySpan<byte> rml,ReadOnlySpan<byte> css,string file="game.rml",string cssFile="game.rcss")
     {
-        string markup=UiAuthoring.Decode(rml,file),style=UiAuthoring.Decode(css,cssFile);
+        string markup=UiSourceFiles.Decode(rml,file),style=UiSourceFiles.Decode(css,cssFile);
         var root=UiAuthoring.ParseXml(markup,file).Root??throw Error(file,null,"Missing root.");
         void Require(bool condition,UiXmlElement node,string cause){if(!condition)throw Error(file,node,cause);}
         Require(root.Name=="rml",root,"Expected rml root.");

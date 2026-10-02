@@ -6,18 +6,18 @@ namespace GameAuthoringLab;
 /// Bounded, schema-driven authoring profile. Binding IDs belong to the caller's copied schema;
 /// all other IDs/classes describe static layout only. Native code owns generated list buttons.
 /// XML and RCSS use the same bounded tokenizers and finite property grammar as existing profiles.
-/// The only resource is the RML file's exact same-basename sibling stylesheet. These immutable
+/// The same-basename stylesheet and bounded static image references are the only resources. These immutable
 /// source snapshots, not another filesystem read, must be passed to native staging.
 /// </summary>
 internal static class BoundUiAuthoring
 {
     private static readonly HashSet<string> BodyTags = new(StringComparer.Ordinal)
-        { "div", "h1", "h2", "p", "label", "button", "input" };
+        { "div", "h1", "h2", "p", "label", "button", "input", "img" };
     private static readonly string[] RangeParts = ["slidertrack", "sliderbar", "sliderprogress", "sliderarrowdec", "sliderarrowinc"];
     private static readonly string[] ScrollParts = ["scrollbarvertical", "scrollbarvertical slidertrack", "scrollbarvertical sliderbar",
         "scrollbarvertical sliderarrowdec", "scrollbarvertical sliderarrowinc"];
 
-    public static (string Rml, string Rcss, string Stylesheet) ValidateAsset(
+    public static BoundUiDocument ValidateAsset(
         AssetRoot assets, string logicalPath, IReadOnlyList<UiBindingTarget> targets)
     {
         ArgumentNullException.ThrowIfNull(assets);
@@ -25,11 +25,12 @@ internal static class BoundUiAuthoring
         try { assets.ValidateLogicalPath(logicalPath); }
         catch (AssetException e) { throw new UiAuthoringException("UI_FILE", logicalPath, 1, 1, "$", e.Message, e); }
         string stylesheet = StylesheetFor(logicalPath);
-        var files = UiAuthoring.ReadAssetFiles(assets, logicalPath, stylesheet);
-        return Validate(files.Rml, files.Rcss, targets, files.RmlFile, files.RcssFile);
+        var files = UiSourceFiles.ReadAssetFiles(assets, logicalPath, stylesheet);
+        var source = Validate(files.Rml, files.Rcss, targets, files.RmlFile, files.RcssFile);
+        return source with { Images = UiImageResources.Read(assets, logicalPath, source.References) };
     }
 
-    internal static (string Rml, string Rcss, string Stylesheet) Validate(ReadOnlySpan<byte> rml,
+    internal static BoundUiDocument Validate(ReadOnlySpan<byte> rml,
         ReadOnlySpan<byte> rcss, IReadOnlyList<UiBindingTarget> targets,
         string file = "bound.rml", string cssFile = "bound.rcss")
     {
@@ -37,7 +38,7 @@ internal static class BoundUiAuthoring
         string stylesheet = StylesheetFor(file);
         if (!string.Equals(Path.GetFileName(cssFile), stylesheet, StringComparison.Ordinal))
             throw new UiAuthoringException("UI_RESOURCE", file, 1, 1, "head/link@href", "Stylesheet must have the RML file's same basename.");
-        string markup = UiAuthoring.Decode(rml, file), style = UiAuthoring.Decode(rcss, cssFile);
+        string markup = UiSourceFiles.Decode(rml, file), style = UiSourceFiles.Decode(rcss, cssFile);
         var root = UiAuthoring.ParseXml(markup, file).Root
             ?? throw Error("UI_STRUCTURE", file, null, "Missing rml root.");
         Require(root.Name == "rml", "UI_STRUCTURE", file, root, "Expected rml root.");
@@ -51,6 +52,7 @@ internal static class BoundUiAuthoring
         Require(link.Attribute("type")?.Value == "text/rcss" && link.Attribute("href")?.Value == stylesheet,
             "UI_RESOURCE", file, link, "Only the exact sibling stylesheet '" + stylesheet + "' is allowed.");
 
+        var images = new List<UiImageReference>();
         var ids = new Dictionary<string, UiXmlElement>(StringComparer.Ordinal);
         var classes = new HashSet<string>(StringComparer.Ordinal) { "bound-row", "bound-items" };
         foreach (UiXmlElement node in root.DescendantsAndSelf())
@@ -71,6 +73,7 @@ internal static class BoundUiAuthoring
                 {
                     "id" or "class" => content,
                     "for" => content && tag == "label",
+                    "src" or "width" or "height" => content && tag == "img",
                     "href" => node == link,
                     "type" => node == link || content && tag == "input",
                     "value" or "maxlength" or "min" or "max" or "step" or "checked" => content && tag == "input",
@@ -102,7 +105,18 @@ internal static class BoundUiAuthoring
                 Require(!node.HasElements, "UI_STRUCTURE", file, node, "Text elements cannot contain nested markup.");
                 CheckText(node.Value.Trim(), 512, 256, file, node);
             }
-            if (tag is "input" or "link")
+            if (tag == "img")
+            {
+                var src = node.Attribute("src");
+                Require(src is not null, "UI_RESOURCE", file, node, "Image requires a src path.");
+                UiImageResources.Add(images, new(src!.Value, file, src.LineNumber, src.LinePosition, "img@src"));
+                foreach (string dimension in new[] { "width", "height" })
+                    if (node.Attribute(dimension) is { } size)
+                        Require(size.Value.Length is >= 1 and <= 4 && size.Value.All(char.IsAsciiDigit)
+                            && int.TryParse(size.Value, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n is >= 1 and <= 4096,
+                            "UI_VALUE", file, size, "Image dimension must be an integer 1..4096.");
+            }
+            if (tag is "input" or "link" or "img")
                 Require(!node.HasElements && string.IsNullOrWhiteSpace(node.Value), "UI_STRUCTURE", file, node, "This element must be empty.");
             if (tag is "input" or "button")
                 Require(node.Attribute("id") is { } controlId && schema.ContainsKey(controlId.Value),
@@ -128,8 +142,8 @@ internal static class BoundUiAuthoring
                 && kind is UiBindingKind.TextInput or UiBindingKind.Boolean or UiBindingKind.Number,
                 "UI_BINDING", file, label, "A label must refer to a registered input target.");
         }
-        ValidateStyle(style, cssFile, ids, classes, schema);
-        return (markup, style, stylesheet);
+        ValidateStyle(style, cssFile, ids, classes, schema, images);
+        return new(markup, style, stylesheet, images.AsReadOnly(), Array.Empty<UiImageResource>());
     }
 
     internal static Dictionary<string, UiBindingKind> ValidateSchema(IReadOnlyList<UiBindingTarget> targets)
@@ -199,7 +213,7 @@ internal static class BoundUiAuthoring
     }
 
     private static void ValidateStyle(string style, string file, Dictionary<string, UiXmlElement> ids,
-        HashSet<string> classes, Dictionary<string, UiBindingKind> schema)
+        HashSet<string> classes, Dictionary<string, UiBindingKind> schema, List<UiImageReference> images)
     {
         var generated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (id, kind) in schema)
@@ -227,6 +241,15 @@ internal static class BoundUiAuthoring
         }
         bool Property(string selector, string property, string value)
         {
+            if (property == "decorator")
+            {
+                if (value == "none") return true;
+                if (!value.StartsWith("image(", StringComparison.Ordinal) || !value.EndsWith(')')) return false;
+                string path = value[6..^1];
+                if (!UiImageResources.ValidPath(path)) return false;
+                UiImageResources.Add(images, new(path, file, 1, 1, selector + "/decorator"));
+                return true;
+            }
             if (property is "overflow-x" or "overflow-y")
                 return selector.StartsWith('#') && schema.TryGetValue(selector[1..], out var kind) && kind == UiBindingKind.List
                     && UiAuthoring.ValidProperty("#item-list", property, value);
@@ -234,7 +257,7 @@ internal static class BoundUiAuthoring
                 return ButtonSelector(selector.Split(':')[0]) && UiAuthoring.ValidProperty("button", property, value);
             return UiAuthoring.ValidProperty(selector, property, value);
         }
-        UiAuthoring.ValidateBoundStyle(style, file, Selector, Property);
+        UiAuthoring.ValidateBoundStyle(style, file, Selector, Property, imageFunctions: true);
     }
 
     private static string StylesheetFor(string file)

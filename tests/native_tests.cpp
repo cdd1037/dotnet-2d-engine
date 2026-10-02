@@ -1,4 +1,5 @@
 #include "gal.h"
+#include "gal_ui.h"
 #include <algorithm>
 #include <cassert>
 #include <array>
@@ -159,7 +160,20 @@ static int target_contract(){
  std::cout<<"PASS target/pass ABI, atomic validation, dimensions/budget/capacity, texture ownership, feedback, stale/context and legacy contracts\n";
  return 0;
 }
+static int image_ui_abi_contract(){
+ gal_config config{sizeof(config),1,64,64,1,GAL_HEADLESS};gal_context*c=nullptr;
+ gal_bound_ui_target target{sizeof(target),1,0,0,"label"};const char*images[]={"image.png"};
+ REQUIRE(gal_bound_ui_open_images(nullptr,"sample.rml","font.ttc",&target,1,images,1)==-1);
+ REQUIRE(gal_create(&config,&c)==0);
+ REQUIRE(gal_bound_ui_open_images(c,nullptr,nullptr,nullptr,0,nullptr,0)==-1);
+ REQUIRE(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&target,1,nullptr,1)==-1);
+ REQUIRE(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&target,1,images,33)==-1);
+ REQUIRE(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&target,1,images,1)==-1);
+ REQUIRE(gal_destroy(c)==0);
+ std::puts("PASS additive UI image ABI and unsupported headless contracts");return 0;
+}
 int main(){
+ if(image_ui_abi_contract())return 1;
  static_assert(sizeof(gal_config)==24 && sizeof(gal_sprite)==32 && sizeof(gal_input)==32 && sizeof(gal_stats)==20,"ABI sizes");
  static_assert(sizeof(gal_draw_v2)==88&&sizeof(gal_clip_rect)==32,"additive draw and clip ABI sizes");
  gal_config config{sizeof(config),1,640,480,64,GAL_HEADLESS};

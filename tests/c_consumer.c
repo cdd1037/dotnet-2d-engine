@@ -73,5 +73,12 @@ int main(void){
  custom.material=0;for(unsigned i=0;i<8;i++)custom.parameters[i]=0;custom.sprite.draw.texture=target;
  if(gal_render_frame_v1(c,passes,2,&custom,1,&clip,1)!=0)return 9;
  if(gal_target_release(c,target)!=0||gal_texture_count(c,&live)!=0||live!=0||gal_target_release(c,target)!=-1)return 10;
+ /* This is a C11 signature/export check, including nested const pointers.
+    UI remains unsupported for a headless context, even with valid inputs. */
+ gal_bound_ui_target binding={sizeof(binding),1,0,0,"label"};const char* images[]={"image.png"};
+ if(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&binding,1,images,1)!=-1)return 11;
+ if(gal_bound_ui_open_images(c,0,0,0,0,0,0)!=-1)return 12;
+ if(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&binding,1,0,1)!=-1)return 13;
+ if(gal_bound_ui_open_images(c,"sample.rml","font.ttc",&binding,1,images,33)!=-1)return 14;
  return gal_destroy(c)!=0;
 }

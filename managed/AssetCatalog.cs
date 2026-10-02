@@ -49,7 +49,7 @@ public sealed class AssetCatalog
         try { TextureFor(key).Region?.Validate(info.Width, info.Height); }
         catch (ArgumentOutOfRangeException e) { throw new AssetException("ASSET_REGION", Root, key, e.Message, e); }
     }
-    public string PathFor(string key) => Assets.ValidateBitmap(LogicalPathFor(key));
+    public string PathFor(string key) => Assets.ValidateImage(LogicalPathFor(key));
 }
 
 /// <summary>

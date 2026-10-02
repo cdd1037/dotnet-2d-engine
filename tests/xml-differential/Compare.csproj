@@ -7,11 +7,13 @@
     <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../managed/UiSourceFiles.cs" />
     <Compile Include="../../managed/UiAuthoring.cs" />
     <Compile Include="../../managed/UiXmlModel.cs" />
     <Compile Include="../../managed/UiAuthoringTests.cs" />
     <!-- Source-file validation now uses the shared asset root and bitmap metadata type. -->
     <Compile Include="../../managed/AssetRoot.cs" />
+    <Compile Include="../../managed/ImageAsset.cs" />
     <Compile Include="../../managed/TextureRegion.cs" />
   </ItemGroup>
 </Project>

@@ -134,7 +134,7 @@ public static class AuthoredScene
                 // Version 1 remains relative to its scene. The root supplies one namespace,
                 // not a second meaning for an existing resource field.
                 string logical = assets.Sibling(sourceLogical, resource.Path);
-                var info = assets.ReadBitmapInfo(logical);
+                var info = assets.ReadImageInfo(logical);
                 paths[resource.Key] = info.Path;
                 try { resource.Region?.ToRegion().Validate(info.Width, info.Height); }
                 catch (ArgumentOutOfRangeException e) { throw Error("SCENE_RESOURCE", file, prefix + ".region", null, e.Message, e); }

@@ -38,6 +38,7 @@ public sealed class UiBindings<T>
 internal static unsafe partial class BoundUiNative
 {
     [LibraryImport("gal",EntryPoint="gal_bound_ui_open",StringMarshalling=StringMarshalling.Utf8)] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Open(nint context,string path,string font,BoundTarget* targets,uint count);
+    [LibraryImport("gal",EntryPoint="gal_bound_ui_open_images",StringMarshalling=StringMarshalling.Utf8)] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int OpenImages(nint context,string path,string font,BoundTarget* targets,uint count,byte** imagePaths,uint imageCount);
     [LibraryImport("gal",EntryPoint="gal_bound_ui_apply")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Apply(nint context,BoundSnapshot* snapshot,BoundValue* values,BoundRow* rows);
     [LibraryImport("gal",EntryPoint="gal_bound_ui_poll")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Poll(nint context,BoundAction* action);
     [LibraryImport("gal",EntryPoint="gal_bound_ui_test_command")] [UnmanagedCallConv(CallConvs=[typeof(CallConvCdecl)])] internal static partial int Test(nint context,uint command,BoundAction* action);
@@ -53,9 +54,18 @@ public sealed unsafe class BoundUiSession<T>:UiSessionOwner
     private readonly BoundRow[] _rows=new BoundRow[64],_sentRows=new BoundRow[64];
     private uint _generation,_revision,_rowCount;
     private bool _applying;
+    private UiSourceStaging? _currentStage,_pendingStage;
+    private uint _pendingGeneration;
     public UiBindingStatus Status {get{var state=State;return new(state.Generation,state.Generation==_generation?_revision:0,state.Loaded!=0,state.Pending!=0,state.Queued,state.Overflow,UiNative.Text(state.Diagnostic,512));}}
     public uint Revision {get{CheckAccess();return _generation==0||State.Generation!=_generation?0:_revision;}}
-    internal UiState State {get{var state=new UiState{Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"bound UI state");return state;}}
+    internal UiState State {get{var state=new UiState{Size=(uint)sizeof(UiState)};Native.Check(UiNative.State(Context,&state),"bound UI state");RefreshStaging(state);return state;}}
+    private void RefreshStaging(UiState state)
+    {
+        if(_pendingStage is null||state.Pending!=0)return;
+        if(state.Loaded!=0&&state.Generation!=_pendingGeneration){_currentStage?.Dispose();_currentStage=_pendingStage;}
+        else _pendingStage.Dispose();
+        _pendingStage=null;
+    }
     public IReadOnlyList<UiBindingTarget> Targets {get;}
     public BoundUiSession(EngineHost engine,UiBindings<T> bindings):this(engine,Freeze(bindings)){}
     private static UiBindings<T>.Binding[] Freeze(UiBindings<T> bindings){ArgumentNullException.ThrowIfNull(bindings);return bindings.Freeze();}
@@ -71,12 +81,22 @@ public sealed unsafe class BoundUiSession<T>:UiSessionOwner
     public void LoadAsset(AssetRoot assets,string logicalPath)
     {
         CheckAccess();var source=BoundUiAuthoring.ValidateAsset(assets,logicalPath,_targets);
-        string staging=Path.Combine(Path.GetTempPath(),"gal-bound-ui-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(staging);
+        uint generation=_currentStage is not null||_pendingStage is not null?State.Generation:0;
+        UiSourceStaging? staging=UiSourceStaging.Create(source);
+        byte** paths=stackalloc byte*[UiImageResources.MaximumImages];
+        int allocated=0;
         try{
-            File.WriteAllText(Path.Combine(staging,"bound.rml"),source.Rml,new UTF8Encoding(false));
-            File.WriteAllText(Path.Combine(staging,source.Stylesheet),source.Rcss,new UTF8Encoding(false));
-            fixed(BoundTarget* targets=_nativeTargets)Native.Check(BoundUiNative.Open(Context,Path.Combine(staging,"bound.rml"),Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",targets,(uint)_nativeTargets.Length),"bound UI stage");MarkNativeOpened();
-        }finally{Directory.Delete(staging,true);}
+            foreach(var image in source.Images)paths[allocated++]=(byte*)Marshal.StringToCoTaskMemUTF8(image.Path);
+            fixed(BoundTarget* targets=_nativeTargets)Native.Check(BoundUiNative.OpenImages(Context,staging.DocumentPath,Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",targets,(uint)_nativeTargets.Length,paths,(uint)source.Images.Count),"bound UI stage");
+            MarkNativeOpened();
+            _pendingStage?.Dispose();_pendingStage=staging;_pendingGeneration=generation;staging=null;
+        }catch{
+            // Native open can discard an older pending candidate while preserving the live document.
+            if(_pendingStage is not null)_=State;throw;
+        }finally{
+            for(int i=0;i<allocated;i++)Marshal.FreeCoTaskMem((nint)paths[i]);
+            staging?.Dispose();
+        }
     }
     internal uint Project(T model)
     {
@@ -131,7 +151,7 @@ public sealed unsafe class BoundUiSession<T>:UiSessionOwner
         for(uint r=value.RowFirst;r<value.RowFirst+value.RowCount;r++)if(_sentRows[r].Id==action.RowId)return (_sentRows[r].Flags&1)!=0;
         return false;
     }
-    protected override void OnClosed(){if(_bindings is not null)Array.Clear(_bindings);_generation=_revision=_rowCount=0;}
+    protected override void OnClosed(){if(_bindings is not null)Array.Clear(_bindings);_generation=_revision=_rowCount=0;_pendingStage?.Dispose();_pendingStage=null;_currentStage?.Dispose();_currentStage=null;}
     public void Capture(string path)=>Native.Check(UiNative.Capture(Context,Path.GetFullPath(path)),"bound UI capture");
     internal UiBindingAction Probe(uint command,int target,ulong row=0,string text="",int number=0,bool boolean=false)
     {

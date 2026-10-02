@@ -118,6 +118,7 @@ GAL_API int GAL_CALL gal_target_release(gal_context*,uint64_t target);
    may leave executed target contents changed; a validation failure never does. */
 GAL_API int GAL_CALL gal_render_frame_v1(gal_context*,const gal_render_pass_v1*,uint32_t pass_count,const gal_material_draw_v1*,uint32_t draw_count,const gal_clip_rect*,uint32_t clip_count);
 GAL_API int GAL_CALL gal_texture_get_info(gal_context*,uint64_t,gal_texture_info*);
+/* Legacy export name retained: graphical builds accept bounded BMP/PNG/JPEG. */
 GAL_API int GAL_CALL gal_texture_load_bmp(gal_context*,const char* utf8_path,uint64_t* texture);
 GAL_API int GAL_CALL gal_texture_release(gal_context*,uint64_t texture);
 GAL_API int GAL_CALL gal_texture_count(gal_context*,uint32_t* count);

@@ -3,6 +3,7 @@
 #include "resolve_spv.h"
 #include "input_state.h"
 #include "clip_rect.h"
+#include "image_loader.h"
 #include <SDL3/SDL.h>
 #include <cmath>
 #include <algorithm>
@@ -22,7 +23,8 @@ struct Backend {
  SDL_GPUTransferBuffer* transfer=nullptr; SDL_GPUTexture* texture=nullptr; SDL_GPUSampler* sampler=nullptr;
  SDL_AudioStream* audio=nullptr; SDL_InitFlags init_flags=0; bool claimed=false; bool drawable=true; bool minimized=false; int projection_width=0,projection_height=0; InputState input;
  std::vector<float> tone;
- std::vector<std::pair<uint64_t,SDL_GPUTexture*>> textures;
+ struct Texture { uint64_t first;SDL_GPUTexture* second;uint64_t rgba_bytes=0; };
+ std::vector<Texture> textures;uint64_t texture_rgba_bytes=0;
  struct Material { uint64_t id; SDL_GPUGraphicsPipeline* window; SDL_GPUGraphicsPipeline* target; };
  struct Target { uint64_t id; SDL_GPUTexture* attachment; SDL_GPUTexture* sampled; int32_t width,height; };
  std::vector<Material> materials;
@@ -298,34 +300,25 @@ bool backend_render_frame(Backend*b,const Vertex*data,uint32_t count,const DrawR
 bool backend_tone(Backend*b,std::string&e){if(!b->audio){e="audio disabled";return false;}int queued=SDL_GetAudioStreamQueued(b->audio);if(queued<0)return error(e);if(queued>48000*4){e="audio queue limit";return false;}return SDL_PutAudioStreamData(b->audio,b->tone.data(),int(b->tone.size()*sizeof(float)))||error(e);}
 
 bool backend_texture_load(Backend*b,const char*path,uint64_t id,int32_t&width,int32_t&height,std::string&e){
- // Bound the allocation before SDL decodes user-authored image metadata.
- {
-  std::unique_ptr<SDL_IOStream,decltype(&SDL_CloseIO)> input(SDL_IOFromFile(path,"rb"),SDL_CloseIO);if(!input)return error(e);
-  unsigned char header[26]{};Sint64 bytes=SDL_GetIOSize(input.get());
-  if(bytes<26||bytes>70*1024*1024||SDL_ReadIO(input.get(),header,sizeof(header))!=sizeof(header)||header[0]!='B'||header[1]!='M'){e="invalid or oversized BMP file";return false;}
-  auto u32=[&](int offset){return uint32_t(header[offset])|(uint32_t(header[offset+1])<<8)|(uint32_t(header[offset+2])<<16)|(uint32_t(header[offset+3])<<24);};
-  uint32_t width=u32(18),raw_height=u32(22);int64_t height=raw_height&0x80000000u?int64_t(raw_height)-0x100000000LL:raw_height;if(height<0)height=-height;
-  if(u32(14)<40||width<1||width>4096||height<1||height>4096){e="BMP requires DIB>=40 and dimensions 1..4096";return false;}
- }
- std::unique_ptr<SDL_Surface,decltype(&SDL_DestroySurface)> loaded(SDL_LoadBMP(path),SDL_DestroySurface);
- if(!loaded)return error(e);
- if(loaded->w<1||loaded->h<1||loaded->w>4096||loaded->h>4096){e="BMP dimensions must be 1..4096";return false;}
- std::unique_ptr<SDL_Surface,decltype(&SDL_DestroySurface)> surface(SDL_ConvertSurface(loaded.get(),SDL_PIXELFORMAT_RGBA32),SDL_DestroySurface);
- if(!surface)return error(e);
+ std::vector<unsigned char>bytes;ImageMetadata metadata;
+ if(!image_read(path,bytes,metadata,e))return false;
+ if(b->texture_rgba_bytes+metadata.RgbaBytes()>256u*1024u*1024u){e="world texture RGBA residency exceeds 256 MiB";return false;}
+ auto surface=image_decode(bytes,metadata,e);if(!surface)return false;
  SDL_GPUTextureCreateInfo info{};info.type=SDL_GPU_TEXTURETYPE_2D;info.format=SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;info.usage=SDL_GPU_TEXTUREUSAGE_SAMPLER;info.width=surface->w;info.height=surface->h;info.layer_count_or_depth=1;info.num_levels=1;
  SDL_GPUTexture*texture=SDL_CreateGPUTexture(b->device,&info);if(!texture)return error(e);
  // Register ownership before any error-string allocation can throw.
- b->textures.push_back({id,texture});
+ b->textures.push_back({id,texture,metadata.RgbaBytes()});b->texture_rgba_bytes+=metadata.RgbaBytes();
  SDL_GPUTransferBufferCreateInfo ti{};ti.usage=SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;ti.size=info.width*info.height*4;
  SDL_GPUTransferBuffer*transfer=SDL_CreateGPUTransferBuffer(b->device,&ti);if(!transfer){backend_texture_release(b,id);return error(e);}
  void*pixels=SDL_MapGPUTransferBuffer(b->device,transfer,false);if(!pixels){SDL_ReleaseGPUTransferBuffer(b->device,transfer);backend_texture_release(b,id);return error(e);}
  for(int y=0;y<surface->h;y++)std::memcpy(static_cast<char*>(pixels)+y*surface->w*4,static_cast<char*>(surface->pixels)+y*surface->pitch,surface->w*4);
  SDL_UnmapGPUTransferBuffer(b->device,transfer);
  auto*cmd=SDL_AcquireGPUCommandBuffer(b->device);if(!cmd){SDL_ReleaseGPUTransferBuffer(b->device,transfer);backend_texture_release(b,id);return error(e);}
- auto*copy=SDL_BeginGPUCopyPass(cmd);SDL_GPUTextureTransferInfo source{};source.transfer_buffer=transfer;source.pixels_per_row=info.width;source.rows_per_layer=info.height;SDL_GPUTextureRegion dest{};dest.texture=texture;dest.w=info.width;dest.h=info.height;dest.d=1;SDL_UploadToGPUTexture(copy,&source,&dest,false);SDL_EndGPUCopyPass(copy);
+ auto*copy=SDL_BeginGPUCopyPass(cmd);if(!copy){SDL_CancelGPUCommandBuffer(cmd);SDL_ReleaseGPUTransferBuffer(b->device,transfer);backend_texture_release(b,id);return error(e);}
+ SDL_GPUTextureTransferInfo source{};source.transfer_buffer=transfer;source.pixels_per_row=info.width;source.rows_per_layer=info.height;SDL_GPUTextureRegion dest{};dest.texture=texture;dest.w=info.width;dest.h=info.height;dest.d=1;SDL_UploadToGPUTexture(copy,&source,&dest,false);SDL_EndGPUCopyPass(copy);
  bool submitted=SDL_SubmitGPUCommandBuffer(cmd);SDL_ReleaseGPUTransferBuffer(b->device,transfer);if(!submitted){backend_texture_release(b,id);return error(e);}width=surface->w;height=surface->h;return true;
 }
-void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->textures.begin();it!=b->textures.end();++it)if(it->first==id){SDL_ReleaseGPUTexture(b->device,it->second);b->textures.erase(it);return;}}
+void backend_texture_release(Backend*b,uint64_t id){if(!b)return;for(auto it=b->textures.begin();it!=b->textures.end();++it)if(it->first==id){SDL_ReleaseGPUTexture(b->device,it->second);b->texture_rgba_bytes-=it->rgba_bytes;b->textures.erase(it);return;}}
 
 bool backend_target_create(Backend*b,uint64_t id,int32_t width,int32_t height,std::string&e){
  if(b->targets.size()>=GAL_TARGET_CAPACITY||b->textures.size()>=256+GAL_TARGET_CAPACITY){e="render target capacity exhausted";return false;}
@@ -384,7 +377,7 @@ bool backend_ui(Backend*b,int op,const void*in,void*out,std::string&e){
   const bool created=!b->ui;
   if(created){b->ui=ui_create(b->device,b->window,paths[1],e);if(!b->ui)return false;ui_window_state(b->ui,b->input.focused,!b->minimized);}
   if(op==20&&(!bound||!bound->targets||!bound->count||bound->count>32)){e="binding targets required (1..32)";if(created){ui_destroy(b->ui);b->ui=nullptr;}return false;}
-  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0))return true;
+  if(ui_load(b->ui,paths[0],e,op==10,bound?bound->targets:nullptr,bound?bound->count:0,bound?bound->images:nullptr,bound?bound->image_count:0))return true;
   if(created){ui_destroy(b->ui);b->ui=nullptr;}
   return false;
  }

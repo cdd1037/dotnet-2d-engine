@@ -56,11 +56,16 @@ typedef struct { uint64_t id; uint32_t flags,reserved; char text[256]; } gal_bou
 typedef struct { uint32_t size,version,generation,revision,value_count,row_count; } gal_bound_ui_snapshot;
 typedef struct { uint32_t size,generation,revision,target,action,kind; uint64_t row; double number; uint32_t flags,reserved; char text[256]; } gal_bound_ui_action;
 GAL_API int GAL_CALL gal_bound_ui_open(gal_context*,const char* rml_path,const char* font_path,const gal_bound_ui_target*,uint32_t count);
+// Additive static-image profile. Paths are safe relative paths from rml_path.
+// Every listed image is decoded/uploaded before staging succeeds, even if hidden.
+// Maximum 32 unique images, 16 MiB encoded and 64 MiB RGBA per document.
+GAL_API int GAL_CALL gal_bound_ui_open_images(gal_context*,const char* rml_path,const char* font_path,const gal_bound_ui_target*,uint32_t count,const char* const* image_paths,uint32_t image_count);
 GAL_API int GAL_CALL gal_bound_ui_apply(gal_context*,const gal_bound_ui_snapshot*,const gal_bound_ui_value*,const gal_bound_ui_row*);
 /* action=0 means queue empty; common gal_ui_get_state exposes overflow. */
 GAL_API int GAL_CALL gal_bound_ui_poll(gal_context*,gal_bound_ui_action*);
 /* Probe-only: 1 dispatch click, 2 hit-tested click, 3 focus, 4 set value/change, 5 read displayed value,
    6 pointer down, 7 pointer up, 8 queued preedit, 9 queued CJK commit, 10 queued astral commit. Generation/revision/target/row identify the current element. */
+// Probe 11 returns owned external image textures (excluding generated font atlases) in number.
 GAL_API int GAL_CALL gal_bound_ui_test_command(gal_context*,uint32_t command,gal_bound_ui_action*);
 #ifdef __cplusplus
 }

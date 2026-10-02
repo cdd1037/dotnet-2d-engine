@@ -1,5 +1,3 @@
-using System.Buffers.Binary;
-
 namespace GameAuthoringLab;
 
 /// <summary>Stable resource diagnostics; source adapters add their JSON/XML field location.</summary>
@@ -80,27 +78,21 @@ public sealed class AssetRoot
 
     public string ValidateBitmap(string logicalPath) => ReadBitmapInfo(logicalPath).Path;
 
+    /// <summary>BMP-only compatibility entry point. Use ReadImageInfo for BMP, PNG or JPEG.</summary>
     public BitmapInfo ReadBitmapInfo(string logicalPath)
     {
         ValidateLogicalPath(logicalPath);
         if (!logicalPath.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
             throw Error("ASSET_BMP", logicalPath, "Only BMP texture resources are supported.");
-        string file = Resolve(logicalPath);
-        try
-        {
-            using var stream = File.OpenRead(file);
-            Span<byte> header = stackalloc byte[54];
-            stream.ReadExactly(header);
-            int width = BinaryPrimitives.ReadInt32LittleEndian(header[18..]);
-            int height = BinaryPrimitives.ReadInt32LittleEndian(header[22..]);
-            if (header[0] != 'B' || header[1] != 'M' || width is < 1 or > 4096 || height is < 1 or > 4096)
-                throw Error("ASSET_BMP", logicalPath, "Expected a 54-byte BMP header and dimensions 1..4096; native upload validates decoding.");
-            return new BitmapInfo(file, width, height);
-        }
-        catch (AssetException) { throw; }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        try { return ReadImageInfo(logicalPath); }
+        catch (AssetException e) when (e.Code is "ASSET_IMAGE" or "ASSET_IMAGE_FORMAT" or "ASSET_IMAGE_SIZE")
         { throw Error("ASSET_BMP", logicalPath, e.Message, e); }
     }
+
+    /// <summary>Bounded BMP/PNG/JPEG header preflight; native decoding remains authoritative.</summary>
+    public BitmapInfo ReadImageInfo(string logicalPath) => ImageAsset.ReadInfo(this, logicalPath);
+
+    public string ValidateImage(string logicalPath) => ReadImageInfo(logicalPath).Path;
 
     public string Sibling(string logicalPath, string sibling)
     {

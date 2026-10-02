@@ -149,7 +149,7 @@ public static class TileMapAsset
             var r = source.Resources[i]; string p = $"$.resources[{i}]";
             if(r is null || string.IsNullOrWhiteSpace(r.Key) || r.Key.Length>128 || resources.ContainsKey(r.Key)) throw Error("TILE_RESOURCE",file,p+".key","Expected unique nonempty resource key up to 128 characters.");
             string path; BitmapInfo info;
-            try { path = assets.Sibling(logicalSource,r.Path); info = assets.ReadBitmapInfo(path); }
+            try { path = assets.Sibling(logicalSource,r.Path); info = assets.ReadImageInfo(path); }
             catch(AssetException e) { throw Error("TILE_RESOURCE",file,p+".path",e.Message,e); }
             try { r.Region?.ToRegion().Validate(info.Width,info.Height); }
             catch(ArgumentOutOfRangeException e) { throw Error("TILE_RESOURCE",file,p+".region",e.Message,e); }

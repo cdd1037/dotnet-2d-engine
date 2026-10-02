@@ -26,6 +26,6 @@ void backend_material_release(Backend*,uint64_t);
 bool backend_ui(Backend*,int,const void*,void*,std::string&);
 #endif
 
-struct BoundUiOpen { const char* path; const char* font; const gal_bound_ui_target* targets; uint32_t count; };
+struct BoundUiOpen { const char* path; const char* font; const gal_bound_ui_target* targets; uint32_t count; const char*const* images=nullptr; uint32_t image_count=0; };
 struct BoundUiApply { const gal_bound_ui_snapshot* snapshot; const gal_bound_ui_value* values; const gal_bound_ui_row* rows; };
 struct BoundUiTest { uint32_t command; gal_bound_ui_action* value; };

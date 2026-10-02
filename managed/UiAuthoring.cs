@@ -117,8 +117,8 @@ internal sealed record UiValidatedDocument(string Rml, string Rcss, string RmlFi
 /// </summary>
 internal static class UiAuthoring
 {
-    public const int MaxFileBytes = 64 * 1024;
-    internal static readonly UTF8Encoding StrictUtf8 = new(false, true);
+    public const int MaxFileBytes = UiSourceFiles.MaxFileBytes;
+    internal static readonly UTF8Encoding StrictUtf8 = UiSourceFiles.StrictUtf8;
     private static readonly HashSet<string> Tags = new(StringComparer.Ordinal)
         { "rml", "head", "title", "link", "body", "div", "h1", "h2", "p", "label", "input", "button" };
     private static readonly Dictionary<string, string> RequiredIds = new(StringComparer.Ordinal)
@@ -160,28 +160,14 @@ internal static class UiAuthoring
 
     public static UiValidatedDocument ValidateAsset(AssetRoot assets, string logicalPath)
     {
-        var files = ReadAssetFiles(assets, logicalPath, "settings.rcss");
+        var files = UiSourceFiles.ReadAssetFiles(assets, logicalPath, "settings.rcss");
         return Validate(files.Rml, files.Rcss, files.RmlFile, files.RcssFile);
-    }
-
-    internal static (byte[] Rml, byte[] Rcss, string RmlFile, string RcssFile) ReadAssetFiles(
-        AssetRoot assets, string logicalPath, string stylesheet)
-    {
-        string file = logicalPath;
-        try
-        {
-            file = assets.Resolve(logicalPath);
-            string css = assets.Resolve(assets.Sibling(logicalPath, stylesheet));
-            return (ReadBounded(file), ReadBounded(css), file, css);
-        }
-        catch (AssetException e)
-        { throw Error("UI_FILE", file, 1, 1, "$", e.Message, e); }
     }
 
     public static UiValidatedDocument Validate(ReadOnlySpan<byte> rml, ReadOnlySpan<byte> rcss,
         string rmlFile = "settings.rml", string rcssFile = "settings.rcss")
     {
-        string markup = Decode(rml, rmlFile), style = Decode(rcss, rcssFile);
+        string markup = UiSourceFiles.Decode(rml, rmlFile), style = UiSourceFiles.Decode(rcss, rcssFile);
         UiXmlDocument document = ParseXml(markup, rmlFile);
         var ids = ValidateMarkup(document, rmlFile);
         new StyleParser(style, rcssFile).Parse();
@@ -190,32 +176,6 @@ internal static class UiAuthoring
         string status = ids["status"].Value.Trim();
         string[] items = ids["item-list"].Elements().Select(e => e.Value.Trim()).ToArray();
         return new(markup, style, rmlFile, rcssFile, name, volume, status, Array.AsReadOnly(items));
-    }
-
-    internal static byte[] ReadBounded(string path)
-    {
-        try
-        {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (stream.Length is <= 0 or > MaxFileBytes) throw Error("UI_SIZE", path, 1, 1, "$", $"File must contain 1..{MaxFileBytes} bytes.");
-            byte[] bytes = new byte[(int)stream.Length];
-            stream.ReadExactly(bytes);
-            if (stream.ReadByte() != -1) throw Error("UI_SIZE", path, 1, 1, "$", "File grew while being read.");
-            return bytes;
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        { throw Error("UI_FILE", path, 1, 1, "$", e.Message, e); }
-    }
-
-    internal static string Decode(ReadOnlySpan<byte> bytes, string file)
-    {
-        if (bytes.Length is <= 0 or > MaxFileBytes) throw Error("UI_SIZE", file, 1, 1, "$", $"File must contain 1..{MaxFileBytes} bytes.");
-        try
-        {
-            string value = StrictUtf8.GetString(bytes);
-            return value.Length > 0 && value[0] == '\uFEFF' ? value[1..] : value;
-        }
-        catch (DecoderFallbackException e) { throw Error("UI_UTF8", file, 1, Math.Max(1, e.Index + 1), "$", "Invalid UTF-8 byte sequence.", e); }
     }
 
     internal static UiXmlDocument ParseXml(string source, string file)
@@ -400,11 +360,11 @@ internal static class UiAuthoring
         s.All(c => c is >= '0' and <= '9') && int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n >= min && n <= max;
 
     internal static void ValidateBoundStyle(string source, string file, Func<string, bool> selectors,
-        Func<string, string, string, bool> properties) => new StyleParser(source, file,
-            selectorAllowed: selectors, propertyAllowed: properties).Parse();
+        Func<string, string, string, bool> properties, bool imageFunctions = false) => new StyleParser(source, file,
+            selectorAllowed: selectors, propertyAllowed: properties, imageFunctions: imageFunctions).Parse();
 
     private sealed class StyleParser(string source, string file,
-        Func<string, bool>? selectorAllowed=null, Func<string, string, string, bool>? propertyAllowed=null)
+        Func<string, bool>? selectorAllowed=null, Func<string, string, string, bool>? propertyAllowed=null, bool imageFunctions=false)
     {
         private int _position, _line = 1, _column = 1;
         public void Parse()
@@ -447,7 +407,7 @@ internal static class UiAuthoring
                     char.IsControl(c) && c is not '\r' and not '\n' and not '\t')
                 {
                     // A single pseudo-class colon is part of an approved selector, not CSS syntax.
-                    if (!(delimiter == '{' && c == ':')) Fail("UI_RCSS", field, "Unsupported token or missing delimiter '" + delimiter + "'.");
+                    if (!(delimiter == '{' && c == ':') && !(imageFunctions && delimiter == ';' && c is '(' or ')')) Fail("UI_RCSS", field, "Unsupported token or missing delimiter '" + delimiter + "'.");
                 }
                 // Comments are allowed only between grammar tokens, never spliced into names/values.
                 if (c == '/' && _position + 1 < source.Length && source[_position + 1] == '*')

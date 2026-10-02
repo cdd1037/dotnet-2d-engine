@@ -2,7 +2,7 @@
 #include "ui_bound.h"
 #include "text_input_geometry.h"
 #include "RmlUi_Platform_SDL.h"
-#include "RmlUi_Renderer_SDL_GPU.h"
+#include "ui_image_renderer.h"
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/TextInputContext.h>
 #include <RmlUi/Core/Elements/ElementFormControlInput.h>
@@ -112,7 +112,7 @@ static const char* game_button(uint32_t action){switch(action){case 10:return "g
 
 struct UiRml final: Rml::EventListener {
  SDL_GPUDevice* device;SDL_Window* window;UiSystem system;
- std::unique_ptr<RenderInterface_SDL_GPU> renderer;
+ std::unique_ptr<UiImageRenderer> renderer,pending_renderer;
  UiIme ime;
  std::unique_ptr<UiBoundDocument> bound,pending_bound;
  Rml::Context* current=nullptr;Rml::Context* pending=nullptr;
@@ -145,7 +145,10 @@ struct UiRml final: Rml::EventListener {
   value.volume=std::clamp(std::atoi(volume->GetValue().c_str()),0,100);
   actions[(first+count)%actions.size()]=value;count++;
  }
- void DropCandidate(){pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;}
+ void DropCandidate(){
+  pending_bound.reset();if(pending)Rml::RemoveContext(pending->GetName());pending=nullptr;candidate=nullptr;
+  if(pending_renderer){Rml::ReleaseRenderManagers();pending_renderer->Shutdown();pending_renderer.reset();}
+ }
 };
 static bool fail(std::string&e,const char*text){e=text;return false;}
 static void remember(UiRml*u,const char*s){std::snprintf(u->diagnostic,sizeof(u->diagnostic),"%s",s);}
@@ -155,6 +158,7 @@ void ui_destroy(UiRml*u) noexcept {
   u->ime.Cancel(false);u->system.DeactivateKeyboard();discard_queued_text(u->window);
   u->bound.reset();u->pending_bound.reset();
   if(u->initialized)Rml::Shutdown();
+  if(u->pending_renderer){u->pending_renderer->Shutdown();u->pending_renderer.reset();}
   if(u->renderer){u->renderer->Shutdown();u->renderer.reset();}
   Rml::SetTextInputHandler(nullptr);Rml::SetSystemInterface(nullptr);Rml::SetRenderInterface(nullptr);
   SDL_WaitForGPUIdle(u->device);
@@ -164,9 +168,8 @@ void ui_destroy(UiRml*u) noexcept {
 UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  std::unique_ptr<UiRml,decltype(&ui_destroy)> u(new UiRml(d,w),ui_destroy);
  Rml::SetSystemInterface(&u->system);
- u->renderer=std::make_unique<RenderInterface_SDL_GPU>(d,w);
- if(u->system.warnings){e=u->system.diagnostic;return nullptr;}
- Rml::SetRenderInterface(u->renderer.get());Rml::SetTextInputHandler(&u->ime);
+ // Explicit per-document interfaces keep upstream texture/cache ownership bounded.
+ Rml::SetRenderInterface(nullptr);Rml::SetTextInputHandler(&u->ime);
  if(!Rml::Initialise()){e="RmlUi initialization failed";return nullptr;}u->initialized=true;
  // Reuse the installed SC face explicitly; file loading owns font bytes.
  if(!Rml::LoadFontFace(font,"Noto Sans CJK SC",Rml::Style::FontStyle::Normal,Rml::Style::FontWeight::Normal,false,2)){
@@ -175,13 +178,17 @@ UiRml* ui_create(SDL_GPUDevice*d,SDL_Window*w,const char*font,std::string&e){
  if(u->system.warnings){e=u->system.diagnostic;return nullptr;}
  return u.release();
 }
-bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count){
+bool ui_load(UiRml*u,const char*path,std::string&e,bool game,const gal_bound_ui_target*targets,uint32_t count,const char*const*images,uint32_t image_count){
  u->pending_game=game;
  u->DropCandidate();Rml::Factory::ClearStyleSheetCache();u->system.Clear();u->diagnostic[0]=0;
+ u->pending_renderer=std::make_unique<UiImageRenderer>(u->device,u->window);
+ if(u->system.warnings){e=u->system.diagnostic;u->DropCandidate();return false;}
+ if(!u->pending_renderer->StageImages(path,images,image_count,e)){u->DropCandidate();return false;}
  int w=0,h=0;SDL_GetWindowSizeInPixels(u->window,&w,&h);
- u->pending=Rml::CreateContext("gal-stage-"+std::to_string(++u->serial),{w,h});
- if(!u->pending)return fail(e,"could not create staging context");
+ u->pending=Rml::CreateContext("gal-stage-"+std::to_string(++u->serial),{w,h},u->pending_renderer.get());
+ if(!u->pending){u->DropCandidate();return fail(e,"could not create staging context");}
  u->pending->SetDensityIndependentPixelRatio(SDL_GetWindowDisplayScale(u->window));
+ if(!u->pending_renderer->Preload(u->pending,e)){remember(u,e.c_str());u->DropCandidate();return false;}
  u->candidate=u->pending->LoadDocument(path);
  bool valid=u->candidate;
  if(targets){
@@ -330,13 +337,17 @@ bool ui_render(UiRml*u,SDL_GPUCommandBuffer*cmd,SDL_GPUTexture*target,int w,int 
   SDL_GPUTexture*stage=SDL_CreateGPUTexture(u->device,&info);if(!stage)return fail(e,SDL_GetError());
   SDL_GPUColorTargetInfo clear{};clear.texture=stage;clear.load_op=SDL_GPU_LOADOP_CLEAR;clear.store_op=SDL_GPU_STOREOP_STORE;
   auto*pass=SDL_BeginGPURenderPass(cmd,&clear,1,nullptr);SDL_EndGPURenderPass(pass);
-  u->renderer->BeginFrame(cmd,stage,w,h);u->pending->Render();u->renderer->EndFrame();SDL_ReleaseGPUTexture(u->device,stage);
+  u->pending_renderer->BeginFrame(cmd,stage,w,h);u->pending->Render();u->pending_renderer->EndFrame();SDL_ReleaseGPUTexture(u->device,stage);
   if(u->system.warnings){remember(u,u->system.diagnostic);u->DropCandidate();}
   else{
    if(next_generation==std::numeric_limits<uint32_t>::max())return fail(e,"UI generation exhausted");
    u->ime.Cancel(false);u->system.DeactivateKeyboard();discard_queued_text(u->window);
    u->bound.reset();
-   if(u->current)Rml::RemoveContext(u->current->GetName());
+   if(u->current){
+    Rml::RemoveContext(u->current->GetName());Rml::ReleaseRenderManagers();
+    u->renderer->Shutdown();u->renderer.reset();
+   }
+   u->renderer=std::move(u->pending_renderer);
    u->current=u->pending;u->document=u->candidate;u->pending=nullptr;u->candidate=nullptr;
    u->bound=std::move(u->pending_bound);
    u->document->Focus();
@@ -362,6 +373,7 @@ bool ui_apply_bound(UiRml*u,const gal_bound_ui_snapshot&s,const gal_bound_ui_val
 bool ui_poll_bound(UiRml*u,gal_bound_ui_action&a,std::string&e){if(!u->bound)return fail(e,"bound UI profile required");return u->bound->Poll(a,e);}
 bool ui_test_bound(UiRml*u,uint32_t command,gal_bound_ui_action&a,std::string&e){
  if(!u->bound)return fail(e,"bound UI profile required");
+ if(command==11){a.number=double((u->renderer?u->renderer->FileTextureCount():0)+(u->pending_renderer?u->pending_renderer->FileTextureCount():0));return true;}
  if(command==8||command==9||command==10){
   auto copy=a;if(!u->bound->Test(5,copy,u->current,e))return false;
   SDL_Event event{};if(command==8){event.type=SDL_EVENT_TEXT_EDITING;event.edit.windowID=SDL_GetWindowID(u->window);event.edit.text="ni";event.edit.start=0;event.edit.length=2;}
