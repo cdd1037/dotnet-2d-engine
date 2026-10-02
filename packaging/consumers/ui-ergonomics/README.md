@@ -1,16 +1,21 @@
-# Typed-command Discard replay
+# Generated-contract Discard replay
 
 This maintained package consumer replays the bounded inventory Discard task from
 `ai-authoring-efficiency`, using its accepted game rules and authored cards. The
 historical baseline, attempt, evaluator and measurements were read without edits.
 This is an API migration and edit-surface comparison, not another AI trial.
 
-The application declares each command name, argument codec and managed handler
-once in `CardUi.cs`. Inspect is 1, Use 2, Pause 3, Restart 4, Save 5, Load 6,
-Reverse 7, Remove empty 8, and Discard 9, matching the accepted historical task.
-`UiArgs.Key` delivers an exact `ulong`, never a floating-point number. There is
-no application command enum or dispatch switch. `InventorySchema.cs` describes
-the view separately; game rules do not depend on the engine.
+`CardUi.cs` declares ordinary attributed handler methods. Their exact names and
+parameter types generate typed registrations with automatic IDs. `CardGame.cs`
+opts its view DTOs into generated schemas; the previous `InventorySchema.cs`
+name/kind/getter mapping is removed. RML names are exact PascalCase C# names, and
+its `AdditionalFiles` association makes name/type mismatches build errors.
+The `ulong` command parameter delivers an exact Key, never a floating-point
+number. There is no application command enum or dispatch switch. View annotations
+do not change game rules or persistence behavior.
+
+See [generated contracts](../../../docs/GENERATED_UI_CONTRACTS.md) for declaration
+boundaries, diagnostics, manual escape hatches and proof limits.
 
 The loop explicitly polls input, drains UI events through `Dispatch`, applies the
 resulting view once, and draws. Dispatch validates the current packet immediately
@@ -25,8 +30,8 @@ class. No engine-specific Discard widget or per-widget rule was introduced.
 
 ## Run as an independent package consumer
 
-Prerequisites: an existing .NET 10 SDK, a matched local feed containing the new
-typed-command `Dotnet2D.Engine` and compatible UI-enabled
+Prerequisites: an existing .NET 10 SDK, a local feed containing the generated-contract
+`Dotnet2D.Engine` and compatible UI-enabled
 `Dotnet2D.Native.Linux.x64` packages, a supported Linux SDL/Vulkan environment,
 and a readable licensed font matching the RCSS family (`Noto Sans CJK SC`).
 No engine sources or ProjectReferences are used. Both packages keep the existing
@@ -64,9 +69,9 @@ fonts are downloaded or installed by this consumer.
 
 An independent NativeAOT proof can publish this same project with
 `-r linux-x64 -p:PublishAot=true`, using a prepared source/cache containing the
-SDK's matching AOT runtime/compiler packages, then run the produced
+SDK's AOT runtime/compiler packages, then run the produced
 `Sample.ui-ergonomics --check` from an unrelated directory. The JIT and AOT
-executions must both use the final matched engine/native package bytes. This
+executions must both use the current engine/native packages. This
 README specifies the runnable checks; validation results belong to the enclosing
 change's verification report.
 
@@ -111,19 +116,31 @@ disposing the inventory's session. Through public package APIs it checks:
 - `/proc/self/maps` contains exactly one `libgal.so`, beneath this JIT/AOT
   application's `AppContext.BaseDirectory`, recorded in `package-native-path.txt`
 
+`checks/GeneratedChecks.cs` also verifies generated PascalCase Key/Number routing,
+original DTO property locations for invalid values, stale revisions, empty lists,
+and release of controller method-group captures after disposal. The package test
+script performs real C#/RML edit-and-rebuild failures before NativeAOT publication.
+
 These are public SDL 3.4.16 event-queue tests and native rendered pixel readbacks.
 They do not claim physical pointer hardware, a hardware GPU, other platforms,
 runtime performance, or broad authoring-productivity results.
 
 ## Bounded edit-surface comparison
 
-The historical addition touched six production files: domain/view/command enum,
-schema plus registration, dispatch switch, RML, and per-button RCSS. With this
-maintained starting pattern, replaying the same feature touches four: the domain
-method and projected availability, its schema field, one typed `On` declaration,
-and the appended RML button. The session assigns the command ID automatically.
-Tests still need updating in either workflow. These are source edit locations,
-not measured editing turns, elapsed time, token use, or a speedup ratio.
+The historical addition touched six production files. The previous manual typed
+registration reduced the relevant edits but still repeated names and kinds in a
+separate schema. The generated path retains domain/view changes, a named handler
+and RML while eliminating the separate schema and registration facts. Declared
+bounds and intentional aliases stay explicit. Adding a method/property once
+updates generated registration; an RML rename mismatch becomes a build error.
+This is an edit-dependency improvement, not measured authoring speed or a fresh
+AI trial.
+
+### Historical manual-registration measurements
+
+The table below records the earlier manual typed replay, not this generated
+version. It is retained as historical evidence; current results are in the linked
+generated-contract report.
 
 Physical line/UTF-8 byte counts, including blank lines and comments:
 

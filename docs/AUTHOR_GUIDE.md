@@ -169,8 +169,12 @@ rebuilding the runtime or claiming a general controller or rendered smoothness.
 
 ## 5. Add UI only when it helps the game
 
-Prefer public `UiModelSession<T>` for new UI. Register scalar/record/array data
-with `UiRecord<T>` and explicit projection delegates, then author ordinary nested
+Prefer public `UiModelSession<T>` with [generated C# contracts](GENERATED_UI_CONTRACTS.md)
+for new UI: opt in DTOs with `UiModel`, declare named `UiCommand` methods on a
+partial `UiContract` class, and include its RML as an `AdditionalFiles` item.
+Names and scalar types generate registration; RML mismatches fail during build.
+Handwritten `UiRecord<T>` projections remain available for advanced/computed views.
+Author ordinary nested
 RmlUi 6.3 RML/RCSS with expressions, repeated cards and typed commands. There is
 no reflection, runtime JavaScript, runtime code generation or component runtime. C# owns
 the model and game rules. [Generic UI models](UI_MODELS.md) includes a small card
@@ -179,7 +183,8 @@ example, exact limits, command registration and resource authoring rules.
 `session.LoadAsset(assets, path)` validates and stages copied sources. Render once
 to publish the accepted document, call `session.Apply(model)`, then render to
 synchronize its values. `session.Poll()` returns a copied `UiCommandEvent`.
-Prefer typed `UiCommands.On` handlers and `session.Dispatch(command)`, which checks
+Generated commands and manual no-ID `UiCommands.On` handlers use
+`session.Dispatch(command)`, which checks
 the current packet before invoking the handler. For explicit packet handling,
 check `session.IsCurrent(command)` immediately before applying game behavior,
 accept or reject its draft in C#, then apply the next snapshot. Keys are exact

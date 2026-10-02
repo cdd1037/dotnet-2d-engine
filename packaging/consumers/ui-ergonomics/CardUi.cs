@@ -2,7 +2,8 @@ using CardRules;
 using GameAuthoringLab;
 namespace CardUiOurs;
 
-public sealed class CardUi : IDisposable
+[UiContract(typeof(InventoryView), "assets/ui/cards.rml")]
+public sealed partial class CardUi : IDisposable
 {
     private readonly EngineHost _engine;
     private readonly UiModelSession<InventoryView> _ui;
@@ -22,21 +23,20 @@ public sealed class CardUi : IDisposable
         _assets = assets;
         _savePath = savePath;
         Game = new CardGame(File.ReadAllText(assets.Resolve("catalog.json")));
-        // Handlers and scalar codecs define commands; the session assigns private wire IDs.
-        var commands = new UiCommands()
-            .On("inspect", UiArgs.Key, (ulong id) => { Game.Inspect(id); })
-            .On("use", UiArgs.Key, (ulong id) => { Game.Use(id); })
-            .On("pause", Game.TogglePause)
-            .On("restart", () => { Game.Restart(); Message = "Restarted"; })
-            .On("save", () => { File.WriteAllText(_savePath, Game.Save()); Message = "Saved"; })
-            .On("load", () => { Game.Load(File.ReadAllText(_savePath)); Message = "Loaded"; })
-            .On("reverse", () => { Game.Reverse(); Message = "Order reversed"; })
-            .On("remove_empty", () => { Game.RemoveEmpty(); Message = "Empty cards removed"; })
-            .On("discard", UiArgs.Key, (ulong id) => { Game.Discard(id); });
-        _ui = new UiModelSession<InventoryView>(engine, InventorySchema.Create(), commands);
+        _ui = new UiModelSession<InventoryView>(engine, CreateUiSchema(), CreateUiCommands());
         try { Reload(); }
         catch { _ui.Dispose(); throw; }
     }
+
+    [UiCommand] private void Inspect(ulong id) => Game.Inspect(id);
+    [UiCommand] private void Use(ulong id) => Game.Use(id);
+    [UiCommand] private void Pause() => Game.TogglePause();
+    [UiCommand] private void Restart() { Game.Restart(); Message = "Restarted"; }
+    [UiCommand] private void Save() { File.WriteAllText(_savePath, Game.Save()); Message = "Saved"; }
+    [UiCommand] private void Load() { Game.Load(File.ReadAllText(_savePath)); Message = "Loaded"; }
+    [UiCommand] private void Reverse() { Game.Reverse(); Message = "Order reversed"; }
+    [UiCommand] private void RemoveEmpty() { Game.RemoveEmpty(); Message = "Empty cards removed"; }
+    [UiCommand] private void Discard(ulong id) => Game.Discard(id);
 
     public void Reload()
     {

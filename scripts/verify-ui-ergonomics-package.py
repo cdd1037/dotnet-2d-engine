@@ -11,12 +11,16 @@ sha = lambda data: hashlib.sha256(data).hexdigest()
 engine = next(proof.glob('feed/Dotnet2D.Engine.*.nupkg'))
 native = next(proof.glob('feed/Dotnet2D.Native.Linux.x64.*.nupkg'))
 with zipfile.ZipFile(engine) as archive:
+    assert 'analyzers/dotnet/cs/Dotnet2D.Ui.Generator.dll' in archive.namelist(), 'generator must reach package consumers'
     payload = archive.read('lib/net10.0/Dotnet2D.Engine.dll')
     assert payload == (proof / 'publish/jit/Dotnet2D.Engine.dll').read_bytes(), 'JIT engine must match package'
 with zipfile.ZipFile(native) as archive:
     dsos = {Path(name).name: archive.read(name) for name in archive.namelist()
             if name.startswith('runtimes/linux-x64/native/') and not name.endswith('/')}
 for mode in ['jit', 'aot']:
+    runtime = proof / 'publish' / mode
+    assert not list(runtime.rglob('Microsoft.CodeAnalysis*.dll')), 'Roslyn must stay build-only'
+    assert not list(runtime.rglob('Dotnet2D.Ui.Generator.dll')), 'analyzer must not ship in application output'
     paths = (proof / 'captures' / mode / 'package-native-path.txt').read_text().splitlines()
     assert len(paths) == 1, (mode, paths)
     loaded = Path(paths[0]).resolve()

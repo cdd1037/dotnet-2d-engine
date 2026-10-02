@@ -117,9 +117,10 @@ document, including populated arrays and conditional states.
 
 ## Commands, keys and drafts
 
-For new code, put the native signature and managed handler in one typed
-definition; the session assigns command IDs automatically. `UiArgs` supplies explicit AOT-safe codecs; no reflection,
-JavaScript or UI source generator is involved:
+For the recommended one-source author path, use [generated C# contracts](GENERATED_UI_CONTRACTS.md).
+For manual/computed projections, put the native signature and managed handler in
+one typed definition; the session assigns command IDs automatically. `UiArgs` supplies explicit AOT-safe codecs; no reflection,
+JavaScript or runtime type discovery is involved:
 
 ```csharp
 var commands = new UiCommands()

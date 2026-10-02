@@ -73,10 +73,10 @@ static bool identifier(const char* p)
     while (n < 48 && p[n])
         n++;
 
-    if (!n || n == 48 || p[0] < 'a' || p[0] > 'z')
+    if (!n || n == 48 || !((p[0] >= 'a' && p[0] <= 'z') || (p[0] >= 'A' && p[0] <= 'Z')))
         return false;
     for (size_t i = 1; i < n; i++)
-        if (!((p[i] >= 'a' && p[i] <= 'z') || (p[i] >= '0' && p[i] <= '9') || p[i] == '_'))
+        if (!((p[i] >= 'a' && p[i] <= 'z') || (p[i] >= 'A' && p[i] <= 'Z') || (p[i] >= '0' && p[i] <= '9') || p[i] == '_'))
             return false;
     return true;
 }

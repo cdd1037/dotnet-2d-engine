@@ -137,10 +137,10 @@ internal static class UiModelAuthoring
         for (int i = 0; i < names.Count; i++)
         {
             string? name = names[i];
-            if (name is not { Length: >= 1 and <= 47 } || name[0] is not (>= 'a' and <= 'z') ||
-                !name.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+            if (name is not { Length: >= 1 and <= 47 } || !char.IsAsciiLetter(name[0]) ||
+                !name.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
                 throw new UiAuthoringException("UI_SCHEMA", "<commands>", 1, 1, $"commands[{i}]",
-                    "Command names must match [a-z][a-z0-9_]{0,46}.");
+                    "Command names must match [A-Za-z][A-Za-z0-9_]{0,46}; names are case-sensitive.");
             if (!result.Add(name)) throw new UiAuthoringException("UI_SCHEMA", "<commands>", 1, 1, $"commands[{i}]", "Duplicate command name.");
         }
         return result;

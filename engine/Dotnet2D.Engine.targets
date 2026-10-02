@@ -1,4 +1,8 @@
 <Project>
+  <ItemGroup>
+    <!-- Standard analyzer config: resolve each UiContract document relative to its project. -->
+    <CompilerVisibleProperty Include="MSBuildProjectDirectory" />
+  </ItemGroup>
   <!-- Caller assets are opt-in; required package notices use standard build/publish copying. -->
   <Target Name="CollectDotnet2DAssets" BeforeTargets="AssignTargetPaths">
     <ItemGroup>

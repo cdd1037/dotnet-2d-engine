@@ -1,13 +1,19 @@
+using GameAuthoringLab;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 namespace CardRules;
+[UiModel]
 public sealed record Stat(string Label, string Value);
-public sealed record CardCopy(string Title, string Badge, string Description, Stat[] Stats);
+[UiModel]
+public sealed record CardCopy(string Title, string Badge, string Description, [property: UiField(Maximum = 4)] Stat[] Stats);
 public sealed record ItemDefinition(ulong Id, CardCopy Card, int InitialCount, int Heal, int Gold);
 public sealed record SectionDefinition(ulong Id, string Title, ItemDefinition[] Items);
+[UiModel]
 public sealed record ItemView(ulong Id, CardCopy Card, int Count, bool Selected, bool CanInspect, bool CanUse, bool CanDiscard);
-public sealed record SectionView(ulong Id, string Title, ItemView[] Items);
-public sealed record InventoryView(string Hud, string Detail, bool Paused, bool CanLoad, string Message, SectionView[] Sections);
+[UiModel]
+public sealed record SectionView(ulong Id, string Title, [property: UiField(Maximum = 8)] ItemView[] Items);
+[UiModel]
+public sealed record InventoryView(string Hud, string Detail, bool Paused, bool CanLoad, string Message, [property: UiField(Maximum = 4)] SectionView[] Sections);
 public sealed record SaveState(int Version, int Health, int Gold, bool Paused, ulong SelectedId, Dictionary<ulong, int> Counts, ulong[] VisibleIds);
 public sealed class CardGame
 {

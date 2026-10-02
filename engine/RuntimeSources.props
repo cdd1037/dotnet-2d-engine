@@ -43,6 +43,10 @@
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiAuthoring.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModel.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiCommands.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiContractAttributes.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../shared/UiContractDescriptors.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../shared/UiContractValidator.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../shared/UiXmlParser.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModelPreflight.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModelSession.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModelAuthoring.cs" />

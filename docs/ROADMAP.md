@@ -77,9 +77,9 @@ expansion. Preserve explicit timing, ownership, serialization and failure policy
 
 ### Approved next author-API phase, after RELAY closure
 
-The next bounded sequence is approved for compatible, individually verified
-batches. These are **next-stage tasks**, not implemented claims in this RELAY
-migration:
+This bounded sequence is approved for compatible, individually verified
+batches. Completed author-API batches are marked below; unmarked items remain
+next-stage work beyond the RELAY migration:
 
 1. Automatically assign UI command IDs on the recommended author path; retain an
    advanced explicit-ID path and update recommended examples/docs. **Implemented:**
@@ -89,7 +89,9 @@ migration:
    name/type/command contract checks, with source-aware diagnostics and runtime
    fallback for dynamic content. Constants alone do not solve this. Bounded
    generated registration/build checks are now in scope, superseding the earlier
-   general generator deferral only for this contract
+   general generator deferral only for this contract. **Implemented:**
+   [opted-in C# DTO/handler generation](GENERATED_UI_CONTRACTS.md), shared static
+   preflight and source-aware build diagnostics; dynamic proof limits stay explicit
 3. Provide safer public rendering/input surfaces and typed resource handles,
    keeping raw/native representations behind an explicit advanced boundary
 4. Prefer input action tokens over manually allocated action bits on the ordinary

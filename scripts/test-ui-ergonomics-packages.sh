@@ -32,6 +32,7 @@ unset GAL_ASSET_ROOT LD_LIBRARY_PATH LD_PRELOAD LD_AUDIT
 project="$proof/consumer/Sample.csproj"
 "$dotnet" restore "$project" --configfile "$proof/NuGet.Config" > "$proof/logs/jit-restore.log" 2>&1
 "$dotnet" publish "$project" -c Release --no-restore -m:1 -nr:false -p:UseSharedCompilation=false -o "$proof/publish/jit" > "$proof/logs/jit-publish.log" 2>&1
+python3 "$root/scripts/test-ui-contract-edits.py" "$proof/consumer" "$proof/logs/edits"
 "$dotnet" restore "$project" --configfile "$proof/NuGet.Config" -r linux-x64 -p:PublishAot=true -p:RuntimeFrameworkVersion=10.0.12 > "$proof/logs/aot-restore.log" 2>&1
 LD_LIBRARY_PATH="${AOT_LIBRARY_PATH:-$root/.tools/aot/usr/lib/x86_64-linux-gnu}" "$dotnet" publish "$project" -c Release -r linux-x64 --no-restore -m:1 -nr:false -p:UseSharedCompilation=false -p:PublishAot=true -p:StripSymbols=true -p:RuntimeFrameworkVersion=10.0.12 -p:CppCompilerAndLinker="${AOT_CXX:-$root/.tools/aot/usr/bin/clang-19}" -p:CustomAfterMicrosoftCommonTargets="$proof/prerequisites/inprocess-illink.targets" -o "$proof/publish/aot" > "$proof/logs/aot-publish.log" 2>&1
 export SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy

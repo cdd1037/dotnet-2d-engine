@@ -130,7 +130,7 @@ public sealed class UiArray<T> : UiData<IReadOnlyList<T>>
 }
 internal static unsafe class UiModelContract
 {
-    internal static void Name(string name){if(name is not {Length:>=1 and <=47}||name[0] is <'a' or >'z'||name.Any(c=>c is not (>= 'a' and <= 'z') and not (>= '0' and <= '9') and not '_'))throw new ArgumentException("UI names must match [a-z][a-z0-9_]{0,46}.");}
+    internal static void Name(string name){if(name is not {Length:>=1 and <=47}||!char.IsAsciiLetter(name[0])||name.Any(c=>!char.IsAsciiLetterOrDigit(c)&&c!='_'))throw new ArgumentException("UI names must match [A-Za-z][A-Za-z0-9_]{0,46}; names are case-sensitive.");}
     internal static uint Add(List<ModelSchema> schema,string name,uint parent,uint kind,uint limit,int depth){Name(name);if(schema.Count==128||depth>16)throw new ArgumentException("UI schema exceeds 128 nodes or depth 16 (including array elements).");ModelSchema value=new(){Kind=kind,Parent=parent,Limit=limit};Put(value.Name,name);uint index=(uint)schema.Count;schema.Add(value);return index;}
     internal static int Capacity(ReadOnlySpan<ModelSchema> schema)
     {

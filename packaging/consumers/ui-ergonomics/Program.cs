@@ -21,6 +21,7 @@ if (check)
     DiscardChecks.Run(ui, catalog, savePath, outputDirectory);
     ui.Dispose(); // The diagnostics fixture needs the engine's sole UI owner.
     DiagnosticChecks.Run(engine, outputDirectory);
+    GeneratedChecks.Run(engine, assets);
     Console.WriteLine($"UI ERGONOMICS CHECKS PASS captures={outputDirectory}");
     return;
 }

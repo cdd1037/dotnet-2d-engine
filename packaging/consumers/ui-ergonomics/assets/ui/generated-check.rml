@@ -1,0 +1,5 @@
+<rml><head><title>Generated contract checks</title><link type="text/rcss" href="generated-check.rcss"/></head>
+<body data-model="model"><div data-for="item : state.Items">
+<button id="choose" data-event-click="Choose(item.Id)">{{item.Title}}</button>
+<button id="measure" data-event-click="Measure(item.Number)">Measure</button>
+</div></body></rml>

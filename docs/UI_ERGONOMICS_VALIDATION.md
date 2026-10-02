@@ -1,5 +1,10 @@
 # Typed UI commands and actionable diagnostics
 
+This report records the earlier hand-registration baseline. The current
+[generated UI contract](GENERATED_UI_CONTRACTS.md) supersedes its generator
+deferral and manual ID/schema authoring recommendations; historical measurements
+below are unchanged.
+
 This bounded refinement keeps ordinary C# models, explicit schemas and ordinary
 RmlUi authoring. It does not introduce a generator, reflection mapper, JavaScript,
 Vue compiler, component/controller runtime or general lifecycle helper.

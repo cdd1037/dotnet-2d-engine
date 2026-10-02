@@ -11,5 +11,6 @@
     <PackageReference Include="Dotnet2D.Engine" Version="0.1.0-preview.1" />
     <PackageReference Include="Dotnet2D.Native.Linux.x64" Version="0.1.0-preview.1" />
     <EngineAsset Include="assets/**/*" />
+    <AdditionalFiles Include="assets/ui/cards.rml;assets/ui/generated-check.rml" />
   </ItemGroup>
 </Project>
