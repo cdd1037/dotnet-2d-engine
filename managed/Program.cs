@@ -35,6 +35,7 @@ internal static class Program
             if(args.Contains("--image-graphics-test",StringComparer.Ordinal)){UiImageTests.RunGraphics();return 0;}
             if(args.Contains("--model-ui-demo",StringComparer.Ordinal))return UiModelExamples.Run(options.Frames);
             if(args.Contains("--model-ui-self-test",StringComparer.Ordinal)){UiModelTests.RunContracts();return 0;}
+            if(args.Contains("--composition-self-test",StringComparer.Ordinal)){EntityLifetimeTests.Run();CompositionSample.CompositionChecks.Run();return 0;}
             if(args.Contains("--model-ui-native-test",StringComparer.Ordinal)){UiModelTests.RunNative();return 0;}
             if(args.Contains("--binding-self-test",StringComparer.Ordinal)){BoundUiTests.RunContracts();return 0;}
             if(args.Contains("--binding-native-test",StringComparer.Ordinal)){BoundUiTests.RunNative();return 0;}
@@ -232,6 +233,7 @@ internal static class Program
         Console.WriteLine("TileMap runtime editing: --tilemap-edit-graphics-test (three captured frames)");
         Console.WriteLine("Animation: --animation-demo | --animation-scenario [--headless] | --animation-self-test");
         Console.WriteLine("Camera follow: --camera-self-test");
+        Console.WriteLine("C# composition and entity ownership: --composition-self-test");
         Console.WriteLine("Physics: --physics-demo | --physics-scenario | --physics-contract-test | --physics-self-test (real solver)");
         Console.WriteLine("Audio: --audio-demo [--frames N] | --audio-self-test | --audio-offline-test | --audio-device-test");
         Console.WriteLine("Regions: --region-self-test (CPU) | --region-graphics-test (SDL texture regions/capture)");
@@ -267,6 +269,7 @@ internal static class Program
                     case "--target-self-test": case "--target-graphics-test": case "--target-demo":break;
                     case "--ui-scenario":uiDemo=true;uiScenario=true;break;
                     case "--validate-ui":if(++i==args.Length||args[i].StartsWith("--",StringComparison.Ordinal))error="--validate-ui requires a path.";else uiValidate=args[i];break;
+                    case "--composition-self-test":
                     case "--tilemap-clip-demo": case "--tilemap-clip-scenario": case "--clip-self-test": case "--clip-graphics-test": case "--svg-disabled-test": case "--svg-self-test": case "--svg-graphics-test": case "--image-self-test": case "--image-graphics-test": case "--model-ui-demo": case "--model-ui-self-test": case "--model-ui-native-test": case "--binding-self-test": case "--binding-native-test": case "--binding-demo": case "--ui-owner-test": case "--ui-text-test": case "--tilemap-demo": case "--tilemap-scenario": case "--tilemap-physics-demo": case "--tilemap-physics-scenario": case "--tilemap-self-test": case "--tilemap-physics-test": case "--camera-self-test": case "--animation-self-test": case "--animation-demo": case "--animation-scenario": case "--physics-demo": case "--physics-scenario": case "--physics-contract-test": case "--physics-self-test": case "--audio-demo": case "--audio-self-test": case "--audio-offline-test": case "--audio-device-test": case "--region-self-test": case "--region-graphics-test": case "--input-self-test": case "--input-graphics-test": break;
                     case "--resource-self-test": resourceSelfTest=true;break;
                     case "--resource-graphics-test": resourceGraphics=true;break;

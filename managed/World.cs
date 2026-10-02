@@ -121,6 +121,7 @@ public sealed class Entity
     private Sprite2D? _sprite;
     private IBehavior? _behavior;
     internal BehaviorLifetime? Lifetime;
+    internal BehaviorLifetime? DestructionLifetime;
     internal void AssignBehavior(IBehavior? behavior)=>_behavior=behavior;
 
     internal Entity(World world, EntityId id, Guid persistentId, string name, Scene scene, Transform2D transform)
@@ -343,6 +344,21 @@ public sealed class World
         DestroySet(new HashSet<Entity>(OwnedSubtree(entity)));
     }
 
+    /// <summary>
+    /// Registers explicit entity-owned cleanup, independent of behavior replacement.
+    /// Registration lasts until destruction; there is no cancellation or implicit resource discovery.
+    /// After commit and all behavior cleanup, these callbacks run descendants before lifetime owners,
+    /// in reverse registration order per entity; sibling/unrelated order is unspecified. All callbacks
+    /// are attempted, with same-world mutation blocked and errors aggregated.
+    /// </summary>
+    public void OnDestroy(Entity entity, Action cleanup)
+    {
+        RequireMutationAllowed();
+        RequireEntity(entity);
+        ArgumentNullException.ThrowIfNull(cleanup);
+        (entity.DestructionLifetime ??= new BehaviorLifetime()).OnDetach(cleanup);
+    }
+
     // Unloading starts with the room's members and follows ownership, stopping at
     // persistent members. Surviving external relations are safely detached.
     public void UnloadScene(Scene scene)
@@ -463,6 +479,23 @@ public sealed class World
         foreach (Entity entity in _entities)
             if (entity.IsAlive && !doomed.Contains(entity) && entity.ParentValue is { } parent && doomed.Contains(parent))
                 detached.Add((entity, GetWorldTransform(entity)));
+        // Snapshot full ownership before clearing it. A surviving persistent node
+        // may separate two doomed nodes; creation order is not ownership order.
+        var destructionLifetimes = new List<(BehaviorLifetime Lifetime, int Depth)>();
+        var depths = new Dictionary<Entity, int>();
+        var path = new List<Entity>();
+        foreach (Entity entity in _entities)
+            if (entity.IsAlive && doomed.Contains(entity) && entity.DestructionLifetime is { } cleanup)
+            {
+                path.Clear();
+                Entity? cursor = entity;
+                while (cursor is not null && !depths.ContainsKey(cursor))
+                { path.Add(cursor); cursor = cursor.OwnerValue; }
+                int depth = cursor is null ? -1 : depths[cursor];
+                for (int i = path.Count - 1; i >= 0; i--) depths[path[i]] = ++depth;
+                destructionLifetimes.Add((cleanup, depths[entity]));
+            }
+        destructionLifetimes.Sort(static (a, b) => b.Depth.CompareTo(a.Depth));
         var lifetimes = new List<BehaviorLifetime>();
         foreach (var (entity, world) in detached)
         {
@@ -477,6 +510,7 @@ public sealed class World
                 // Clear references before invalidating, to release user behaviors.
                 entity.AssignBehavior(null);
                 if(entity.Lifetime is {} lifetime){lifetimes.Add(lifetime);entity.Lifetime=null;}
+                entity.DestructionLifetime = null;
                 entity.ParentValue = entity.OwnerValue = null;
                 entity.IsAlive = false;
                 _byId.Remove(entity.Id);
@@ -489,14 +523,20 @@ public sealed class World
         if (!_updating) CompactDestroyed();
         List<Exception>? failures=null;
         _lifecycleCallback=true;
-        try{foreach(var lifetime in lifetimes)lifetime.Release(ref failures);}
+        try
+        {
+            // Existing behavior-detach order is unchanged; all subscriptions tied
+            // to behaviors retire before any entity-owned resource is released.
+            foreach(var lifetime in lifetimes)lifetime.Release(ref failures);
+            foreach(var cleanup in destructionLifetimes)cleanup.Lifetime.Release(ref failures);
+        }
         finally{_lifecycleCallback=false;}
-        if(failures is not null)throw new AggregateException("Destruction committed; behavior cleanup failed.",failures);
+        if(failures is not null)throw new AggregateException("Destruction committed; lifecycle cleanup failed.",failures);
     }
 
     internal void RequireMutationAllowed()
     {
-        if(_lifecycleCallback)throw new InvalidOperationException("World mutation/update/extraction is forbidden during behavior attach/detach callbacks.");
+        if(_lifecycleCallback)throw new InvalidOperationException("World mutation/update/extraction is forbidden during lifecycle callbacks.");
     }
 
     internal void SetBehavior(Entity entity,IBehavior? behavior)

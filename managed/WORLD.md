@@ -152,6 +152,15 @@ retire registered cleanup once; callbacks
 run after commit with mutation blocked and failures aggregated. See
 [ownership and sorting](../docs/LIFECYCLE_SORTING.md) for exact setup/rollback/exception/order semantics.
 
+`World.OnDestroy(entity, cleanup)` separately registers entity-owned cleanup that
+survives behavior replacement. After committed destruction and all existing
+behavior cleanup, these callbacks run lifetime descendants before owners, LIFO
+within each entity; sibling/unrelated ordering is unspecified. Every registration
+is attempted once under the same mutation guard, with failures aggregated. There
+is no cancellation token, implicit disposal discovery or callback serialization.
+See [C# composition](../docs/CSHARP_COMPOSITION.md) for typed factories, construction
+rollback, shared-resource ownership and the full registration contract.
+
 ```csharp
 var batch = new SpriteBatch(capacity: 1024) { TextureResolver = ResolveTexture };
 world.Update(deltaSeconds);

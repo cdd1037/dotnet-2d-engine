@@ -5,9 +5,9 @@ cd "$(dirname "$0")/.."
 tier="${1:-quick}"
 focus="${2:-core}"
 case "$tier" in
- quick|jit) case "$focus" in core|scene|ui|game|resources|images|svg|input|regions|audio|physics|animation|camera|tilemap|bindings|model-ui|clipping|diagnostics|materials|targets|movement) ;; *) echo 'Focus must be core, scene, ui, game, resources, images, svg, input, regions, audio, physics, animation, camera, tilemap, bindings, model-ui, clipping, diagnostics, materials, targets or movement' >&2; exit 2;; esac;;
+ quick|jit) case "$focus" in core|scene|composition|ui|game|resources|images|svg|input|regions|audio|physics|animation|camera|tilemap|bindings|model-ui|clipping|diagnostics|materials|targets|movement) ;; *) echo 'Focus must be core, scene, composition, ui, game, resources, images, svg, input, regions, audio, physics, animation, camera, tilemap, bindings, model-ui, clipping, diagnostics, materials, targets or movement' >&2; exit 2;; esac;;
  aot|graphics|ui) ;;
- *) echo 'Usage: scripts/test.sh [quick [core|scene|ui|game|resources|images|svg|input|regions|audio|physics|animation|camera|tilemap|bindings|model-ui|clipping|diagnostics|materials|targets|movement]|jit|aot|graphics|ui]' >&2; exit 2;;
+ *) echo 'Usage: scripts/test.sh [quick [core|scene|composition|ui|game|resources|images|svg|input|regions|audio|physics|animation|camera|tilemap|bindings|model-ui|clipping|diagnostics|materials|targets|movement]|jit|aot|graphics|ui]' >&2; exit 2;;
 esac
 start=$SECONDS
 trap 'code=$?; echo "TEST tier=$tier focus=$focus exit=$code elapsed=$((SECONDS-start))s" >&2' EXIT
@@ -33,6 +33,7 @@ case "$tier" in
    "${app[@]}" --headless --frames 3
    case "$focus" in
     scene) "${app[@]}" --validate-scene assets/compositions.scene.json;;
+    composition) "${app[@]}" --composition-self-test;;
     ui) "${app[@]}" --validate-ui assets/ui/settings.rml;;
     game) "${app[@]}" --game-self-test;;
     resources) "${app[@]}" --resource-self-test;;

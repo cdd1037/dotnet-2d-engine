@@ -17,6 +17,8 @@
   <ItemGroup>
     <Compile Remove="@(EngineRuntimeSource)" />
     <ProjectReference Include="../engine/Dotnet2D.Engine.csproj" />
+    <!-- Exercise the exact game-authored public consumer in focused/source tests too. -->
+    <Compile Include="../packaging/consumers/composition/Composition.cs;../packaging/consumers/composition/CompositionChecks.cs" Link="CompositionSample/%(Filename)%(Extension)" />
     <Content Include="../assets/materials/*.material.json" Link="assets/materials/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/materials/tint.frag.spv;../assets/materials/desaturate.frag.spv" Link="assets/materials/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../assets/materials/*.spv" Exclude="../assets/materials/tint.frag.spv;../assets/materials/desaturate.frag.spv" Link="assets/materials/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

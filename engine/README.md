@@ -8,6 +8,10 @@ for the starter, edit/run workflow and public API boundaries.
 
 Use EngineHost.Create, World, explicit AssetRoot/AssetCatalog mappings, authored
 scene loading and BoundUiSession<T>. Dispose owners on their creating thread.
+Reusable C# composition uses ordinary application factories and typed references;
+`World.OnDestroy(entity, cleanup)` explicitly binds instance resources to entity
+destruction, separately from behavior replacement. See the
+[composition guide](../docs/CSHARP_COMPOSITION.md) and public-package consumer.
 Clipping, diagnostics, materials and render targets also have public experimental
 APIs; their runtime behavior is tested separately from the small package consumers.
 Audio, physics, frame animation/tween/timers and bounded TileMap entry points are

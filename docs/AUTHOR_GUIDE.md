@@ -82,8 +82,9 @@ raster decode, actual pixels, GPU/device behavior, audio hardware or real IME.
 - **Simple sprites:** submit explicit `SpriteDraw` arrays, as in the starter
 - **Related entities/scenes:** create a `World`, then explicit `Scene`/`Entity`
   objects, or load a strict `AuthoredScene`. Extract through `SpriteBatch`
-- **Content reuse:** ordinary C# factories are valid. There is no automatic prefab
-  inheritance, arbitrary serialized component registry or behavior discovery
+- **Content reuse:** use [parameterized C# factories and typed instance references](CSHARP_COMPOSITION.md),
+  validated by the independent nested enemy/room consumer. There is no automatic
+  prefab inheritance, arbitrary serialized component registry or behavior discovery
 
 `World` deliberately separates transform parent, lifetime owner and scene
 membership. One entity has one behavior slot; compose a behavior explicitly if
@@ -93,6 +94,9 @@ owned subscriptions/resources. Replacing/clearing an attached behavior retires
 its registered cleanup; it does not magically dispose every `IDisposable` assigned
 through the property. Same-instance property assignment is a no-op. Cleanup
 failures are aggregated after the world transaction commits; don't replay it.
+For resources belonging to the entity instance rather than its replaceable
+behavior, register `world.OnDestroy(entity, cleanup)`. These registrations survive
+behavior replacement and retire on entity/root destruction or scene unload.
 See [lifetime/sorting](LIFECYCLE_SORTING.md) and [World](../managed/WORLD.md).
 
 Authored scene JSON is immutable author input, with strict versions/unknown-field

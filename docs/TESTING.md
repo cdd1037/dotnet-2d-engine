@@ -8,6 +8,7 @@ Every entry point prints elapsed wall time and its exit status.
 |---|---|---|
 | Small core edit (default) | `scripts/test.sh` | Native headless contracts, Release compile, three CPU-only frames |
 | Authored scene edit | `scripts/test.sh quick scene` | Default plus sample scene validation |
+| C# composition/entity ownership | `scripts/test.sh quick composition` | Destruction registration, nested typed factories, rollback, repeated instances/subscriptions; CPU only |
 | UI authoring edit | `scripts/test.sh quick ui` | Default plus RML/RCSS preflight, no renderer |
 | Input/viewport edit | `scripts/test.sh quick input` | Default plus v2 layout, synthetic DPI, remapping, focus and fixed-step edge checks |
 | Image format/UI resource edit | `scripts/test.sh quick images` | Bounded raster metadata, static UI image grammar, snapshot/budget and headless ownership contracts; see [integration](UI_IMAGES.md) |
@@ -154,6 +155,14 @@ readback destinations. Real desktop CUA acceptance and synthetic queued text are
 recorded separately in [validation](validation.md).
 
 ## Independent package consumers
+
+`bash scripts/test-composition-packages.sh` is the focused managed-only public
+composition boundary. Rebuild the managed package first; choose a fresh
+`PACKAGE_COMPOSITION_PROOF_ROOT`. It copies the ordinary consumer outside the
+checkout, restores from a fresh local-only feed/cache, runs JIT and one fresh
+NativeAOT publish, verifies package/DLL/source identity, and uses no native library.
+See [composition](CSHARP_COMPOSITION.md). This does not rerun the renderer/package
+matrix or establish native resource/device behavior.
 
 `pack-managed.sh`, `pack-native.sh` and `test-packages.sh` are an explicit optional
 local-feed tier. They require existing SDK/native/AOT dependencies and never

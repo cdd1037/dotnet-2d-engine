@@ -1,5 +1,10 @@
 # Explicit behavior ownership and stable sprite sorting
 
+For entity-owned resources that must survive behavior replacement, see the
+additive [OnDestroy/composition contract](CSHARP_COMPOSITION.md). Its callbacks run
+after all behavior cleanup, ordered by lifetime ownership. The behavior attachment
+contract and its creation-order cleanup below are unchanged.
+
 ## Owned attachment
 
 `World.AttachBehavior(entity, behavior, attach)` is an opt-in lifetime boundary.
