@@ -982,3 +982,56 @@ smoothing cancellation before acceptance. Local logs are under
 `evidence/camera-follow/`. This checkpoint does not claim a camera graphics
 scenario, physical device result or a fresh NativeAOT publication; the combined
 feature pass is recorded separately.
+
+## 2026-10-02 — combined SVG and camera NativeAOT gate
+
+After the SVG (`a1d0557`) and camera-follow (`1059ea6`) implementation commits,
+the clean combined tree passed the final gate:
+
+- Release/JIT and a **fresh NativeAOT** publication each pass **11,354 assertions**,
+  including SVG **164** and camera-follow **137** contracts
+- That AOT executable passes the optional SVG software-render suite **179**,
+  raster-image suite **107**, typed binding suite **60**, game UI suite **28**, and
+  SVG-disabled behavior suite **12**
+- All **32 SVG** and **23 raster-image** JIT/AOT BMP captures are byte-identical
+- SVG-enabled native and headless **7/7 CTest** remain green; the optional native
+  UI clock test also passes. Enabled/disabled builds export identical public ABI
+  symbol sets; this batch adds no native ABI record or entry point
+- The AOT compiler emitted no trimming/AOT warnings. Publication uses isolated
+  `build-svg-aot-artifacts/` intermediates and `build-svg-aot/` output, leaving the
+  ordinary JIT and previous image-batch AOT outputs separate
+
+The default MSBuild out-of-process ILLink task host hit this runner's existing
+`MSB4216` limitation before native code generation. Reusing the already prepared
+in-process official ILLink task override and clang-19 toolchain completed the
+fresh publication without product-source changes. Runtime/compiler packages were
+restored from the existing local cache and an offline source; no additional
+package download or dependency rebuild was needed.
+
+The successful publication was equivalent to:
+
+```sh
+export DOTNET_CLI_HOME="$PWD/managed/.dotnet-home"
+export NUGET_PACKAGES="$PWD/../android-trim-tools/nuget"
+LD_LIBRARY_PATH="$PWD/.tools/aot/usr/lib/x86_64-linux-gnu" \
+  ../android-trim-tools/dotnet/dotnet publish managed/GameAuthoringLab.csproj \
+  -c Release -r linux-x64 --no-restore -m:1 -nr:false \
+  -p:UseSharedCompilation=false -p:PublishAot=true -p:StripSymbols=true \
+  -p:RuntimeFrameworkVersion=10.0.12 \
+  -p:CppCompilerAndLinker="$PWD/.tools/aot/usr/bin/clang-19" \
+  -p:CustomAfterMicrosoftCommonTargets="$PWD/evidence/aot/inprocess-illink.targets" \
+  -p:ArtifactsPath="$PWD/build-svg-aot-artifacts" -p:UseArtifactsOutput=true \
+  -o "$PWD/build-svg-aot"
+AOT_APP="$PWD/build-svg-aot/GameAuthoringLab" scripts/test.sh aot
+GAL_NATIVE_DIR="$PWD/build-svg" source scripts/ui-env.sh
+GAL_UI_SVG_CAPTURE_DIR="$PWD/evidence/ui-svg/aot" \
+  build-svg-aot/GameAuthoringLab --svg-graphics-test
+```
+
+The runner-specific SDK/cache/compiler paths and ILLink host override above are
+local setup, not new product dependencies or required settings on ordinary hosts.
+Evidence and binary hashes are in `evidence/ui-svg/combined/`; raster AOT captures
+are in `evidence/ui-images/svg-aot/`. `build-svg` enables SVG, mixer and physics;
+`build-ui` was intentionally kept SVG-off for the opt-out checks. These results
+continue to be software-rendered Linux evidence, not a cross-platform, hardware
+high-DPI, physical audio/IME or package-consumer matrix.
