@@ -13,6 +13,8 @@ public sealed class UiAuthoringException : Exception
     public int Column { get; }
     public string Field { get; }
     public string Cause { get; }
+    /// <summary>Optional C# registration site, separate from an authored RML use site or runtime data origin.</summary>
+    public UiDeclaration? Declaration { get; init; }
 
     public UiAuthoringException(string code, string filePath, int line, int column, string field, string cause,
         Exception? inner = null) : base($"{filePath}:{Math.Max(1, line)}:{Math.Max(1, column)} [{code}] {field}: {cause}", inner)
@@ -187,6 +189,23 @@ internal static class UiAuthoring
             // Framework XML tokenization with a bounded profile-only model. No general LINQ-to-XML DOM.
             var document = new UiXmlDocument();
             var parents = new Stack<UiXmlElement>();
+            // XmlReader supplies the token boundary and line position. Keep only the raw
+            // interpolation-presence bit; do not reconstruct XML or reimplement its parser.
+            var lineStarts = new List<int> { 0 };
+            for (int i = 0; i < source.Length; i++)
+            {
+                if (source[i] == '\r') { if (i + 1 < source.Length && source[i + 1] == '\n') i++; lineStarts.Add(i + 1); }
+                else if (source[i] == '\n') lineStarts.Add(i + 1);
+            }
+            bool HasRawInterpolation(int row, int column)
+            {
+                if (row < 1 || row > lineStarts.Count || column < 1) return false;
+                int start = lineStarts[row - 1] + column - 1;
+                if (start >= source.Length) return false;
+                int end = source.IndexOf('<', start);
+                if (end < 0) end = source.Length;
+                return source.AsSpan(start, end - start).Contains("{{", StringComparison.Ordinal);
+            }
             string? version = null, encoding = null;
             using var reader = XmlReader.Create(new StringReader(source), settings);
             int elements = 0;
@@ -221,7 +240,7 @@ internal static class UiAuthoring
                     case XmlNodeType.Text:
                     case XmlNodeType.Whitespace:
                     case XmlNodeType.SignificantWhitespace:
-                        if (parents.Count != 0) parents.Peek().Add(new UiXmlText(reader.Value, row, column));
+                        if (parents.Count != 0) parents.Peek().Add(new UiXmlText(reader.Value, row, column, HasRawInterpolation(row, column)));
                         break;
                     // Comments are permitted but never interpreted. Separate text tokens stay separate.
                 }

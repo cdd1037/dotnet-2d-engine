@@ -1,0 +1,34 @@
+body { font-family: "Noto Sans CJK SC"; font-size: 14px; color: #e8eff5; width: 100%; height: 100%; background-color: #101923; }
+div, h1, h2, h3, p { display: block; }
+.panel { position: absolute; left: 20px; top: 16px; width: 884px; padding: 18px; background-color: #182632; border: 1px #3a515e; border-radius: 10px; }
+.eyebrow { color: #7ad3b5; font-size: 11px; letter-spacing: 2px; }
+.header { display: flex; align-items: center; justify-content: space-between; height: 42px; }
+h1 { font-size: 27px; margin: 0px; }
+.hud { color: #e9cba0; }
+.sections { display: flex; gap: 16px; }
+.section { width: 434px; }
+h2 { font-size: 16px; color: #a6bac8; margin: 7px 0px; }
+.cards { height: 302px; overflow-y: auto; overflow-x: hidden; }
+.card { height: 116px; margin-bottom: 8px; padding: 12px; background-color: #203342; border: 1px #3a5362; border-radius: 7px; }
+.card.selected { border-color: #7ad3b5; background-color: #203c42; }
+.heading { display: flex; align-items: center; justify-content: space-between; }
+h3 { font-size: 19px; margin: 0px; }
+.badge { padding: 2px 6px; font-size: 10px; color: #e9cba0; background-color: #3d3e34; }
+p { margin: 0px; }
+.description { font-size: 12px; color: #b6c6d2; margin-top: 4px; }
+.stats { display: flex; margin-top: 8px; font-size: 12px; }
+.stat { padding: 2px 6px; margin-right: 8px; background-color: #14232f; }
+.stock { color: #e9cba0; padding: 2px; }
+.actions { margin-top: 8px; }
+button { display: inline-block; width: 88px; padding: 5px 8px; color: #102820; background-color: #7ad3b5; border: 1px #a0e5ce; border-radius: 4px; font-size: 13px; text-align: center; }
+button:hover { background-color: #a0e5ce; }
+button:focus { border-color: #ffffff; }
+button.disabled { color: #6c8290; background-color: #293e4d; border-color: #3a5362; }
+.actions button { margin-right: 8px; }
+.detail { height: 22px; margin-top: 8px; color: #b6c6d2; font-size: 13px; }
+.toolbar button { width: 110px; margin-right: 7px; }
+.message { color: #a6bac8; font-size: 12px; margin-top: 10px; }
+scrollbarvertical { width: 8px; }
+scrollbarvertical slidertrack { background-color: #14232f; }
+scrollbarvertical sliderbar { width: 8px; min-height: 18px; background-color: #64808f; }
+scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc { display: none; }

@@ -12,20 +12,21 @@ namespace GameAuthoringLab;
 internal static class UiModelAuthoring
 {
     internal static BoundUiDocument ValidateAsset(AssetRoot assets, string logicalPath,
-        IReadOnlyList<string> commandNames, IReadOnlyList<string>? declaredImages = null)
+        IReadOnlyList<string> commandNames, IReadOnlyList<string>? declaredImages = null,
+        ModelSchema[]? schema = null, UiCommands.Command[]? definitions = null)
     {
         ArgumentNullException.ThrowIfNull(assets);
         try { assets.ValidateLogicalPath(logicalPath); }
         catch (AssetException e) { throw new UiAuthoringException("UI_FILE", logicalPath, 1, 1, "$", e.Message, e); }
         string stylesheet = StylesheetFor(logicalPath);
         var files = UiSourceFiles.ReadAssetFiles(assets, logicalPath, stylesheet);
-        var source = Validate(files.Rml, files.Rcss, commandNames, files.RmlFile, files.RcssFile, declaredImages);
+        var source = Validate(files.Rml, files.Rcss, commandNames, files.RmlFile, files.RcssFile, declaredImages, schema, definitions);
         return source with { Images = UiImageResources.Read(assets, logicalPath, source.References) };
     }
 
     internal static BoundUiDocument Validate(ReadOnlySpan<byte> rml, ReadOnlySpan<byte> rcss,
         IReadOnlyList<string> commandNames, string file = "model.rml", string cssFile = "model.rcss",
-        IReadOnlyList<string>? declaredImages = null)
+        IReadOnlyList<string>? declaredImages = null, ModelSchema[]? schema = null, UiCommands.Command[]? definitions = null)
     {
         var commands = ValidateCommands(commandNames);
         string stylesheet = StylesheetFor(file);
@@ -123,6 +124,7 @@ internal static class UiModelAuthoring
                     (node.Attribute("src") is not null || node.Attribute("data-attr-src") is not null),
                     "UI_RESOURCE", file, node, "SVG must be an empty element with a static or manifested dynamic src; inline SVG is unsupported.");
         }
+        if (schema is not null) UiModelPreflight.Validate(root, file, schema, definitions ?? []);
         new StylePolicy(style, cssFile, images).Validate();
         return new(markup, style, stylesheet, images.AsReadOnly(), Array.Empty<UiImageResource>());
     }

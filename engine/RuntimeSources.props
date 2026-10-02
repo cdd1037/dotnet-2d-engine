@@ -42,6 +42,8 @@
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiSession.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/BoundUiAuthoring.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModel.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiCommands.cs" />
+    <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModelPreflight.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModelSession.cs" />
     <EngineRuntimeSource Include="$(MSBuildThisFileDirectory)../managed/UiModelAuthoring.cs" />
   </ItemGroup>

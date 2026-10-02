@@ -1,0 +1,221 @@
+{
+  "baseline_commit": "5666c871b24244817ab4fdb0d9202f386a2a1c66",
+  "metric": "physical splitlines, UTF-8 file bytes, comments/blank lines included",
+  "runtime_files": [
+    {
+      "path": "managed/UiCommands.cs",
+      "before": {
+        "lines": 0,
+        "bytes": 0
+      },
+      "after": {
+        "lines": 85,
+        "bytes": 5154
+      }
+    },
+    {
+      "path": "managed/UiModel.cs",
+      "before": {
+        "lines": 113,
+        "bytes": 10531
+      },
+      "after": {
+        "lines": 183,
+        "bytes": 13218
+      }
+    },
+    {
+      "path": "managed/UiModelSession.cs",
+      "before": {
+        "lines": 65,
+        "bytes": 7414
+      },
+      "after": {
+        "lines": 81,
+        "bytes": 8231
+      }
+    },
+    {
+      "path": "managed/UiModelAuthoring.cs",
+      "before": {
+        "lines": 403,
+        "bytes": 25508
+      },
+      "after": {
+        "lines": 405,
+        "bytes": 25779
+      }
+    },
+    {
+      "path": "managed/UiModelPreflight.cs",
+      "before": {
+        "lines": 0,
+        "bytes": 0
+      },
+      "after": {
+        "lines": 387,
+        "bytes": 20458
+      }
+    },
+    {
+      "path": "managed/UiAuthoring.cs",
+      "before": {
+        "lines": 490,
+        "bytes": 32030
+      },
+      "after": {
+        "lines": 509,
+        "bytes": 33233
+      }
+    },
+    {
+      "path": "managed/UiXmlModel.cs",
+      "before": {
+        "lines": 62,
+        "bytes": 3890
+      },
+      "after": {
+        "lines": 65,
+        "bytes": 4148
+      }
+    }
+  ],
+  "runtime_before": {
+    "lines": 1133,
+    "bytes": 79373
+  },
+  "runtime_after": {
+    "lines": 1715,
+    "bytes": 110221
+  },
+  "consumer_files": [
+    {
+      "path": "CardGame.cs",
+      "lines": 106,
+      "bytes": 5816
+    },
+    {
+      "path": "CardUi.cs",
+      "lines": 80,
+      "bytes": 3286
+    },
+    {
+      "path": "InventorySchema.cs",
+      "lines": 36,
+      "bytes": 1399
+    },
+    {
+      "path": "Program.cs",
+      "lines": 27,
+      "bytes": 1415
+    },
+    {
+      "path": "assets/ui/cards.rml",
+      "lines": 36,
+      "bytes": 2216
+    },
+    {
+      "path": "assets/ui/cards.rcss",
+      "lines": 34,
+      "bytes": 2284
+    }
+  ],
+  "consumer_total": {
+    "lines": 319,
+    "bytes": 16416
+  },
+  "current_helper_plus_consumer": {
+    "lines": 2034,
+    "bytes": 126637
+  },
+  "packages": {
+    "engine_package_sha256": "2b9f97ae86bc8950627b645d09636041509804e77e8fa975084203b65d7008f6",
+    "native_package_sha256": "5c1bad38bcc9eec355d0e00ec9b8d3abc17016d33db81ca8f7d79a0f37af1694",
+    "engine_dll_sha256": "ae88d258e2e68efb8cafc911f9cbed559309bb7b994fa1db6f9fdb3879bcc835",
+    "native_files": {
+      "libSDL3.so.0": "c088a5c9ee6da32ddfc5fbb5ffbe183e6a63f8a3172951d48750b5a7725733d6",
+      "libbrotlicommon.so.1": "7b0b0de90d8d3d4f07b99738c0285c6a0dbb6611d774ca44e7ea53a19a01ea68",
+      "libbrotlidec.so.1": "06530583d5927000480f4214d80d0213fec3d34cc448527f932a6eceb50cefef",
+      "libbz2.so.1.0": "c630f057efedc12f848710d71f40283895591e5b4608539f387895c64e0553da",
+      "libfreetype.so.6": "9e376992a91e92d86809893a3b9eea22a4e27849db1686f6ca58032f79cdafb5",
+      "libgal.so": "8c7e3c97d8e2bb467f4877cfaa27e7ebcb755983557e6d1a26230dae5ec0c9c3",
+      "libpng16.so.16": "56485ea502d222fa8b0d99f899470c1bacdca815a958d83c1b349d4e8f605255",
+      "libz.so.1": "85590dd58edf5445e18bc7193e5ebc01ac5841f1ae187e97705a662e90c6421e"
+    },
+    "modes": [
+      "jit",
+      "aot"
+    ],
+    "scope": "focused correctness, not timing benchmark"
+  },
+  "date": "2026-10-02",
+  "checks": {
+    "release_build_warnings": 0,
+    "release_build_errors": 0,
+    "jit_aggregate_assertions": 11726,
+    "generic_cpu_assertions": 61,
+    "ergonomics_cpu_assertions": 32,
+    "generic_native_assertions": 97,
+    "typed_native_assertions": 10,
+    "legacy_native_assertions": 60,
+    "model_pixel_assertions": 21,
+    "native_ctest_headless": [
+      8,
+      8
+    ],
+    "native_ctest_ui": [
+      8,
+      8
+    ],
+    "independent_package_modes": [
+      "jit",
+      "aot"
+    ],
+    "per_mode": {
+      "shared_rules": 14,
+      "existing_native": 26,
+      "discard_total": 93,
+      "discard_rules_subtotal": 39,
+      "diagnostics_and_package": 29,
+      "total": 162
+    },
+    "unchanged_apply_managed_bytes": 0
+  },
+  "proof_limits": [
+    "No broad AI benchmark rerun",
+    "No general expression type/evaluation proof",
+    "Software/offscreen tests do not establish physical-device or other-platform acceptance",
+    "Historical consumer inputs were lost during environment replacement; original-input byte equality not re-established"
+  ],
+  "historical_consumer_accepted": {
+    "lines": 341,
+    "bytes": 16802,
+    "measurement": "before environment replacement; source not re-established"
+  },
+  "evidence_sha256": {
+    "build.log": "e7634999cfea1f4586e04f1c4d3b7ccb3a1d4a8f387c7476ca487cc76446da19",
+    "aggregate.log": "03514d17288513fb852cdc408f7c05e875f8ea2082373a64c51f6466eb31c891",
+    "native.log": "93b93656ae2515e9a267f6e1e8508996ee0c367cf3bb77bc380a45603d7236e4",
+    "legacy.log": "13758ee4c4b2a4371b428ea9891a45c063a1c7828bef3441d9d7b0e887b536db",
+    "pixels.log": "b073f22a31ebc2ff582a5635658579f024e898a8ca7ee58b074eba11e0b7d789",
+    "package-match.log": "4003b448855b5766f821142a3b28256baf572b05ec4bd386367c0446586b20f2",
+    "package/aot-run.log": "f6aeaf92f572ea813db982df999dd4131d22ddde920398e12ae60870e6dc900d",
+    "package/jit-run.log": "fc84013ae9558379d21607b7b2f2731e6feac25191b4ee8a4a4510d5eb3526c1",
+    "package/aot-publish.log": "328d20e3dea83a3fa2a43023d5f1dc74e07f4e33ef23f89c22c23d65345f52ed",
+    "package/aot-restore.log": "88a63dd61d09ba7c7ab99aa3f24db06779f2a665beff38531b5864fbb5269987",
+    "package/jit-publish.log": "348ce60b94c8caf38d4164fd1036be8e80ea3117e1db7a94a9038bdbf07d032b",
+    "package/jit-restore.log": "3b30d5c4344c1d4a6852107894096ff9786c89bfd1e743cc0f39aca5c6958640",
+    "ctest-headless.log": "15ccc03e312fde1bf4b57622ae16f65eb3e809addbe7938bc8298bbb572daadd",
+    "ctest-ui.log": "912da3124b7d95df6f20f576e067c4099aa920260fc8de9334d8c5739041f17c",
+    "package-proof.log": "dcea1017f395075ef47a5370c90493e4508ae417dccb9057314048317fc62b33"
+  },
+  "final_runtime_sha256": {
+    "managed/UiCommands.cs": "d82359cc849dbe87d88f23ab4e27d45813ed79a037dd6f793af41f111ea55be5",
+    "managed/UiModel.cs": "985029542cbe20b5785b0268bf3e0a0da31f88d4a889363829f8d2142de87466",
+    "managed/UiModelSession.cs": "3ee1e3153d7f94f7c979aa5df0dd3b0724b23276c610107057dbb0e74add726c",
+    "managed/UiModelAuthoring.cs": "181e4e9959567c47d35f168ce27c94be7c6c3c6a0f4f86e43d981b5bedcba108",
+    "managed/UiModelPreflight.cs": "d7b14dbefce1c2036aa37249ef6a7c07d647830ce031e0f99f07fbd782269271",
+    "managed/UiAuthoring.cs": "3f1e66bd61c55aa261ccfdfbd8c93a00b2107f2818296cdfe47f773821ca16de",
+    "managed/UiXmlModel.cs": "7be2ea22d95cdcba66776212cb89f1d6c00b193c59bf15fba42f7dc27c65bc24"
+  }
+}

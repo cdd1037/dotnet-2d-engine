@@ -27,21 +27,22 @@ internal static unsafe class UiModelTests
         using var engine=new EngineHost(true,8);var schema=Schema();using var ui=new UiModelSession<Model>(engine,schema,Commands());var model=new Model();
         Check(ui.Project(model)==13,"nested full projection");schema.Text("later",m=>"ignored");Check(ui.Project(model)==13,"schema frozen");
         Reject<InvalidOperationException>(()=>new UiSession(engine),"exclusive UI ownership");
-        model.Items[1].Id=model.Items[0].Id;Reject<ArgumentException>(()=>ui.Project(model),"duplicate identity");model.Items[1].Id=9007199254740993;
-        model.Items[1].Id=0;Reject<ArgumentException>(()=>ui.Project(model),"zero identity");model.Items[1].Id=9007199254740993;
-        model.Number=double.NaN;Reject<ArgumentOutOfRangeException>(()=>ui.Project(model),"nonfinite number");model.Number=4;
+        model.Items[1].Id=model.Items[0].Id;Reject<UiAuthoringException>(()=>ui.Project(model),"duplicate identity");model.Items[1].Id=9007199254740993;
+        model.Items[1].Id=0;Reject<UiAuthoringException>(()=>ui.Project(model),"zero identity");model.Items[1].Id=9007199254740993;
+        model.Number=double.NaN;Reject<UiAuthoringException>(()=>ui.Project(model),"nonfinite number");model.Number=4;
         model.Title="bad\ud800";Reject<UiAuthoringException>(()=>ui.Project(model),"invalid UTF16");model.Title=new string('你',86);Reject<UiAuthoringException>(()=>ui.Project(model),"UTF8 capacity");model.Title="ok";
-        model.Items=Enumerable.Range(0,65).Select(i=>new Item((ulong)i+1,"x")).ToList();Reject<ArgumentException>(()=>ui.Project(model),"bounded array");
+        model.Items=Enumerable.Range(0,65).Select(i=>new Item((ulong)i+1,"x")).ToList();Reject<UiAuthoringException>(()=>ui.Project(model),"bounded array");
         var data=UiModelAuthoring.Validate(Encoding.UTF8.GetBytes(Rml),Encoding.UTF8.GetBytes(Css),["choose","edit","typed"]);Check(data.Rml.Contains("article"),"arbitrary nested elements and bindings");
         foreach(string bad in new[]{Rml.Replace("choose(item.id)","choose(item.id); edit('x')"),Rml.Replace("choose(item.id)","unknown(item.id)"),Rml.Replace("data-attr-value","data-value"),Rml.Replace("<main>","<main><script>x</script>"),Rml.Replace("<main>","<main><img src='https://x/y.png'/>"),Rml.Replace("<main>","<main><p data-rml='state.title'/>"),Rml.Replace("<main>","<main rmlui-inner-rml='x'>"),Rml.Replace("<main>","<main data-attr-rmlui-inner-rml='state.title'>")})Reject<UiAuthoringException>(()=>UiModelAuthoring.Validate(Encoding.UTF8.GetBytes(bad),Encoding.UTF8.GetBytes(Css),["choose","edit","typed"]),"resource/code/command rejection");
         Reject<UiAuthoringException>(()=>UiModelAuthoring.Validate(Encoding.UTF8.GetBytes(Rml),Encoding.UTF8.GetBytes("@import 'external.rcss';"),["choose","edit","typed"]),"external CSS");
         ui.Dispose();Reject<ArgumentException>(()=>new UiModelSession<Model>(engine,new UiRecord<Model>()),"empty schema before ownership");
-        var recursive=new UiRecord<Model>();recursive.Record("self",m=>m,recursive);Reject<ArgumentException>(()=>new UiModelSession<Model>(engine,recursive),"cyclic schema bounded before ownership");
+        var recursive=new UiRecord<Model>();recursive.Record("self",m=>m,recursive);Reject<UiAuthoringException>(()=>new UiModelSession<Model>(engine,recursive),"cyclic schema bounded before ownership");
         UiModelSession<Model>? reentrant=null;
         using(var busy=reentrant=new UiModelSession<Model>(engine,new UiRecord<Model>().Text("title",m=>{reentrant!.Apply(m);return m.Title;})))Reject<InvalidOperationException>(()=>busy.Apply(new Model()),"projection reentry rejected");
         using(var busy=reentrant=new UiModelSession<Model>(engine,new UiRecord<Model>().Text("title",m=>{reentrant!.Dispose();return m.Title;}))){Reject<InvalidOperationException>(()=>busy.Apply(new Model()),"projection cannot dispose active owner");Check(!busy.IsDisposed,"reentrant disposal leaves owner alive");}
         using(var scalar=new UiModelSession<IReadOnlyList<string>>(engine,new UiRecord<IReadOnlyList<string>>().Array("words",m=>m,UiData.Text,4))){Check(scalar.Project(new[]{"one","two"})==4,"scalar array projection");Reject<InvalidOperationException>(()=>Task.Run(()=>scalar.Apply(new[]{"one"})).GetAwaiter().GetResult(),"owning thread");}
         using var after=new UiSession(engine);Check(!after.IsDisposed,"ownership after failed schema");
+        count+=UiErgonomicsTests.RunContracts();
         Console.WriteLine($"UI MODEL CONTRACT PASS assertions={count}");return count;
     }
     public static int RunNative()
@@ -61,9 +62,9 @@ internal static unsafe class UiModelTests
         ui.Probe(3,"choose");model.Items.Reverse();ui.Apply(model);Render();ui.Probe(4,"choose");Check(ui.Poll().IsEmpty,"pointer-down reorder cannot select reused row");
         ui.Probe(2,"choose");Check(ui.Poll()[0].Key==9007199254740993,"fresh gesture uses reordered key");
         model.Items[0].Enabled=false;ui.Apply(model);Render();ui.Probe(1,"choose");Check(ui.Poll().IsEmpty,"disabled command rejected");model.Items[0].Enabled=true;ui.Apply(model);Render();
-        ui.Probe(1,"choose");var revision=ui.Revision;model.Items[1].Id=model.Items[0].Id;Reject<ArgumentException>(()=>ui.Apply(model),"invalid snapshot projection");Check(ui.Revision==revision&&!ui.Poll().IsEmpty,"projection failure preserves revision/queue");model.Items[1].Id=ulong.MaxValue;
+        ui.Probe(1,"choose");var revision=ui.Revision;model.Items[1].Id=model.Items[0].Id;Reject<UiAuthoringException>(()=>ui.Apply(model),"invalid snapshot projection");Check(ui.Revision==revision&&!ui.Poll().IsEmpty,"projection failure preserves revision/queue");model.Items[1].Id=ulong.MaxValue;
         for(int i=0;i<70;i++)ui.Probe(1,"choose");Check(ui.Status.Queued==64&&ui.Status.Overflow>=6,"bounded event overflow");while(!ui.Poll().IsEmpty){}
-        fixture.Write(Rml.Replace("state.title","state.unknown"));Reject<InvalidOperationException>(()=>ui.LoadAsset(fixture.Assets,"model.rml"),"invalid native binding reload");Check(ui.Status.Loaded&&ui.Revision==revision,"failed reload retains live model");fixture.Write(Rml);
+        fixture.Write(Rml.Replace("state.title","state.unknown"));Reject<UiAuthoringException>(()=>ui.LoadAsset(fixture.Assets,"model.rml"),"invalid binding preflight reload");Check(ui.Status.Loaded&&ui.Revision==revision,"failed reload retains live model");fixture.Write(Rml);
         ui.Probe(1,"choose");var old=ui.Poll();ui.LoadAsset(fixture.Assets,"model.rml");Render();ui.Apply(model);Render();Check(!ui.IsCurrent(old),"reload generation invalidation");
         for(int i=0;i<20;i++){model.Items.Reverse();ui.Apply(model);Render();ui.Probe(2,"choose");Check(ui.Poll()[0].Key==model.Items[0].Id,"repeated replacement and key routing");}
         ulong calls=ui.NativeApplyCalls;for(int i=0;i<200;i++)ui.Apply(model);long start=GC.GetAllocatedBytesForCurrentThread();for(int i=0;i<1000;i++)ui.Apply(model);long allocations=GC.GetAllocatedBytesForCurrentThread()-start;Check(ui.NativeApplyCalls==calls&&allocations==0,"warmed unchanged no allocation or native mutation crossing");
@@ -96,7 +97,7 @@ internal static unsafe class UiModelTests
         ui.Probe(8,"input");engine.PollInput();model.Number=99;ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"disabled ancestor retires input focus/preedit");model.Number=4;ui.Apply(model);Render();
         ui.Probe(8,"input");engine.PollInput();model.Items.Reverse();ui.Apply(model);Render();Check((ui.TextState.Flags&3)==0,"identity reorder cancels preedit and focus");
 
-        ui.Dispose();count+=RunExamples(engine);count+=RunUnkeyedParent(engine);
+        ui.Dispose();count+=RunExamples(engine);count+=RunUnkeyedParent(engine);count+=UiErgonomicsTests.RunNative(engine);
         using var late=new UiModelSession<Model>(engine,Schema(),Commands());fixture.Write(Rml);late.LoadAsset(fixture.Assets,"model.rml");Render();late.Apply(model);Render();
         engine.Dispose();Check(late.IsDisposed,"engine-first invalidates owner");ui.Dispose();Console.WriteLine($"UI MODEL NATIVE PASS assertions={count} unchanged_bytes={allocations}");return count;
     }

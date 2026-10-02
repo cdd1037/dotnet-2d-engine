@@ -1,0 +1,10 @@
+[
+  {"Id":100,"Title":"Trail supplies","Items":[
+    {"Id":9007199254740993,"Card":{"Title":"Health potion","Badge":"SUPPLY","Description":"A restorative tonic for the climb.","Stats":[{"Label":"Heal","Value":"+25"},{"Label":"Weight","Value":"1"}]},"InitialCount":2,"Heal":25,"Gold":0},
+    {"Id":9007199254740994,"Card":{"Title":"Travel snack","Badge":"FOOD","Description":"A small boost before the next pass.","Stats":[{"Label":"Heal","Value":"+10"},{"Label":"Gold","Value":"+1"}]},"InitialCount":1,"Heal":10,"Gold":1}
+  ]},
+  {"Id":200,"Title":"Found treasures","Items":[
+    {"Id":9007199254740995,"Card":{"Title":"Coin pouch","Badge":"LOOT","Description":"Exchange this find for seven gold.","Stats":[{"Label":"Gold","Value":"+7"},{"Label":"Weight","Value":"2"}]},"InitialCount":1,"Heal":0,"Gold":7},
+    {"Id":9007199254740996,"Card":{"Title":"Empty elixir","Badge":"EMPTY","Description":"The bottle is empty, but can be inspected.","Stats":[{"Label":"Heal","Value":"+50"},{"Label":"Weight","Value":"0"}]},"InitialCount":0,"Heal":50,"Gold":0}
+  ]}
+]

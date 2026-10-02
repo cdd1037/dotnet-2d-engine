@@ -1,0 +1,36 @@
+<rml>
+  <head><title>Trail inventory</title><link type="text/rcss" href="cards.rcss" /></head>
+  <body data-model="model">
+    <div class="panel">
+      <div class="eyebrow">EXPEDITION / INVENTORY</div>
+      <div class="header"><h1>Ready for the road</h1><span class="hud">{{state.hud}}</span></div>
+      <div class="sections">
+        <div class="section" data-for="section : state.sections">
+          <h2>{{section.title}}</h2>
+          <div class="cards">
+            <div class="card" data-for="item : section.items" data-class-selected="item.selected">
+              <div class="heading"><h3>{{item.card.title}}</h3><span class="badge">{{item.card.badge}}</span></div>
+              <p class="description">{{item.card.description}}</p>
+              <div class="stats"><span class="stat" data-for="stat : item.card.stats">{{stat.label}} {{stat.value}}</span><span class="stock">Stock {{item.count}}</span></div>
+              <div class="actions">
+                <button data-class-disabled="!item.can_inspect" data-attrif-disabled="!item.can_inspect" data-event-click="inspect(item.id)">{{item.selected ? 'Selected' : 'Inspect'}}</button>
+                <button data-class-disabled="!item.can_use" data-attrif-disabled="!item.can_use" data-event-click="use(item.id)">Use</button>
+                <button data-class-disabled="!item.can_discard" data-attrif-disabled="!item.can_discard" data-event-click="discard(item.id)">Discard</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="detail">{{state.detail}}</p>
+      <div class="toolbar">
+        <button data-event-click="pause()">{{state.paused ? 'Resume' : 'Pause'}}</button>
+        <button data-event-click="restart()">Restart</button>
+        <button data-event-click="save()">Save</button>
+        <button data-class-disabled="!state.can_load" data-attrif-disabled="!state.can_load" data-event-click="load()">Load</button>
+        <button data-event-click="reverse()">Reverse</button>
+        <button data-event-click="remove_empty()">Remove empty</button>
+      </div>
+      <p class="message">{{state.paused ? 'Paused | ' : 'Playing | '}}{{state.message}}</p>
+    </div>
+  </body>
+</rml>

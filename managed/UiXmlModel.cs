@@ -17,9 +17,12 @@ internal abstract class UiXmlObject(int line, int column) : IXmlLineInfo
     public bool HasLineInfo() => true;
 }
 internal abstract class UiXmlNode(int line, int column) : UiXmlObject(line, column);
-internal sealed class UiXmlText(string value, int line, int column) : UiXmlNode(line, column)
+internal sealed class UiXmlText(string value, int line, int column, bool hasRawInterpolation = false) : UiXmlNode(line, column)
 {
     public string Value => value;
+    // Native chooses its text view before decoding entities. Decoded literal braces alone
+    // must not make preflight interpret text that RmlUi leaves literal.
+    public bool HasRawInterpolation => hasRawInterpolation;
 }
 internal sealed class UiXmlAttribute(UiXmlName name, string value, bool isNamespaceDeclaration, int line, int column) : UiXmlObject(line, column)
 {

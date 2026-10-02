@@ -6,6 +6,7 @@ public sealed unsafe class UiModelSession<T>:UiSessionOwner
 {
     private Action<T,UiModelWriter>? _project;
     private readonly ModelSchema[] _schema;private readonly ModelCommand[] _commands;
+    private UiCommands.Command[] _registrations = [];
     private readonly string[] _commandNames;
     private readonly UiModelWriter _writer;private readonly ModelValue[] _sent;
     private int _sentCount;private uint _generation,_revision,_pendingGeneration;private bool _applying;
@@ -20,7 +21,7 @@ public sealed unsafe class UiModelSession<T>:UiSessionOwner
     private UiModelSession(EngineHost engine,Registration registration):base(engine)
     {
         try {
-        _project=registration.Project;_schema=registration.Schema;_writer=new(UiModelContract.Capacity(_schema));_sent=new ModelValue[_writer.Values.Length];_commands=new ModelCommand[registration.Commands.Length];_commandNames=new string[_commands.Length];
+        _registrations=registration.Commands;_project=registration.Project;_schema=registration.Schema;_writer=new(UiModelContract.Capacity(_schema));_sent=new ModelValue[_writer.Values.Length];_commands=new ModelCommand[registration.Commands.Length];_commandNames=new string[_commands.Length];
         for(int i=0;i<_commands.Length;i++){var command=registration.Commands[i];ModelCommand copy=new(){Id=command.Id,Count=(uint)command.Arguments.Length};UiModelContract.Put(copy.Name,command.Name);for(int a=0;a<command.Arguments.Length;a++)copy.Kinds[a]=(uint)command.Arguments[a];_commands[i]=copy;_commandNames[i]=command.Name;}
         } catch { Dispose(); throw; }
     }
@@ -28,7 +29,7 @@ public sealed unsafe class UiModelSession<T>:UiSessionOwner
     private UiState State {get{var s=new UiState{Size=(uint)sizeof(UiState)};NativeCallCount++;Native.Check(UiNative.State(Context,&s),"generic UI state");if(_pendingStage is not null&&s.Pending==0){if(s.Loaded!=0&&s.Generation!=_pendingGeneration){_currentStage?.Dispose();_currentStage=_pendingStage;}else _pendingStage.Dispose();_pendingStage=null;}return s;}}
     public void LoadAsset(AssetRoot assets,string logicalPath,IReadOnlyList<string>? declaredImages=null)
     {
-        EnsureIdle();var source=UiModelAuthoring.ValidateAsset(assets,logicalPath,_commandNames,declaredImages);uint previous=_currentStage is not null||_pendingStage is not null?State.Generation:0;
+        EnsureIdle();var source=UiModelAuthoring.ValidateAsset(assets,logicalPath,_commandNames,declaredImages,_schema,_registrations);uint previous=_currentStage is not null||_pendingStage is not null?State.Generation:0;
         UiSourceStaging? staging=UiSourceStaging.Create(source);byte** paths=stackalloc byte*[UiImageResources.MaximumImages];int allocated=0;
         try{foreach(var image in source.Images)paths[allocated++]=(byte*)Marshal.StringToCoTaskMemUTF8(image.Path);
             NativeCallCount++;fixed(ModelSchema* schema=_schema)fixed(ModelCommand* commands=_commands)Native.Check(UiModelNative.Open(Context,staging.DocumentPath,Environment.GetEnvironmentVariable("GAL_UI_FONT")??"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",Path.Combine(staging.DirectoryPath,source.Stylesheet),schema,(uint)_schema.Length,commands,(uint)_commands.Length,paths,(uint)source.Images.Count),"generic UI stage");
@@ -55,11 +56,26 @@ public sealed unsafe class UiModelSession<T>:UiSessionOwner
         EnsureIdle();if(packet.IsEmpty||packet.Generation!=_generation||packet.Revision!=_revision||packet.Generation!=State.Generation)return false;
         foreach(var command in _commands)if(command.Id==packet.CommandId){if(packet.Count!=command.Count)return false;for(int i=0;i<packet.Count;i++){var arg=packet[i];if((uint)arg.Kind!=command.Kinds[i])return false;if(arg.Kind==UiValueKind.Key){bool found=false;for(int n=0;n<_sentCount;n++)if(_sent[n].Key==arg.Key&&arg.Key!=0){found=true;break;}if(!found)return false;}}return true;}return false;
     }
+    /// <summary>Invoke one frozen managed handler only if its packet is still current at this call.
+    /// Poll explicitly and drain the current revision before Apply. Returns whether a handler ran,
+    /// not whether application state changed; game-rule validation remains in that handler.</summary>
+    public bool Dispatch(in UiCommandEvent packet)
+    {
+        EnsureIdle();
+        foreach (var command in _registrations)
+            if (command.Id == packet.CommandId && command.Handler is { } handler)
+            {
+                if (!IsCurrent(packet)) return false;
+                handler(packet);
+                return true;
+            }
+        return false;
+    }
     public void Capture(string path){EnsureIdle();NativeCallCount++;Native.Check(UiNative.Capture(Context,Path.GetFullPath(path)),"generic UI capture");}
     internal string Probe(uint command,string id,uint occurrence=0,string value="")
     {EnsureIdle();ModelEvent packet=new(){Size=(uint)sizeof(ModelEvent),Generation=_generation,Revision=_revision};UiSettingsContract.ValidateText(value,255,255,"probe");UiAuthoring.StrictUtf8.GetBytes(value.AsSpan(),new Span<byte>(packet.Arguments[0].Text,256));NativeCallCount++;Native.Check(UiModelNative.Test(Context,command,id,occurrence,&packet),"generic UI probe");return UiNative.Text(packet.Arguments[0].Text,256);}
     private static UiCommandEvent Convert(ModelEvent p)
     {UiCommandArgument Arg(int i){if(i>=p.Count)return default;var a=p.Arguments[i];return new((UiValueKind)a.Kind,UiNative.Text(a.Text,256),a.Number,a.Key);}return new(p.Generation,p.Revision,p.Command,(int)p.Count,Arg(0),Arg(1),Arg(2),Arg(3));}
     protected override void BeforeClose()=>EnsureIdle();
-    protected override void OnClosed(){_project=null;_generation=_revision=0;_sentCount=0;_pendingStage?.Dispose();_pendingStage=null;_currentStage?.Dispose();_currentStage=null;}
+    protected override void OnClosed(){_project=null;_registrations=[];_generation=_revision=0;_sentCount=0;_pendingStage?.Dispose();_pendingStage=null;_currentStage?.Dispose();_currentStage=null;}
 }

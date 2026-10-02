@@ -117,10 +117,40 @@ document, including populated arrays and conditional states.
 
 ## Commands, keys and drafts
 
+For new code, put the native signature, stable wire ID and managed handler in one
+typed definition. `UiArgs` supplies explicit AOT-safe codecs; no reflection,
+JavaScript or UI source generator is involved:
+
+```csharp
+var commands = new UiCommands()
+    .On("discard", 9, UiArgs.Key, (ulong id) => { game.Discard(id); })
+    .On("rename", 10, UiArgs.Text, (string name) => { model.Name = name; });
+using var ui = new UiModelSession<View>(engine, schema, commands);
+// After the normal LoadAsset / Draw / Apply / Draw setup:
+bool dispatched = false;
+for (var packet = ui.Poll(); !packet.IsEmpty; packet = ui.Poll())
+    dispatched |= ui.Dispatch(packet);
+if (dispatched) ui.Apply(model); // once, after this revision's queue is drained
+```
+
+`On` supports zero through four explicitly typed arguments (`Text`, `Boolean`,
+`Number`, `Key`). IDs remain explicit and stable; they are not inferred from
+registration order. `Dispatch` checks `IsCurrent` immediately before each managed
+handler, including when an earlier handler applied a snapshot or reloaded the
+document. It returns whether a handler ran, not whether its game rule succeeded.
+It does not poll, apply, or swallow handler exceptions. Native code still only
+queues copied packets and never calls managed handlers. Application rules still
+guard changes against the current C# state while the old revision is drained.
+Session disposal releases its frozen handler captures, just as it releases
+projection delegates. A separately retained `UiCommands` builder still owns its
+own captures, so keep builders short-lived when their handlers capture an owner.
+
 `UiCommands.Add(name, id, argumentKinds...)` declares one nonzero application ID
 and zero to four scalar arguments. `data-event-<event>` must invoke exactly one
 registered command, such as `choose(choice.id, choice.text)`. Assignment and
-statement sequencing are rejected. Command arity and types are checked natively
+statement sequencing are rejected. This legacy packet API remains available;
+registrations made with `Add` have no handler for `Dispatch`. Load-time preflight
+checks provable command arity/types, and native code still checks every payload
 when the event fires; an invalid payload is dropped with a diagnostic, not coerced
 into a different command. `Poll()` returns a copied `UiCommandEvent`; command ID 0
 means empty. Read `command[i].Text`, `.Boolean`, `.Number` or `.Key` according to
@@ -274,7 +304,30 @@ font is a separate prerequisite, not a template resource. Follow the
 [author guide's font setup](AUTHOR_GUIDE.md#5-add-ui-only-when-it-helps-the-game).
 
 Managed source errors report file, line/column, field, stable error code and cause
-through `UiAuthoringException`. Native parsing, binding, update and render errors
+through `UiAuthoringException`. Schema fields and typed command registrations
+retain caller file/line information. An RML command error points to the authored
+invocation, with its separate C# registration in `Declaration`. Invalid projected
+values use `UI_MODEL_VALUE` and a breadcrumb such as
+`state.groups[0].items[1].title`; the location is the schema declaration, not a
+fabricated runtime-data source location. Caller metadata cannot provide a C#
+column, so that column is 1. The original validation exception is retained as
+`InnerException`. Invalid registered fields/commands use `UI_SCHEMA`.
+
+Preflight walks the registered shape without looking at current values. It checks
+direct schema paths, fixed array indexes, `.size`, nested/default/index loop
+aliases and interpolation even when a loop is initially empty. Recognized event
+invocations get balanced argument counting; whole scalar paths/literals get kind
+checks. Typed `On` Key arguments require a directly referenced field to be declared
+as `Key`, rather than a `Text` field containing a possible number. Legacy `Add`
+keeps its canonical-text key behavior. Key-to-Text is valid because native keys
+are exact decimal strings.
+
+This is a conservative lexical/schema check, not another RmlUi parser: dynamic
+indexes, event parameters, transformations and compound expression result types
+remain native-validated. Unknown data views and unrecognized loop syntax stay
+native-owned. No claim is made that every invalid expression is found at load
+time, or that fixed indexes are in range for current data. Keep testing actual
+populated/conditional/dynamic cases. Native parsing, binding, update and render errors
 report strict diagnostics; check both thrown errors and `Status`. No generation
 or revision counter wraps silently; exhaustion requires the appropriate reload
 or session lifecycle recovery.
@@ -328,3 +381,6 @@ Scripted pointer/text probes and software Vulkan do not establish physical-GPU,
 real OS IME/candidate-window, accessibility or other-platform acceptance. No
 virtualized lists, drag/drop framework or automatic focus-navigation system is
 provided by this bridge.
+
+The typed-command/diagnostics refinement and maintained Discard replay have a
+separate [focused validation and source-accounting report](UI_ERGONOMICS_VALIDATION.md).
