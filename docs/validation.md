@@ -1035,3 +1035,40 @@ are in `evidence/ui-images/svg-aot/`. `build-svg` enables SVG, mixer and physics
 `build-ui` was intentionally kept SVG-off for the opt-out checks. These results
 continue to be software-rendered Linux evidence, not a cross-platform, hardware
 high-DPI, physical audio/IME or package-consumer matrix.
+
+## Bounded frame events and explicit clip selection (2026-10-02)
+
+The next pure-managed slice adds copied `FrameMarker` metadata, bounded borrowed
+event results with due/dropped counts, and `FramePlayer.Play` for explicit clip
+selection. Same-clip selection preserves phase and state; overflow advances fully
+without replaying dropped events. See [the full timing contract](ANIMATION_TIMING.md).
+
+Verified against `70b7a81` plus this frame-event working tree:
+
+- Release build: **zero warnings/errors**
+- Focused animation suite: **218 assertions**, including **87 frame-event checks**
+  for stable copied order, boundaries and loops, one-shot completion, zero/paused/
+  scaled/real time, earliest-event overflow and counts-only mode, restart/cancel/
+  disposal, repeated and switched `Play`, wrong-thread/null rejection, and explicit
+  resource preparation without hidden loads
+- Maximum legal catch-up counts **353,894,400,004,096** due markers with only the
+  selected capacity materialized; decimal modulo remainder/count alignment and
+  binary-exact split/lumped event streams are covered
+- **Zero managed bytes** in 2,000 warmed marked-player updates that include clip
+  switches, repeated selection, overflow and event reads. Existing retained-bank
+  synchronization/extraction allocation checks also remain green
+- The same **87** event contracts pass in an isolated ordinary managed executable
+  referencing the rebuilt public engine DLL, without the friend assembly name,
+  linked runtime source or native library. This is a public-assembly reachability
+  check, not a repeated NuGet package matrix
+- One final `scripts/test.sh jit` passes **11,445 assertions**, including the
+  existing **137 camera** checks; native CTest remains **7/7**. Its incremental
+  native graph was current and recompiled no native objects. Reported tier wall
+  time was **2 s** on this runner; this is one invocation, not a benchmark
+
+Local build, focused/public-consumer and final JIT logs plus source/binary hashes
+are in `evidence/frame-events/`. This adds no native ABI, serialization root,
+dependency, callback graph, queue, blending or property-track system. No fresh
+NativeAOT, rendered animation scenario, hardware/device or package matrix was run
+for this managed-only change; the preceding combined SVG/camera AOT evidence
+remains historical evidence for that earlier tree.

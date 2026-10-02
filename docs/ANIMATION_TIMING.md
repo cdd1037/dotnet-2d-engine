@@ -8,11 +8,17 @@ unchanged.
 
 ## Small API surface
 
-- `FrameClip(ReadOnlySpan<string>, frameSeconds)` copies 1–4096 logical resource
-  keys into immutable, fixed-rate metadata. Keys identify catalog entries, not
-  texture handles, atlas coordinates or filenames
+- `FrameClip(ReadOnlySpan<string>, frameSeconds[, markers])` copies 1–4096 logical
+  resource keys and up to 4096 `FrameMarker(FrameIndex, EventId)` entries into
+  immutable, fixed-rate metadata. Keys identify catalog entries, not texture
+  handles, atlas coordinates or filenames. Marker IDs are opaque caller-owned
+  integers; zero, negative values and duplicate IDs are valid. Marker frame indices
+  must be inside the clip. Markers are sorted by frame while retaining authored
+  order within the same frame; caller array edits cannot change the clip
 - `FramePlayer(clip, loop, domain)` exposes `AssetKey`, `FrameIndex` and cycle-local
-  `ElapsedSeconds`. Looping wraps; one-shot playback holds its last frame
+  `ElapsedSeconds`. Looping wraps; one-shot playback holds its last frame. The
+  `FramePlayer(clip, eventCapacity, loop, domain)` overload selects bounded event
+  storage. Explicit `Play(clip, loop, restart)` switches or restarts playback
 - `Tween.Float`, `Tween.Vector` and `Tween.Color` create typed `Tween<float>`,
   `Tween<Vector2>` and `Tween<Vector4>` values. Color means straight RGBA in [0,1],
   interpolated numerically, not linear-light or premultiplied color
@@ -30,8 +36,8 @@ unchanged.
 - `TimingScope.Own(operation)` provides bounded lifetime ownership only. Advance
   each operation explicitly; the scope neither advances nor schedules it
 
-All types currently have the repository's internal visibility, like the rest of
-the prototype API. The later packaging proof decides exported assembly boundaries.
+These types are public experimental APIs in `Dotnet2D.Engine`. Their earlier
+independent package boundary is documented [separately](PACKAGE_API_NEXT.md).
 
 ```csharp
 var clip = new FrameClip(["walk-0", "walk-1", "walk-2"], 0.125);
@@ -57,6 +63,62 @@ rollback, behavior replacement, entity destruction and scene unload because it
 never reads or writes an entity. A scope does not infer a scene or follow an
 unrelated entity automatically.
 
+## Frame-entry events and explicit clip switching
+
+```csharp
+var walk = new FrameClip(["walk-0", "walk-1", "walk-2"], .125,
+    [new FrameMarker(0, 10), new FrameMarker(2, 20)]);
+var idle = new FrameClip(["idle-0"], .5);
+var frames = new FramePlayer(idle, eventCapacity: 16);
+
+// Repeated selection of the same clip reference retains its phase and state.
+frames.Play(isWalking ? walk : idle);
+frames.Advance(step);
+foreach (FrameMarker marker in frames.Events)
+{
+    // Copy or consume the ID in ordinary caller code, e.g. request a footstep.
+    // Playback never invokes callbacks or mutates the world or audio system.
+}
+if (frames.EventsDropped != 0) { /* caller may report lost events */ }
+```
+
+- Construction, `Play` and `Restart` emit nothing. Frame 0's markers become due
+  on the first **positive selected advance while running**, before later frame
+  entries crossed by that step. Zero time and either pause do not consume this
+  initial entry. Reading `AssetKey` immediately remains supported
+- Every entered frame contributes all its markers, including skipped frames and
+  loop frame 0. Results are chronological, then authored order within a frame.
+  The starting frame does not repeat on each update. An exact one-shot completion
+  holds the last frame without entering a phantom frame or looping to frame 0
+- `Events` is a borrowed `ReadOnlySpan<FrameMarker>` into the player's fixed array.
+  It contains the earliest events from the latest `Advance`. Its lifetime ends at
+  the next `Advance` (even zero, paused or completed), `Cancel`, `Restart`, a
+  switching/restarting `Play`, or `Dispose`. Copy individual value records or the
+  span if retaining them. `Pause`, `Resume`, and non-restarting same-clip `Play`
+  preserve the latest results. Concurrent mutation and span reads are unsupported
+- `EventsDue` is the total `ulong` due count, including omitted events;
+  `EventsDropped` is `EventsDue - (ulong)Events.Length`. Default capacity is 64;
+  setup can choose 0–1024, with zero meaning counts-only. Capacity cannot grow
+  during playback. Overflow advances the entire playhead and drops the tail;
+  those events are never queued or retried. Read results after every update/fixed
+  step, including a step which also reports `CompletedThisAdvance`
+- Catch-up uses arithmetic counts plus at most capacity-bounded copies, not a
+  loop over every missed frame/cycle. A one-frame, one-microsecond clip with one
+  marker can report 86,400,000,001 events on its first one-day step, including the
+  initial entry. Even all 4096 markers at that rate fit the `ulong` counters
+- `Play` compares clip **reference identity**. A different clip or `restart:true`
+  immediately resets frame/time/results and sets `Running`, including from pause,
+  cancellation or completion. New frame-0 events wait for positive advancement.
+  Same-reference `Play(..., restart:false)` preserves frame, time, state, pending
+  initial entry and results, updating only `Loop`. Thus calling it every update
+  cannot keep resetting an animation. It does not resume a paused operation or
+  revive a cancelled/completed one; use `Resume` or explicit restart. Changing a
+  completed once-player to loop mode without restart still leaves it completed
+- Switching preserves the creating thread, clock domain, capacity and timing-scope
+  owner. Null, wrong-thread and disposed calls reject before mutation. Distinct
+  clips with equal metadata still switch. There is no implicit next-clip queue,
+  state machine, transition graph or blending
+
 ## Time, pause and edge semantics
 
 - Each selected delta is finite and in [0,86400] seconds. Invalid/oversized input is
@@ -73,7 +135,7 @@ unrelated entity automatically.
   delta**. It cannot fire merely because a game is paused. Zero-duration repeating
   timers and frame durations are rejected
 - A zero step makes no time progress. Every `Advance`, including a zero or paused
-  advance, clears `TicksDue` and `CompletedThisAdvance` before considering time.
+  advance, clears frame events/counts, `TicksDue` and `CompletedThisAdvance` before considering time.
   Read those transient results after every advance, including every fixed step
 - Local `Pause` freezes either domain. `Resume` retains phase. A game-clock pause
   does not freeze a real-clock object unless the host explicitly supplies zero
@@ -93,13 +155,23 @@ unrelated entity automatically.
   when adding new work. Scope disposal releases all retained items
 
 Frame selection and repeated-timer catch-up use constant-time arithmetic rather
-than iterating per skipped frame/tick. Seconds are IEEE double values: exact input
+than iterating per skipped frame/tick. Frame-event materialization adds only
+capacity-bounded work. Seconds are IEEE double values: exact input
 sequences are repeatable in these tests, but arbitrary delta partitioning is not
 bit-identical. For example, `.3 / .1` is slightly below 3; a repeating `.1` timer
 advanced by `.3` reports 2 ticks and a tiny time remaining, while three `.1` steps
 report 3. The next positive step catches up. No undocumented epsilon is applied.
 Use a consistent clock/fixed-step sequence where boundary reproducibility matters;
 this is not a cross-platform deterministic timing guarantee.
+
+Looped frames retain the existing modulo phase calculation. Cycle counts are
+derived from that same modulo remainder, so they agree with the playhead even
+when rounded division appears integral: for a one-frame `.1`-second clip, a
+first `1`-second step has an almost-full remainder and enters 9 new cycles, plus
+its initial frame-0 entry. The next sufficient positive delta enters the next
+cycle. Recovering the integer quotient by rounding is safe under the duration/
+delta bounds and is not an epsilon applied to event timestamps. Decimal partition
+differences apply to marker counts as well as frame selection.
 
 ## Texture residency while animating
 
@@ -116,7 +188,15 @@ keeping every catalog texture resident. It does not bypass the cache's 256 disti
 texture limit or resource errors. Playback itself neither validates nor loads
 resources; use the bank before applying a new scene as usual.
 
-Warmed timing advancement, property application and retained-key bank
+`Play` does not know about a bank or catalog. Retain and validate the combined
+keys of every clip the consumer may select, or prepare the new resources before
+applying its `AssetKey` to a sprite. A marker ID is not a resource key or an
+automatic audio cue. Switching to an unknown key can succeed as pure playback;
+the consumer's subsequent resource sync still reports the missing asset and
+preserves previously acquired resources.
+
+Warmed timing advancement, marked-clip switching/repeated selection, bounded
+event reads/overflow, property application and retained-key bank
 synchronization/extraction allocate zero managed bytes in the focused test. Setup,
 object creation, input failures, disposal, arbitrary caller work and unpinned
 resource changes are outside that claim.
@@ -150,6 +230,9 @@ scenario waits for drawable frames, then tests pause/cancel/restart with explici
 quarter-second steps and repeatable captures. It also runs headlessly, where
 texture-cache entries are validated placeholders rather than GPU uploads.
 
-This batch intentionally contains no property tracks, timeline events, animation
-state machine, blend tree, skeletal animation, async scheduling, animation snapshot
-or automatic serialization of arbitrary runtime jobs.
+This slice intentionally contains no property tracks, arbitrary-time timeline
+events, queued transitions, animation state machine, blend tree, skeletal animation,
+root motion, async scheduling, animation snapshot or automatic serialization of
+arbitrary runtime jobs. Frame markers and `Play` are pure managed additions with
+no native ABI, dependency, reflection or source-generation change; their focused
+tests and final JIT aggregate do not claim a new graphics/device or AOT run.

@@ -107,7 +107,7 @@ filters, sensors, copied events and bounded ray/AABB queries. Start with
 solver after dependency setup. The source-generated `basics.physics.json` fixture
 and `--physics-demo` show explicit meter/pixel conversion and scene cleanup.
 
-Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use explicit clocks and lifetime ownership. Try `--animation-demo` or run `scripts/test.sh quick animation`.
+Managed [frame animation, typed tweens and timers](docs/ANIMATION_TIMING.md) use explicit clocks and lifetime ownership. Frame markers add bounded polled events with overflow counts, and explicit `Play` switches clips while preserving repeated-selection phase. Try `--animation-demo` or run `scripts/test.sh quick animation`.
 
 The [basic TileMap](docs/TILEMAP.md) loads bounded source-generated grids, culls atlas cells and optionally generates static Box2D collision. Try `--tilemap-demo` or `--tilemap-physics-demo`.
 

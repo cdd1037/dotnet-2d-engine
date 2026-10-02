@@ -38,6 +38,6 @@ The original offline analyzer-only checks are retained under `validation/`. Curr
 
 ## Animation and timing
 
-`FrameClip`/`FramePlayer`, typed `Tween` factories and `EngineTimer` are polling primitives with explicit `TimingStep` game/real deltas. `TimingScope` owns cancellation; it does not schedule callbacks. See [contracts and sample](../docs/ANIMATION_TIMING.md).
+`FrameClip`/`FramePlayer`, typed `Tween` factories and `EngineTimer` are polling primitives with explicit `TimingStep` game/real deltas. Frame markers expose bounded, borrowed events with due/dropped counts; explicit `Play` switches clips without resetting repeated selection. `TimingScope` owns cancellation; it does not schedule callbacks. See [contracts and sample](../docs/ANIMATION_TIMING.md).
 
 `TileMapAsset` separates authored DTOs from immutable grid data; `TileMapInstance` owns placement, texture residency and optional generated collision. Its append path composes with ordinary entity sprites. See [TileMap](../docs/TILEMAP.md).

@@ -176,8 +176,18 @@ internal static class AnimationTests
         for(int i=0;i<128;i++)Tick(); long before = GC.GetAllocatedBytesForCurrentThread(); for(int i=0;i<1000;i++)Tick();
         Check(GC.GetAllocatedBytesForCurrentThread() == before, "warmed playback, tween, timer and retained-key Sync/extraction allocate zero");
         Check(bank.Loads == 4 && bank.Releases == 0 && engine.Textures.Loads == 1, "frame swaps do not churn leases or native uploads");
+        var switchingPlayer = new FramePlayer(new FrameClip(["left"], .125, [new(0, 1)]));
+        switchingPlayer.Play(new FrameClip(["absent"], .125, [new(0, 2)])); switchingPlayer.Advance(Step(.0625));
+        Check(switchingPlayer.AssetKey == "absent" && switchingPlayer.Events[0].EventId == 2 && bank.Loads == 4 && engine.Textures.Loads == 1, "clip switches never resolve or load keys implicitly");
+        actor.Sprite = actor.Sprite!.Value with { AssetKey = switchingPlayer.AssetKey };
+        Reject<AssetException>(() => bank.Sync(renderWorld), "caller still validates switched resources");
+        Check(bank.LoadedCount == 4 && bank.Releases == 0, "failed switched key preserves retained resources");
+        switchingPlayer.Play(new FrameClip(["blue", "red"], .125)); switchingPlayer.Advance(Step(.125));
+        actor.Sprite = actor.Sprite!.Value with { AssetKey = switchingPlayer.AssetKey }; bank.Sync(renderWorld);
+        Check(bank.Loads == 4 && bank.Releases == 0 && engine.Textures.Loads == 1, "caller-retained combined keys survive explicit clip changes without churn");
         renderWorld.Destroy(actor); bank.Sync(renderWorld); Check(bank.LoadedCount == 4, "retained keys last until bank disposal");
         bank.Dispose(); Check(engine.Textures.Count == 0, "retained resources released");
+        count += FrameEventTests.Run();
         Console.WriteLine($"ANIMATION SELF-TEST PASS assertions={count}"); return count;
     }
 }
