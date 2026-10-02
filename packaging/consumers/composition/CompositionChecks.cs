@@ -53,7 +53,7 @@ internal static class CompositionChecks
             && replacement.Ticks == 1 && pulses.Subscribers == 4, "AI replacement preserves instance-owned resources and subscription");
 
         // Geometry extraction needs no renderer; this is not a graphics acceptance claim.
-        var batch = new SpriteBatch { TextureResolver = static _ => 0 }; // CPU-only placeholder, never submitted.
+        var batch = new SpriteBatch { RegionResolver = static _ => default }; // CPU-only placeholder, never submitted.
         world.ExtractSprites(batch);
         Check(batch.Count == 10, "two room floors and four visual/weapon pairs extract");
         a.Dispose(); a.Dispose();

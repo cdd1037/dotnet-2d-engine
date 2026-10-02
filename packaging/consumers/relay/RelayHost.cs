@@ -13,12 +13,13 @@ internal sealed class RelayHost : IDisposable
     private readonly UiModelSession<RelayView> ui;
     private readonly SpriteBatch batch = new(64);
     private readonly SpriteCommand[] overlay = new SpriteCommand[3];
-    private readonly InputActionMap actions = RelayInput.CreateActions();
+    private readonly RelayInput actions = new();
     private readonly DiagnosticLog diagnostics = new(16) { MinimumLevel = DiagnosticLevel.Info };
     private bool canLoad;
     public int Commands { get; private set; }
     public int Failures { get; private set; }
     public UiCommandEvent LastCommand { get; private set; }
+    public RelayCommand LastAction { get; private set; }
     public UiBindingStatus UiStatus => ui.Status;
     public int LoadedTextures => bank.LoadedCount;
     public bool IsCurrent(UiCommandEvent packet) => ui.IsCurrent(packet);
@@ -29,20 +30,21 @@ internal sealed class RelayHost : IDisposable
         canLoad = File.Exists(savePath);
         bank = new TextureBank(engine, catalog); batch.RegionResolver = bank.ResolveRegion;
         var commands = new UiCommands()
-            .On("start", (uint)RelayCommand.Start, () => Dispatch(RelayCommand.Start))
-            .On("pause", (uint)RelayCommand.Pause, () => Dispatch(RelayCommand.Pause))
-            .On("resume", (uint)RelayCommand.Resume, () => Dispatch(RelayCommand.Resume))
-            .On("save", (uint)RelayCommand.Save, () => Dispatch(RelayCommand.Save))
-            .On("load", (uint)RelayCommand.Load, () => Dispatch(RelayCommand.Load))
-            .On("restart", (uint)RelayCommand.Restart, () => Dispatch(RelayCommand.Restart))
-            .On("menu", (uint)RelayCommand.Menu, () => Dispatch(RelayCommand.Menu));
+            .On("start", () => Dispatch(RelayCommand.Start))
+            .On("pause", () => Dispatch(RelayCommand.Pause))
+            .On("resume", () => Dispatch(RelayCommand.Resume))
+            .On("save", () => Dispatch(RelayCommand.Save))
+            .On("load", () => Dispatch(RelayCommand.Load))
+            .On("restart", () => Dispatch(RelayCommand.Restart))
+            .On("menu", () => Dispatch(RelayCommand.Menu));
         try { ui = new UiModelSession<RelayView>(engine, RelayView.Schema(), commands); }
         catch { bank.Dispose(); throw; }
-        try { ui.LoadAsset(catalog.Assets, "ui/game.rml"); Render(); Refresh(); Render(); }
+        try { ui.StageAsset(catalog.Assets, "ui/game.rml", RelayView.From(game, canLoad)); Render(); }
         catch { try { ui.Dispose(); } finally { bank.Dispose(); } throw; }
     }
     public void Dispatch(RelayCommand command)
     {
+        LastAction = command;
         var prior = game.Room;
         try
         {

@@ -16,7 +16,7 @@ internal static class RuleChecks
         return count;
     }
 
-    private static unsafe int AppValidationChecks(string assetRoot)
+    private static int AppValidationChecks(string assetRoot)
     {
         int count = 0;
         void Check(bool value, string message)
@@ -46,35 +46,15 @@ internal static class RuleChecks
         RejectText("line\nfeed", 96, 64);
         RejectText("embedded\0null", 96, 64);
 
-        var map = RelayInput.CreateActions();
-        var snapshot = new InputSnapshot { Flags = InputFlags.Focused };
-        foreach (var (key, action) in new[] {
-            (PhysicalKey.Left, RelayInput.Left), (PhysicalKey.A, RelayInput.Left),
-            (PhysicalKey.Right, RelayInput.Right), (PhysicalKey.D, RelayInput.Right),
-            (PhysicalKey.Up, RelayInput.Up), (PhysicalKey.W, RelayInput.Up),
-            (PhysicalKey.Down, RelayInput.Down), (PhysicalKey.S, RelayInput.Down),
-            (PhysicalKey.Space, RelayInput.Space), (PhysicalKey.Escape, RelayInput.Escape),
-            (PhysicalKey.E, RelayInput.Interact), (PhysicalKey.F, RelayInput.Drop),
-            (PhysicalKey.T, RelayInput.Transition), (PhysicalKey.F5, RelayInput.Save),
-            (PhysicalKey.F9, RelayInput.Load) })
+        var controls = new RelayInput();
+        foreach (uint action in new[] { RelayInput.Left, RelayInput.Right, RelayInput.Up, RelayInput.Down,
+            RelayInput.Space, RelayInput.Escape, RelayInput.Interact, RelayInput.Drop,
+            RelayInput.Transition, RelayInput.Save, RelayInput.Load })
         {
-            int index = (int)key / 64;
-            ulong bit = 1ul << ((int)key % 64);
-            snapshot.KeysDown[index] = snapshot.GameKeysDown[index] = bit;
-            snapshot.KeysPressed[index] = snapshot.GameKeysPressed[index] = bit;
-            var state = map.Update(snapshot);
-            Check(state.Down == action && state.Pressed == action, "application physical-key mapping");
-            snapshot = new InputSnapshot { Flags = InputFlags.Focused };
-            map.Update(snapshot);
+            var state = controls.ToRules(controls.TestState(action, action));
+            Check(state.Down == action && state.Pressed == action, "typed action translates into the intended application rule");
         }
-        snapshot.KeysDown[(int)PhysicalKey.Escape / 64] = 1ul << ((int)PhysicalKey.Escape % 64);
-        snapshot.KeysDown[(int)PhysicalKey.Right / 64] |= 1ul << ((int)PhysicalKey.Right % 64);
-        snapshot.KeysDown[(int)PhysicalKey.Space / 64] |= 1ul << ((int)PhysicalKey.Space % 64);
-        snapshot.KeysDown[(int)PhysicalKey.F5 / 64] |= 1ul << ((int)PhysicalKey.F5 % 64);
-        snapshot.KeysDown[(int)PhysicalKey.F9 / 64] |= 1ul << ((int)PhysicalKey.F9 % 64);
-        snapshot.KeysDown[(int)PhysicalKey.T / 64] |= 1ul << ((int)PhysicalKey.T % 64);
-        snapshot.Consumed = InputConsumption.Keyboard;
-        Check(map.Update(snapshot).Down == RelayInput.Escape, "only Escape bypasses UI consumption");
+        Check(controls.ToRules(default) == (0u, 0u), "default typed state is neutral");
 
         var catalog = RelayAssets.Catalog(assetRoot);
         using var game = new MissionGame(Path.Combine(assetRoot, "relay.mission.json"), catalog);

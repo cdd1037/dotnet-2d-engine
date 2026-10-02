@@ -61,14 +61,38 @@ negative="$proof/consumer/compilefail/WrongKinds.csproj"
 if "$dotnet" build "$negative" -c Release --no-restore -p:UseSharedCompilation=false > logs/compilefail.log 2>&1; then
     echo 'Wrong resource kinds unexpectedly compiled.' >&2; exit 1
 fi
+attribute_negative="$proof/consumer/compilefail/NoNumericAttributes.csproj"
+"$dotnet" restore "$attribute_negative" --configfile "$proof/NuGet.Config" > logs/attribute-restore.log 2>&1
+if "$dotnet" build "$attribute_negative" -c Release --no-restore -p:UseSharedCompilation=false > logs/attribute-compilefail.log 2>&1; then
+    echo 'Explicit numeric UI attribute unexpectedly compiled.' >&2; exit 1
+fi
 python3 - "$proof" <<'PY'
 from pathlib import Path
 import json, re, sys
 p = Path(sys.argv[1])
-log = p.joinpath('logs/compilefail.log').read_text()
+log = p.joinpath('logs/compilefail.log').read_text() + p.joinpath('logs/attribute-compilefail.log').read_text()
 expected = {'TextureAsMaterial': 'CS0029', 'MaterialAsTexture': 'CS1503', 'TextureAsTarget': 'CS1503',
             'TargetAsTexture': 'CS1503', 'MaterialAsTarget': 'CS1503', 'TargetAsMaterial': 'CS0029',
-            'NumericResourceIds': 'CS0029', 'NumericAction': 'CS0029'}
+            'NumericResourceIds': 'CS0029', 'NumericAction': 'CS0029',
+            'RawSprite': 'CS0122',
+            'RawAffine': 'CS0122',
+            'RawRegion': 'CS0122',
+            'RawMaterial': 'CS0122',
+            'RawPass': 'CS0122',
+            'RawInput': 'CS0122',
+            'RawBinding': 'CS0122',
+            'LegacyUi': 'CS0122',
+            'NumericState': 'CS1729',
+            'NumericShape': 'CS1729',
+            'RawShapeExtent': 'CS0200',
+            'NumericTexture': 'CS1503',
+            'NumericCommand': 'CS1503',
+            'NumericAttribute': 'CS0246',
+            'RawLease': 'CS1061',
+            'RawBatch': 'CS1061',
+            'SourceOnlyUi': 'CS1061',
+            'RawPoll': 'CS1061',
+            }
 for name, code in expected.items():
     if not re.search(r'\b' + name + r'\.cs\(\d+,\d+\): error ' + code + r'\b', log):
         raise SystemExit('Missing intended compile-time rejection: ' + name + ' ' + code)

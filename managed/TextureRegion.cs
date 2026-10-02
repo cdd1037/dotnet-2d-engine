@@ -14,4 +14,3 @@ public readonly record struct TextureRegion(int X, int Y, int Width, int Height)
 }
 
 public sealed record TextureAsset(string Path, TextureRegion? Region = null);
-public readonly record struct TextureBinding(ulong Handle, TextureRegion? Region = null);

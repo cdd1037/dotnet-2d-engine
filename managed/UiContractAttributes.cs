@@ -22,8 +22,6 @@ public sealed class UiCommandAttribute : Attribute
 {
     /// <summary>Optional exact alias for an existing RML contract; defaults to the method's name.</summary>
     public string? Name { get; set; }
-    /// <summary>Advanced explicit packet ID. Zero (default) selects automatic session-local assignment.</summary>
-    public uint Id { get; set; }
 }
 
 /// <summary>Optional generated DTO field settings. Scalar kinds come from the declared CLR type.</summary>

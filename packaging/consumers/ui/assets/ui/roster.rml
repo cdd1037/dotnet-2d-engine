@@ -4,12 +4,14 @@
     <title>Team roster / 队伍</title>
     <link type="text/rcss" href="roster.rcss" />
   </head>
-  <body>
+  <body data-model="model">
     <div id="roster-panel" class="panel">
-      <h1 id="caption">Team roster / 队伍</h1>
-      <p class="hint">A second document using the same binding API / 同一个绑定接口</p>
-      <div class="actions"><button id="add">Add member / 添加成员</button></div>
-      <div id="members"></div>
+      <h1 id="caption">{{state.title}}</h1>
+      <p class="hint">A second document using the same model API / 同一个绑定接口</p>
+      <div class="actions"><button id="add" data-event-click="add()">Add member / 添加成员</button></div>
+      <div id="members"><button class="bound-row" data-for="item : state.items"
+        data-event-click="select(item.id)" data-attrif-disabled="!item.enabled"
+        data-class-selected="item.selected">{{item.text}}</button></div>
     </div>
   </body>
 </rml>

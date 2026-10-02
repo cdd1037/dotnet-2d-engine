@@ -42,7 +42,7 @@ internal static unsafe class SdlInput
     public static void Focus(bool focused = true) => Push(new Event { Type = focused ? 0x20eu : 0x20fu, WindowId = Window() });
     public static void Key(PhysicalKey key, bool down) => Push(new Event {
         Type = down ? 0x300u : 0x301u, WindowId = Window(), Scancode = (int)key,
-        Keycode = key switch { PhysicalKey.D => 'd', PhysicalKey.E => 'e', PhysicalKey.F => 'f', PhysicalKey.T => 't', PhysicalKey.Space => ' ', PhysicalKey.Escape => 27, PhysicalKey.F5 => 0x4000003e, PhysicalKey.F9 => 0x40000042, _ => throw new ArgumentException("Fixture key not declared") },
+        Keycode = key switch { PhysicalKey.A => 'a', PhysicalKey.S => 's', PhysicalKey.W => 'w', PhysicalKey.D => 'd', PhysicalKey.E => 'e', PhysicalKey.F => 'f', PhysicalKey.T => 't', PhysicalKey.Space => ' ', PhysicalKey.Escape => 27, PhysicalKey.F5 or PhysicalKey.F9 or PhysicalKey.Left or PhysicalKey.Right or PhysicalKey.Up or PhysicalKey.Down => 0x40000000u | (uint)key, _ => throw new ArgumentException("Fixture key not declared") },
         KeyDown = down ? (byte)1 : (byte)0
     });
     public static void Tap(PhysicalKey key) { Key(key, true); Key(key, false); }

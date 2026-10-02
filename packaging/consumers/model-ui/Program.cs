@@ -6,11 +6,10 @@ using GameAuthoringLab;
 if(UiModelExamples.Run(9)!=0)throw new Exception("Three-fixture run failed");
 var assets=new AssetRoot(Path.Combine(AppContext.BaseDirectory,"assets"));
 using var engine=EngineHost.Create(maxSprites:32);
-void Draw()=>engine.Draw(new Camera{Zoom=1},ReadOnlySpan<Sprite>.Empty);
+void Draw()=>engine.Draw(new Camera{Zoom=1},ReadOnlySpan<SpriteCommand>.Empty);
 int checks=0;
 void Check(bool success,string message){if(!success)throw new Exception(message);checks++;}
 UiCommandArgument Key(ulong value)=>new(UiValueKind.Key,"",0,value);
-UiCommandArgument Bool(bool value)=>new(UiValueKind.Boolean,"",value?1:0,0);
 UiCommandEvent Packet<T>(UiModelSession<T> ui,uint id,params UiCommandArgument[] arguments)
 {
     var status=ui.Status;
@@ -20,74 +19,82 @@ UiCommandEvent Packet<T>(UiModelSession<T> ui,uint id,params UiCommandArgument[]
 }
 
 var inventory=UiModelExamples.Inventory();
-using(var ui=new UiModelSession<UiModelExamples.InventoryModel>(engine,UiModelExamples.InventorySchema(),UiModelExamples.InventoryCommands()))
+using(var ui=new UiModelSession<UiModelExamples.InventoryModel>(engine,UiModelExamples.InventorySchema(),UiModelExamples.InventoryCommands(inventory)))
 {
-    ui.LoadAsset(assets,UiModelExamples.InventoryAsset,UiModelExamples.InventoryImages);Draw();
-    Check(ui.Apply(inventory),"First inventory projection");Draw();
+    ui.StageAsset(assets,UiModelExamples.InventoryAsset,inventory,UiModelExamples.InventoryImages);Draw();
+    Check(ui.Revision == 1,"First inventory projection publishes with source");
     Check(!ui.Apply(inventory),"Unchanged inventory projection");
-    engine.PollInput();SdlInput.Click(480,213);engine.PollInput();
+    engine.PollInputFrame();SdlInput.Click(480,213);engine.PollInputFrame();
     var native=ui.Poll();
-    Check(native.CommandId==UiModelExamples.Equip&&native.Count==1&&native[0].Kind==UiValueKind.Key&&native[0].Key==inventory.Items[0].Id&&ui.IsCurrent(native),"Real SDL click returns copied exact 64-bit key");
-    Check(UiModelExamples.Handle(inventory,native)&&!inventory.Items[0].Equipped,"Real native packet dispatches application handler");
+    Check(!native.IsEmpty&&native.Count==1&&native[0].Kind==UiValueKind.Key&&native[0].Key==inventory.Items[0].Id&&ui.IsCurrent(native),"Real SDL click returns copied exact 64-bit key");
+    Check(ui.Dispatch(native)&&!inventory.Items[0].Equipped,"Real native packet dispatches application handler");
     ui.Apply(inventory);Draw();Check(!ui.IsCurrent(native),"Real native packet becomes stale after update");
-    var old=Packet(ui,UiModelExamples.Equip,Key(inventory.Items[0].Id));
+    var old=Packet(ui,native.CommandId,Key(inventory.Items[0].Id));
     Check(old[0].Key==9_007_199_254_740_993UL&&ui.IsCurrent(old),"Exact first key");
-    SdlInput.Button(480,213,true);engine.PollInput();
+    SdlInput.Button(480,213,true);engine.PollInputFrame();
     inventory.Items.Reverse();Check(ui.Apply(inventory),"Reorder publishes");Draw();
-    SdlInput.Button(480,213,false);engine.PollInput();
+    SdlInput.Button(480,213,false);engine.PollInputFrame();
     Check(ui.Poll().IsEmpty,"Real pointer-down reorder/up cannot choose replacement row");
-    SdlInput.Click(480,213);engine.PollInput();var reordered=ui.Poll();
-    Check(reordered.CommandId==UiModelExamples.Equip&&reordered[0].Key==inventory.Items[0].Id&&ui.IsCurrent(reordered),"Fresh real click routes to reordered exact key");
+    SdlInput.Click(480,213);engine.PollInputFrame();var reordered=ui.Poll();
+    Check(reordered.CommandId==native.CommandId&&reordered[0].Key==inventory.Items[0].Id&&ui.IsCurrent(reordered),"Fresh real click routes to reordered exact key");
     Check(!ui.IsCurrent(old),"Reorder rejects earlier revision");
-    var exact=Packet(ui,UiModelExamples.Equip,Key(ulong.MaxValue-1));
-    Check(ui.IsCurrent(exact)&&UiModelExamples.Handle(inventory,exact),"Reordered exact 64-bit identity");
+    var exact=Packet(ui,native.CommandId,Key(ulong.MaxValue-1));
+    Check(ui.IsCurrent(exact)&&ui.Dispatch(exact),"Reordered exact 64-bit identity");
     Check(inventory.Items.Single(x=>x.Id==ulong.MaxValue-1).Equipped,"Identity updates the intended item");
     ui.Apply(inventory);Draw();
-    var drop=Packet(ui,UiModelExamples.Drop,Key(ulong.MaxValue-1));
-    Check(ui.IsCurrent(drop)&&UiModelExamples.Handle(inventory,drop),"Drop removes intended item");
+    SdlInput.Click(570,325);engine.PollInputFrame();
+    var drop=ui.Poll();
+    Check(ui.IsCurrent(drop)&&ui.Dispatch(drop),"Drop removes intended item");
     ui.Apply(inventory);Draw();
-    Check(!ui.IsCurrent(drop)&&!ui.IsCurrent(Packet(ui,UiModelExamples.Equip,Key(ulong.MaxValue-1))),"Removed key is stale");
-    var beforeReload=Packet(ui,UiModelExamples.Equip,Key(inventory.Items[0].Id));
-    ui.LoadAsset(assets,UiModelExamples.InventoryAsset,UiModelExamples.InventoryImages);Draw();
-    Check(ui.Status.Revision==0&&!ui.IsCurrent(beforeReload),"Reload invalidates prior generation");
+    Check(!ui.IsCurrent(drop)&&!ui.IsCurrent(Packet(ui,native.CommandId,Key(ulong.MaxValue-1))),"Removed key is stale");
+    var beforeReload=Packet(ui,native.CommandId,Key(inventory.Items[0].Id));
+    ui.StageAsset(assets,UiModelExamples.InventoryAsset,inventory,UiModelExamples.InventoryImages);Draw();
+    Check(ui.Status.Revision==1&&!ui.IsCurrent(beforeReload),"Reload invalidates prior generation");
     ui.Apply(inventory);Draw();
     Check(ui.Status.Loaded&&ui.Status.Overflow==0,"Inventory published cleanly");
 }
 var dialogue=UiModelExamples.Dialogue();
-using(var ui=new UiModelSession<UiModelExamples.DialogueModel>(engine,UiModelExamples.DialogueSchema(),UiModelExamples.DialogueCommands()))
+using(var ui=new UiModelSession<UiModelExamples.DialogueModel>(engine,UiModelExamples.DialogueSchema(),UiModelExamples.DialogueCommands(dialogue)))
 {
-    ui.LoadAsset(assets,UiModelExamples.DialogueAsset);Draw();ui.Apply(dialogue);Draw();
+    ui.StageAsset(assets,UiModelExamples.DialogueAsset,dialogue);Draw();
     var choice=dialogue.Choices[0];
-    var command=Packet(ui,UiModelExamples.Choose,Key(choice.Id),new(UiValueKind.Text,choice.Text,0,0));
-    Check(ui.IsCurrent(command)&&UiModelExamples.Handle(dialogue,command),"Dialogue typed key/text handler");
+    engine.PollInputFrame();SdlInput.Click(300,340);engine.PollInputFrame();
+    var command=ui.Poll();
+    Check(ui.IsCurrent(command)&&command[0].Key==choice.Id&&ui.Dispatch(command),"Dialogue typed key/text handler");
     ui.Apply(dialogue);Draw();Check(!ui.IsCurrent(command),"Dialogue earlier revision rejected");
 }
 var settings=UiModelExamples.Settings();
 settings.Profile.Name="";
-using(var ui=new UiModelSession<UiModelExamples.SettingsModel>(engine,UiModelExamples.SettingsSchema(),UiModelExamples.SettingsCommands()))
+using(var ui=new UiModelSession<UiModelExamples.SettingsModel>(engine,UiModelExamples.SettingsSchema(),UiModelExamples.SettingsCommands(settings)))
 {
-    ui.LoadAsset(assets,UiModelExamples.SettingsAsset);Draw();ui.Apply(settings);Draw();
-    engine.PollInput();SdlInput.Click(150,210);engine.PollInput();
+    ui.StageAsset(assets,UiModelExamples.SettingsAsset,settings);Draw();
+    engine.PollInputFrame();SdlInput.Click(150,210);engine.PollInputFrame();
     Check(ui.Poll().IsEmpty,"Focusing text input does not fabricate a command");
     string accepted="";
     foreach(string input in new[]{"a","b","c","d"})
     {
         SdlInput.Text(engine,input);var typed=ui.Poll();accepted+=input;
-        Check(typed.CommandId==UiModelExamples.Rename&&typed.Count==1&&typed[0].Kind==UiValueKind.Text&&typed[0].Text==accepted&&ui.IsCurrent(typed),"Continuous public SDL typing preserves focus/caret");
-        Check(UiModelExamples.Handle(settings,typed)&&settings.Profile.Name==accepted,"Application accepts each growing text packet");
+        Check(!typed.IsEmpty&&typed.Count==1&&typed[0].Kind==UiValueKind.Text&&typed[0].Text==accepted&&ui.IsCurrent(typed),"Continuous public SDL typing preserves focus/caret");
+        Check(ui.Dispatch(typed)&&settings.Profile.Name==accepted,"Application accepts each growing text packet");
         ui.Apply(settings);Draw();Check(!ui.IsCurrent(typed)&&ui.Poll().IsEmpty,"Accepted text advances revision and drains input queue");
         settings.Status="Unrelated update after "+accepted;ui.Apply(settings);Draw();
     }
     SdlInput.Text(engine,"x");var draft=ui.Poll();
-    Check(draft.CommandId==UiModelExamples.Rename&&draft[0].Text=="abcdx"&&settings.Profile.Name=="abcd","Unaccepted text stays a local draft");
+    Check(!draft.IsEmpty&&draft[0].Text=="abcdx"&&settings.Profile.Name=="abcd","Unaccepted text stays a local draft");
     settings.Status="Another unrelated scalar update";ui.Apply(settings);Draw();
     SdlInput.Text(engine,"y");var continued=ui.Poll();
-    Check(continued.CommandId==UiModelExamples.Rename&&continued[0].Text=="abcdxy"&&ui.IsCurrent(continued),"Unrelated scalar update preserves local draft and focus");
-    Check(UiModelExamples.Handle(settings,continued)&&settings.Profile.Name=="abcdxy","Preserved draft remains application-authorized");
+    Check(!continued.IsEmpty&&continued[0].Text=="abcdxy"&&ui.IsCurrent(continued),"Unrelated scalar update preserves local draft and focus");
+    Check(ui.Dispatch(continued)&&settings.Profile.Name=="abcdxy","Preserved draft remains application-authorized");
     ui.Apply(settings);Draw();
     var option=settings.Groups[1].Options[1];
-    var command=Packet(ui,UiModelExamples.SetOption,Key(option.Id),Bool(false));
-    Check(ui.IsCurrent(command)&&UiModelExamples.Handle(settings,command)&&!option.Enabled,"Nested setting typed key/bool handler");
+    // Observe this session's opaque command identity through a real checkbox event.
+    // Construct a copied test packet using that identity, never an author-chosen wire ID.
+    SdlInput.Click(873,210);engine.PollInputFrame();
+    var observedOption=ui.Poll();
+    Check(!observedOption.IsEmpty && observedOption.Count == 2 && observedOption[0].Kind == UiValueKind.Key
+        && observedOption[1].Kind == UiValueKind.Boolean, "Real checkbox exposes typed key/bool packet");
+    var command=Packet(ui,observedOption.CommandId,Key(option.Id),new(UiValueKind.Boolean,"",0,0));
+    Check(ui.IsCurrent(command)&&ui.Dispatch(command)&&!option.Enabled,"Nested setting typed key/bool handler");
     ui.Apply(settings);Draw();Check(!ui.IsCurrent(command),"Nested setting earlier revision rejected");
     Check(ui.Poll().IsEmpty&&ui.Status.Overflow==0,"No fabricated native events");
 }
@@ -136,7 +143,7 @@ static unsafe class SdlInput
         {
             var value=new Event{Type=0x303,WindowId=Window(),Text=storage};
             if(!SDL_PushEvent(ref value))throw new Exception("SDL text event rejected");
-            engine.PollInput(); // Keep the text storage alive until the event is consumed.
+            engine.PollInputFrame(); // Keep the text storage alive until the event is consumed.
         }
         finally{Marshal.FreeCoTaskMem(storage);}
     }

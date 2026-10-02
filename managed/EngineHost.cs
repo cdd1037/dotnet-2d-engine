@@ -67,7 +67,7 @@ public sealed unsafe class EngineHost : IDisposable
         }
     }
 
-    public InputSnapshot PollInput()
+    internal InputSnapshot PollInput()
     {
         var input = new InputSnapshot { Size = (uint)sizeof(InputSnapshot), Version = 2 };
         Native.Check(Native.PollV2(Context, &input), "poll input v2");
@@ -100,10 +100,30 @@ public sealed unsafe class EngineHost : IDisposable
         => Draw(camera, PrepareCommands(commands), clips);
 
     /// <summary>Draw the existing extracted batch without exposing its ABI storage.</summary>
-    public void Draw(in Camera camera, SpriteBatch batch)
+    public void Draw(in Camera camera, SpriteBatch batch, ReadOnlySpan<FramebufferClip> clips = default)
     {
         ArgumentNullException.ThrowIfNull(batch);
-        Draw(camera, batch.RegionDraws);
+        batch.ValidateResources(this);
+        Draw(camera, batch.RegionDraws, clips);
+    }
+
+    /// <summary>Draw reusable debug geometry with the same borrowed-resource validation as sprites.</summary>
+    public void Draw(in Camera camera, DebugDrawBuffer geometry, ReadOnlySpan<FramebufferClip> clips = default)
+    {
+        ArgumentNullException.ThrowIfNull(geometry);
+        AssertAlive(); geometry.ValidateResources(this);
+        Draw(camera, geometry.RegionDraws, clips);
+    }
+
+    /// <summary>Draw extracted world and debug geometry in stable painter order.</summary>
+    public void DrawWithOverlay(in Camera camera, SpriteBatch scene, DebugDrawBuffer overlay)
+    {
+        ArgumentNullException.ThrowIfNull(scene); ArgumentNullException.ThrowIfNull(overlay);
+        AssertAlive();
+        if ((ulong)scene.Count + (uint)overlay.Count > MaximumSprites)
+            throw new ArgumentException("Scene and overlay exceed the engine capacity.", nameof(overlay));
+        scene.ValidateResources(this); overlay.ValidateResources(this);
+        DrawWithOverlay(camera, scene.RegionDraws, overlay.RegionDraws);
     }
 
     /// <summary>Draw an extracted scene and managed overlay in one frame, retaining their stable order.</summary>
@@ -113,6 +133,7 @@ public sealed unsafe class EngineHost : IDisposable
         AssertAlive();
         if ((ulong)scene.Count + (uint)overlay.Length > MaximumSprites)
             throw new ArgumentException("Scene and overlay exceed the engine capacity.", nameof(overlay));
+        scene.ValidateResources(this);
         var commands = PrepareCommands(overlay);
         var value = camera; nint context = Context;
         Native.Check(Native.Begin(context, &value), "begin");
@@ -138,7 +159,7 @@ public sealed unsafe class EngineHost : IDisposable
         RenderFrame(_commandPasses.AsSpan(0, passes.Length), draws, clips);
     }
 
-    public void Draw(in Camera camera, ReadOnlySpan<Sprite> sprites)
+    internal void Draw(in Camera camera, ReadOnlySpan<Sprite> sprites)
     {
         var value = camera;
         nint context = Context;
@@ -160,7 +181,7 @@ public sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.End(context), "end");
     }
 
-    public void Draw(in Camera camera, ReadOnlySpan<SpriteDraw> draws)
+    internal void Draw(in Camera camera, ReadOnlySpan<SpriteDraw> draws)
     {
         var value = camera;
         nint context = Context;
@@ -174,7 +195,7 @@ public sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.End(context), "end");
     }
 
-    public void Draw(in Camera camera, ReadOnlySpan<SpriteDrawV2> draws)
+    internal void Draw(in Camera camera, ReadOnlySpan<SpriteDrawV2> draws)
     {
         var value = camera; nint context = Context;
         Native.Check(Native.Begin(context, &value), "begin");
@@ -183,7 +204,7 @@ public sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.End(context), "end");
     }
     /// <summary>Submit an overlay after the scene in one frame, with the same camera and no scissor.</summary>
-    public void DrawWithOverlay(in Camera camera,ReadOnlySpan<SpriteDrawV2> scene,ReadOnlySpan<SpriteDrawV2> overlay)
+    internal void DrawWithOverlay(in Camera camera,ReadOnlySpan<SpriteDrawV2> scene,ReadOnlySpan<SpriteDrawV2> overlay)
     {
         var value=camera;nint context=Context;Native.Check(Native.Begin(context,&value),"begin");
         try
@@ -194,7 +215,7 @@ public sealed unsafe class EngineHost : IDisposable
         catch{Native.Abort(context);throw;}
         Native.Check(Native.End(context),"end");
     }
-    public void Draw(in Camera camera,ReadOnlySpan<MaterialDraw> draws,ReadOnlySpan<FramebufferClip> clips=default)
+    internal void Draw(in Camera camera,ReadOnlySpan<MaterialDraw> draws,ReadOnlySpan<FramebufferClip> clips=default)
     {
         if(clips.Length!=0&&clips.Length!=1&&clips.Length!=draws.Length)throw new ArgumentException("Clip count must be zero, one, or match draw count.",nameof(clips));
         foreach(var clip in clips)clip.Validate();
@@ -204,7 +225,7 @@ public sealed unsafe class EngineHost : IDisposable
         Native.Check(Native.End(context),"end");
     }
     /// <summary>Render ordered offscreen passes and one final window pass. Validation rejects the complete frame before execution.</summary>
-    public void RenderFrame(ReadOnlySpan<RenderPass> passes,ReadOnlySpan<MaterialDraw> draws,ReadOnlySpan<FramebufferClip> clips=default)
+    internal void RenderFrame(ReadOnlySpan<RenderPass> passes,ReadOnlySpan<MaterialDraw> draws,ReadOnlySpan<FramebufferClip> clips=default)
     {
         if(clips.Length!=0&&clips.Length!=1&&clips.Length!=draws.Length)throw new ArgumentException("Clip count must be zero, one, or match draw count.",nameof(clips));
         foreach(var clip in clips)clip.Validate();
@@ -213,7 +234,7 @@ public sealed unsafe class EngineHost : IDisposable
             Native.Check(TargetNative.Render(context,stages,(uint)passes.Length,data,(uint)draws.Length,scissor,(uint)clips.Length),"render pass frame");
     }
     /// <summary>Draw order is unchanged. Zero clips disables scissor; one broadcasts; otherwise clips match the final draw order.</summary>
-    public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,ReadOnlySpan<FramebufferClip> clips)
+    internal void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,ReadOnlySpan<FramebufferClip> clips)
     {
         if(clips.Length!=0&&clips.Length!=1&&clips.Length!=draws.Length)throw new ArgumentException("Clip count must be zero, one, or match draw count.",nameof(clips));
         foreach(var clip in clips)clip.Validate();
@@ -222,7 +243,7 @@ public sealed unsafe class EngineHost : IDisposable
         catch{Native.Abort(context);throw;}
         Native.Check(Native.End(context),"end");
     }
-    public void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,in FramebufferClip clip)
+    internal void Draw(in Camera camera,ReadOnlySpan<SpriteDrawV2> draws,in FramebufferClip clip)
     {
         clip.Validate();var value=camera;nint context=Context;Native.Check(Native.Begin(context,&value),"begin");
         try{fixed(SpriteDrawV2* data=draws)fixed(FramebufferClip* scissor=&clip)Native.Check(ClippingNative.Submit(context,data,(uint)draws.Length,scissor,1),"submit clipped region draws");}

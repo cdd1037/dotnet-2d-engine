@@ -48,10 +48,9 @@ records=[json.loads(line) for line in (proof/'logs/managed-types.jsonl').read_te
 assert len(records)==4
 assert not records[0]['exists'],'unused engine assembly should trim entirely'
 unused_modules=('AudioSession','PhysicsWorld','FrameClip','FramePlayer','Tween','TimingScope','EngineTimer',
-                'TileMap','TileMapInstance','TileMapCollision','FramebufferClip','ClippingNative',
-                'DiagnosticLog','CpuTimings','DebugDrawBuffer','MaterialCache','MaterialLease','MaterialAsset',
-                'MaterialJsonContext','MaterialDraw','MaterialParameters','MaterialNative',
-                'RenderTargetStore','RenderTarget','RenderPass','TargetNative')
+                'TileMap','TileMapInstance','TileMapCollision',
+                'DiagnosticLog','CpuTimings','DebugDrawBuffer','MaterialAsset','MaterialJsonContext',
+                'RenderTargetStore','RenderTarget','TargetNative')
 sample_only=('MissionGame','RoomGame','Program','SelfTests','TileMovementClock','TileMovementLevel','TileMovementDemo')
 full_types=set(records[3]['types'])
 assert records[3]['exists'],'untrimmed package assembly missing'
@@ -67,17 +66,19 @@ for record in records[1:3]:
         forbidden='GameAuthoringLab.'+name
         assert not any(t==forbidden or t.startswith(forbidden+'`') for t in types),(record['path'],forbidden,'unexpected managed root')
 assert not any('BoundUi' in t or 'UiAuthoring' in t for t in records[1]['types']),'sprite consumer retained UI'
-assert any('BoundUiSession' in t for t in records[2]['types']),'UI consumer lost binding root'
+assert any('UiModelSession' in t for t in records[2]['types']),'UI consumer lost model root'
+assert not any('BoundUiSession' in t for t in records[2]['types']),'UI consumer retained superseded binding root'
 # AOT symbol maps, unlike text search in stripped executables, identify compiled engine methods.
 aot={}
 for sample in ('empty','sprite','ui'):
     text=(proof/'logs'/f'{sample}-aot-map.xml').read_text()
-    checks={name:('GameAuthoringLab_'+name in text or 'GameAuthoringLab.'+name in text) for name in unused_modules+sample_only+('BoundUiSession','AuthoredScene')}
+    checks={name:('GameAuthoringLab_'+name in text or 'GameAuthoringLab.'+name in text) for name in unused_modules+sample_only+('BoundUiSession','UiModelSession','AuthoredScene')}
     aot[sample]=checks
     assert not any(checks[name] for name in unused_modules+sample_only),(sample,checks)
     if sample=='empty':assert 'Dotnet2D_Engine' not in text and 'Dotnet2D.Engine' not in text,'empty AOT contains an engine assembly node'
-    if sample!='ui':assert not checks['BoundUiSession'],(sample,checks)
-    if sample=='ui':assert checks['BoundUiSession'],(sample,'missing expected UI AOT root')
+    assert not checks['BoundUiSession'],(sample,'retained superseded binding root')
+    if sample!='ui':assert not checks['UiModelSession'],(sample,checks)
+    if sample=='ui':assert checks['UiModelSession'],(sample,'missing expected UI AOT root')
     if sample=='sprite':assert checks['AuthoredScene'],(sample,'missing expected scene AOT root')
 # These native exports remain in the complete prebuilt DSO even though the managed
 # consumers do not root their corresponding modules. Hash checks above establish

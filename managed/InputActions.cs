@@ -7,12 +7,12 @@ namespace GameAuthoringLab;
 // can be bound; these named values are the controls used by the small examples.
 public enum PhysicalKey { A=4, D=7, E=8, F=9, S=22, T=23, W=26, Enter=40, Escape=41, Tab=43, Space=44, F5=62, F9=66, Right=79, Left=80, Down=81, Up=82 }
 public enum PointerButton { Left=1, Middle=2, Right=3 }
-[Flags] public enum InputFlags : uint { Focused=1, Drawable=2, FocusChanged=4 }
+[Flags] internal enum InputFlags : uint { Focused=1, Drawable=2, FocusChanged=4 }
 [Flags] public enum InputConsumption : uint { Keyboard=1, Pointer=2, Wheel=4, Text=8 }
 
-/// <summary>Advanced v2 interop/compatibility layout. New game code should use EngineHost.PollInputFrame and its copied Game/Raw views.</summary>
+// Internal v2 wire layout. Public callers use the copied InputFrame views.
 [StructLayout(LayoutKind.Sequential)]
-public unsafe struct InputSnapshot
+internal unsafe struct InputSnapshot
 {
     public uint Size, Version, Quit;
     public InputFlags Flags;
@@ -61,10 +61,14 @@ public readonly record struct Viewport(int WindowWidth, int WindowHeight, int Pi
 
 /// <summary>
 /// Coalesced held/edge state. Typed queries retain the originating map across rebinds.
-/// Mask construction, deconstruction and equality remain available for legacy callers.
+/// Synthetic states are created by their owning map with CreateState.
 /// </summary>
-public readonly record struct ActionState(uint Down, uint Pressed, uint Released)
+public readonly record struct ActionState
 {
+    internal uint Down { get; init; }
+    internal uint Pressed { get; init; }
+    internal uint Released { get; init; }
+    internal ActionState(uint down, uint pressed, uint released) { Down = down; Pressed = pressed; Released = released; }
     private readonly InputActionMap? _owner;
     internal ActionState(InputActionMap owner, uint down, uint pressed, uint released) : this(down, pressed, released) => _owner = owner;
 
@@ -131,7 +135,7 @@ public readonly record struct InputControl
     { InputSnapshot.ButtonBit((int)button); return new((int)button, true, allowUiConsumed); }
     internal InputBinding Bind(uint action) => new(action, Code, Pointer, AllowUiConsumed);
 }
-public readonly record struct InputBinding(uint Action, int Code, bool Pointer = false, bool AllowUiConsumed = false)
+internal readonly record struct InputBinding(uint Action, int Code, bool Pointer = false, bool AllowUiConsumed = false)
 {
     public static InputBinding Key(uint action, PhysicalKey key, bool allowUiConsumed = false) => new(action, (int)key, false, allowUiConsumed);
     public static InputBinding Button(uint action, PointerButton button, bool allowUiConsumed = false) => new(action, (int)button, true, allowUiConsumed);
@@ -139,7 +143,7 @@ public readonly record struct InputBinding(uint Action, int Code, bool Pointer =
 
 /// <summary>
 /// Poll-based bindings, independent of entities. AddAction allocates opaque map-bound
-/// actions; legacy InputBinding callers may still choose their own single bits.
+/// actions, with controls registered and rebound by token.
 /// Alternative controls combine into one held action. A tap that begins/ends in one
 /// poll still reports pressed+released. Edges coalesce; there is no ordered event queue.
 /// Rebinding/focus loss waits for neutral controls, preventing held-key activation.
@@ -151,8 +155,9 @@ public sealed class InputActionMap
     private uint _previous;
     private uint _allocatedActions;
     private bool _waitForNeutral;
-    public InputActionMap(params InputBinding[] bindings) { _bindings = Copy(bindings); _previousControls = new bool[_bindings.Length]; }
-    public void Rebind(params InputBinding[] bindings) { var copy = Copy(bindings); var previous = new bool[copy.Length]; _bindings = copy; _previousControls = previous; _previous = 0; _waitForNeutral = true; }
+    public InputActionMap() : this([]) { }
+    internal InputActionMap(params InputBinding[] bindings) { _bindings = Copy(bindings); _previousControls = new bool[_bindings.Length]; }
+    internal void Rebind(params InputBinding[] bindings) { var copy = Copy(bindings); var previous = new bool[copy.Length]; _bindings = copy; _previousControls = previous; _previous = 0; _waitForNeutral = true; }
 
     /// <summary>Allocate one of 32 action bits, with alternative controls within the existing 128-binding limit.</summary>
     public InputAction AddAction(params InputControl[] controls)
@@ -234,7 +239,7 @@ public sealed class InputActionMap
         return (InputBinding[])bindings.Clone();
     }
     public ActionState Update(InputFrame frame) => Update(frame.Snapshot);
-    public ActionState Update(InputSnapshot snapshot)
+    internal ActionState Update(InputSnapshot snapshot)
     {
         if (!snapshot.Focused) { uint released = _previous; Array.Clear(_previousControls); _previous = 0; _waitForNeutral = true; return new(this, 0, 0, released); }
         uint down = 0, presses = 0, releases = 0, continuous = 0; bool rawActivity = false;
@@ -267,7 +272,7 @@ public sealed class InputActionMap
     }
 
     // Default bindings belong to this sample adapter, not the native backend or World.
-    public static InputActionMap CreateSample() => new(
+    internal static InputActionMap CreateSample() => new(
         InputBinding.Key(Native.Left, PhysicalKey.Left), InputBinding.Key(Native.Left, PhysicalKey.A),
         InputBinding.Key(Native.Right, PhysicalKey.Right), InputBinding.Key(Native.Right, PhysicalKey.D),
         InputBinding.Key(Native.Up, PhysicalKey.Up), InputBinding.Key(Native.Up, PhysicalKey.W),

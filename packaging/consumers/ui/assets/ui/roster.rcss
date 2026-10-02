@@ -54,7 +54,7 @@ button:disabled { background-color: #293c34; color: #869a90; }
     word-break: break-all;
     border-radius: 0dp;
 }
-.bound-row:selected { background-color: #496f46; border-color: #d7ecc8; }
+.bound-row.selected { background-color: #496f46; border-color: #d7ecc8; }
 .bound-row:disabled { color: #869a90; background-color: #192c24; }
 #members scrollbarvertical { width: 12dp; }
 #members scrollbarvertical slidertrack { background-color: #2a4337; }

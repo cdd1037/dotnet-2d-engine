@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><EnableDefaultCompileItems>false</EnableDefaultCompileItems><NuGetAudit>false</NuGetAudit></PropertyGroup>
+  <ItemGroup><Compile Include="NumericAttribute.cs" /><PackageReference Include="Dotnet2D.Engine" Version="0.1.0-preview.1" /></ItemGroup>
+</Project>

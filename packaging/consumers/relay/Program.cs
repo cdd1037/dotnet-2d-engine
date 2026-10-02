@@ -33,6 +33,7 @@ try
     _ = MissionDefinition.Load(missionPath);
     foreach (string key in catalog.Paths.Keys) _ = catalog.PathFor(key);
     using var engine = EngineHost.Create(maxSprites: 128);
+    if (check) ScenarioChecks.InputRouting(engine);
     using var game = new MissionGame(missionPath, catalog);
     using var host = new RelayHost(engine, game, catalog, save);
     if (check)

@@ -2,13 +2,6 @@ using System.Runtime.CompilerServices;
 
 namespace GameAuthoringLab;
 
-/// <summary>A C# declaration site, not the origin of runtime data. Column is unavailable from caller info.</summary>
-public readonly record struct UiDeclaration(string FilePath, int Line)
-{
-    internal UiAuthoringException Error(string code, string field, string cause, Exception? inner = null) =>
-        new(code, string.IsNullOrEmpty(FilePath) ? "<schema>" : FilePath, Line, 1, field, cause, inner) { Declaration = this };
-}
-
 /// <summary>Explicit scalar codec used by typed commands; no CLR type discovery or reflection.</summary>
 public sealed class UiArgument<T>
 {
@@ -33,7 +26,7 @@ public sealed class UiCommands
     private readonly List<Command> _commands = [];
 
     /// <summary>Legacy explicit packet registration; use Poll/IsCurrent and application dispatch.</summary>
-    public UiCommands Add(string name, uint id, params UiValueKind[] arguments) => Register(name, id, arguments, null, null);
+    internal UiCommands Add(string name, uint id, params UiValueKind[] arguments) => Register(name, id, arguments, null, null);
 
     private UiCommands Register(string name, uint id, UiValueKind[] arguments, Action<UiCommandEvent>? handler, UiDeclaration? origin, bool automatic = false)
     {
@@ -84,31 +77,31 @@ public sealed class UiCommands
         return Register(name, 0, [a.Kind, b.Kind, c.Kind, d.Kind], p => handler(a.Read(p[0]), b.Read(p[1]), c.Read(p[2]), d.Read(p[3])), new(file, line), automatic: true);
     }
 
-    public UiCommands On(string name, uint id, Action handler,
+    internal UiCommands On(string name, uint id, Action handler,
         [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
         ArgumentNullException.ThrowIfNull(handler);
         return Register(name, id, [], _ => handler(), new(file, line));
     }
-    public UiCommands On<A>(string name, uint id, UiArgument<A> a, Action<A> handler,
+    internal UiCommands On<A>(string name, uint id, UiArgument<A> a, Action<A> handler,
         [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
         ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(handler);
         return Register(name, id, [a.Kind], p => handler(a.Read(p[0])), new(file, line));
     }
-    public UiCommands On<A, B>(string name, uint id, UiArgument<A> a, UiArgument<B> b, Action<A, B> handler,
+    internal UiCommands On<A, B>(string name, uint id, UiArgument<A> a, UiArgument<B> b, Action<A, B> handler,
         [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
         ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(handler);
         return Register(name, id, [a.Kind, b.Kind], p => handler(a.Read(p[0]), b.Read(p[1])), new(file, line));
     }
-    public UiCommands On<A, B, C>(string name, uint id, UiArgument<A> a, UiArgument<B> b, UiArgument<C> c, Action<A, B, C> handler,
+    internal UiCommands On<A, B, C>(string name, uint id, UiArgument<A> a, UiArgument<B> b, UiArgument<C> c, Action<A, B, C> handler,
         [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
         ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(c); ArgumentNullException.ThrowIfNull(handler);
         return Register(name, id, [a.Kind, b.Kind, c.Kind], p => handler(a.Read(p[0]), b.Read(p[1]), c.Read(p[2])), new(file, line));
     }
-    public UiCommands On<A, B, C, D>(string name, uint id, UiArgument<A> a, UiArgument<B> b, UiArgument<C> c, UiArgument<D> d, Action<A, B, C, D> handler,
+    internal UiCommands On<A, B, C, D>(string name, uint id, UiArgument<A> a, UiArgument<B> b, UiArgument<C> c, UiArgument<D> d, Action<A, B, C, D> handler,
         [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
         ArgumentNullException.ThrowIfNull(a); ArgumentNullException.ThrowIfNull(b); ArgumentNullException.ThrowIfNull(c); ArgumentNullException.ThrowIfNull(d); ArgumentNullException.ThrowIfNull(handler);

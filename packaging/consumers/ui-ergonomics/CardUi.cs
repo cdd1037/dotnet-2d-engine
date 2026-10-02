@@ -48,7 +48,7 @@ public sealed partial class CardUi : IDisposable
 
     public bool Frame()
     {
-        if (_engine.PollInput().Quit != 0) return false;
+        if (_engine.PollInputFrame().Quit) return false;
         for (var command = _ui.Poll(); !command.IsEmpty; command = _ui.Poll())
         {
             try
@@ -68,7 +68,7 @@ public sealed partial class CardUi : IDisposable
         return true;
     }
 
-    public void Draw() => _engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteDraw>.Empty);
+    public void Draw() => _engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
     public void Capture(string path)
     {
         _ui.Capture(path);

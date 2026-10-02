@@ -27,14 +27,14 @@ public struct Camera
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Sprite
+internal struct Sprite
 {
     public float X, Y, Width, Height, R, G, B, A;
 }
 
 /// <summary>Advanced ABI-shaped draw. Prefer SpriteCommand for ordinary managed authoring.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct SpriteDraw
+internal struct SpriteDraw
 {
     public float M11, M12, M21, M22, X, Y, Width, Height, R, G, B, A;
     public ulong Texture;
@@ -42,7 +42,7 @@ public struct SpriteDraw
 
 /// <summary>Advanced versioned ABI draw. Prefer SpriteCommand for ordinary managed authoring.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct SpriteDrawV2
+internal struct SpriteDrawV2
 {
     public uint Size, Version;
     public SpriteDraw Draw;

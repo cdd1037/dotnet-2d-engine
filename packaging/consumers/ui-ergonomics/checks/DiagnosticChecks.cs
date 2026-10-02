@@ -57,11 +57,11 @@ internal static class DiagnosticChecks
             var section = new UiRecord<Section>().Array("items", value => value.Items, item, 2);
             var schema = new UiRecord<Model>().Array("sections", value => value.Sections, section, 2);
             UiDeclaration commandOrigin = NextLine();
-            var commands = new UiCommands().On("choose", 1, UiArgs.Key, (ulong _) => { });
+            var commands = new UiCommands().On("choose", UiArgs.Key, (ulong _) => { });
             using var session = new UiModelSession<Model>(engine, schema, commands);
             var assets = new AssetRoot(directory);
-            void Draw() => engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteDraw>.Empty);
-            session.LoadAsset(assets, "fixture.rml");
+            void Draw() => engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
+            session.StageAsset(assets, "fixture.rml", new Model([]));
             Draw();
             var emptyNested = new Model([new Section([])]);
             Check(session.Apply(emptyNested), "initial nested-empty model is accepted");
@@ -73,7 +73,7 @@ internal static class DiagnosticChecks
             void SourceError(string broken, string code, string field, int line, string cause, bool hasDeclaration)
             {
                 File.WriteAllText(rmlPath, broken);
-                try { session.LoadAsset(assets, "fixture.rml"); throw new InvalidOperationException("Broken RML accepted"); }
+                try { session.StageAsset(assets, "fixture.rml", new Model([])); throw new InvalidOperationException("Broken RML accepted"); }
                 catch (UiAuthoringException error)
                 {
                     Check(error.Code == code && error.FilePath == rmlPath && error.Line == line && error.Column > 0,

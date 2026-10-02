@@ -19,9 +19,9 @@ var scale=new PhysicsScale(32);var collision=map.AttachCollision(physics,scale);
 Check(collision.Rectangles.Length==1,"tile collision uses existing bounded merged rectangles");
 using var bodies=new PhysicsScope(physics);
 var body=bodies.CreateBody(new(PhysicsBodyType.Dynamic,1.5f,.5f,FixedRotation:true));
-body.AddShape(new(PhysicsShapeType.Circle,.3f,Category:2));
+body.AddShape(PhysicsShapeDefinition.Circle(.3f,category:2));
 var goal=bodies.CreateBody(new(PhysicsBodyType.Static,1.5f,2.5f));
-goal.AddShape(new(PhysicsShapeType.Box,.5f,.5f,Category:4,Mask:2,Sensor:true));
+goal.AddShape(PhysicsShapeDefinition.Box(.5f,.5f,category:4,mask:2,sensor:true));
 var initial=body.State;bool entered=false;PhysicsEventView copiedEvent=default;
 for(int i=0;i<120;i++)
 {
@@ -54,7 +54,7 @@ actor.LocalTransform=new(scale.ToPixels(body.State.X),scale.ToPixels(body.State.
 actor.Sprite=new(8,8,AssetKey:animation.AssetKey,Layer:2);
 textures.Sync(world);var batch=new SpriteBatch(8){RegionResolver=textures.ResolveRegion};world.ExtractSprites(batch);
 map.AppendSprites(batch,new(0,0,128,128));Check(batch.Count==5,"public animation resource ID plus map extraction");
-for(int i=0;i<3;i++)engine.Draw(new Camera{Zoom=1},batch.RegionDraws);
+for(int i=0;i<3;i++)engine.Draw(new Camera{Zoom=1},batch);
 Check(engine.GetStats().Frames==3,"headless draw submission through packaged native library");
 
 using var audio=engine.OpenAudio(offline:true);

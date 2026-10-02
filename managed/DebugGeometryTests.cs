@@ -151,6 +151,27 @@ internal static class DebugGeometryTests
         for (int i = 0; i < 1000; i++) observed += Exercise(warmed);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Check(allocated == 0 && observed == 11000, "warmed append, clear, span, capacity and enable paths allocate zero bytes");
+        var semantic = new DebugDrawBuffer(4, default(TextureBinding)) { Enabled = true };
+        foreach (var line in new[] { (0f, 0f, 0f, 100_000_000f), (10_000_000f, -10_000_000f, -30_000_000f, 20_000_000f),
+            (0f, 0f, 100_000_000f, 0f), (0f, 0f, 3f, 4f) })
+        {
+            semantic.Clear(); semantic.TryAddLine(line.Item1, line.Item2, line.Item3, line.Item4, 1);
+            var raw = semantic.RegionDraws[0].Draw;
+            var command = semantic.Commands[0] with { Tint = System.Numerics.Vector4.One };
+            command.GetBasis(out float m11, out float m12, out float m21, out float m22);
+            Check((m11, m12, m21, m22) == (raw.M11, raw.M12, raw.M21, raw.M22),
+                "typed debug material/tint copies preserve the exact affine basis, including long vertical lines");
+            for (int corner = 0; corner < 4; corner++)
+            {
+                double x = (corner & 1) == 0 ? 0 : raw.Width, y = (corner & 2) == 0 ? 0 : raw.Height;
+                Check(command.Transform.X + m11 * x + m21 * y == raw.X + raw.M11 * x + raw.M21 * y
+                    && command.Transform.Y + m12 * x + m22 * y == raw.Y + raw.M12 * x + raw.M22 * y,
+                    "direct and typed debug submissions retain exactly equal corners");
+            }
+            var moved = command with { Transform = new(5, 7) };
+            moved.GetBasis(out m11, out m12, out m21, out m22);
+            Check((m11, m12, m21, m22) == (1f, 0f, 0f, 1f), "explicit Transform replacement resets the exact debug basis");
+        }
         Console.WriteLine($"PASS debug geometry ({assertions} CPU assertions; warmed allocations={allocated})");
         return assertions;
     }

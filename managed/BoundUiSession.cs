@@ -4,14 +4,14 @@ using System.Text;
 namespace GameAuthoringLab;
 
 public readonly record struct UiBindingStatus(uint Generation,uint Revision,bool Loaded,bool Pending,uint Queued,uint Overflow,string Diagnostic);
-public enum UiBindingKind:uint { Text=1,TextInput=2,Boolean=3,Number=4,Action=5,List=6 }
-public readonly record struct UiBindingTarget(string ElementId,UiBindingKind Kind,uint ActionId=0);
-public readonly record struct UiListRow(ulong Id,string Text,bool Enabled=true,bool Selected=false);
-public readonly record struct UiBindingAction(uint Generation,uint Revision,int Target,uint ActionId,UiBindingKind Kind,ulong RowId,string Text,int Number,bool Boolean)
+internal enum UiBindingKind:uint { Text=1,TextInput=2,Boolean=3,Number=4,Action=5,List=6 }
+internal readonly record struct UiBindingTarget(string ElementId,UiBindingKind Kind,uint ActionId=0);
+internal readonly record struct UiListRow(ulong Id,string Text,bool Enabled=true,bool Selected=false);
+internal readonly record struct UiBindingAction(uint Generation,uint Revision,int Target,uint ActionId,UiBindingKind Kind,ulong RowId,string Text,int Number,bool Boolean)
 { public bool IsEmpty=>ActionId==0; }
 
 /// <summary>Explicit C# projections. Built registrations are copied into each session; no reflection or native callbacks.</summary>
-public sealed class UiBindings<T>
+internal sealed class UiBindings<T>
 {
     internal sealed record Binding(UiBindingTarget Target,Func<T,string>? Text=null,Func<T,bool>? Boolean=null,
         Func<T,int>? Number=null,Func<T,IReadOnlyList<UiListRow>>? Rows=null,Func<T,bool>? Enabled=null);
@@ -45,7 +45,7 @@ internal static unsafe partial class BoundUiNative
 }
 
 /// <summary>Document-scoped bindings. Apply explicitly projects one batch; input actions are copied and polled.</summary>
-public sealed unsafe class BoundUiSession<T>:UiSessionOwner
+internal sealed unsafe class BoundUiSession<T>:UiSessionOwner
 {
     private readonly UiBindings<T>.Binding[] _bindings;
     private readonly UiBindingTarget[] _targets;

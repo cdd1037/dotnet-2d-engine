@@ -53,7 +53,7 @@ public sealed unsafe class UiModelSession<T>:UiSessionOwner
     }
     /// <summary>Legacy source-only staging. Draw once to publish, Apply a model, then draw again.
     /// Prefer StageAsset to validate and publish a source together with its initial model.</summary>
-    public void LoadAsset(AssetRoot assets, string logicalPath, IReadOnlyList<string>? declaredImages = null)
+    internal void LoadAsset(AssetRoot assets, string logicalPath, IReadOnlyList<string>? declaredImages = null)
     {
         EnsureIdle(); LoadAssetCore(assets, logicalPath, declaredImages, null);
     }

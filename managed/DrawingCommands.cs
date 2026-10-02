@@ -5,7 +5,7 @@ namespace GameAuthoringLab;
 // transfer disposal responsibility. A copied handle becomes invalid with its lease.
 internal interface ITextureSource
 {
-    ulong ResolveTexture(EngineHost engine, TextureRegion? region);
+    ulong ResolveTexture(EngineHost? engine, TextureRegion? region);
 }
 
 /// <summary>Borrowed texture/sample view. Default means an untextured solid sprite.</summary>
@@ -13,7 +13,8 @@ public readonly record struct TextureHandle
 {
     private readonly ITextureSource? source;
     internal TextureHandle(ITextureSource source) => this.source = source;
-    internal ulong Resolve(EngineHost engine, TextureRegion? region)
+    internal ulong ResolveForExtraction(TextureRegion? region) => Resolve(null, region);
+    internal ulong Resolve(EngineHost? engine, TextureRegion? region)
     {
         if (source is not null) return source.ResolveTexture(engine, region);
         if (region is not null) throw new ArgumentException("A source region requires a texture.", nameof(region));
@@ -41,6 +42,25 @@ public readonly record struct RenderTargetHandle
 /// <summary>Managed sprite description. No ABI headers or interchangeable numeric resource IDs.</summary>
 public readonly record struct SpriteCommand(Transform2D Transform, Vector2 Size, Vector4 Tint, TextureHandle Texture = default)
 {
+    private readonly Transform2D _transform = Transform;
+    private readonly (float M11, float M12, float M21, float M22)? _exactBasis;
+    /// <summary>Replacing the transform also replaces any exact debug-geometry basis.</summary>
+    public Transform2D Transform
+    {
+        get => _transform;
+        init { _transform = value; _exactBasis = null; }
+    }
+    private SpriteCommand(SpriteCommand command, (float, float, float, float) basis) : this(default, default, default)
+    { this = command; _exactBasis = basis; }
+    // Preserve generated line corners exactly instead of round-tripping through a float angle.
+    // Material/tint/region copies keep this precision; an explicit Transform edit replaces it.
+    internal static SpriteCommand FromDebug(in SpriteDraw draw, TextureBinding binding)
+    {
+        var command = new SpriteCommand(new(draw.X, draw.Y, Rotation: MathF.Atan2(draw.M12, draw.M11)),
+            new(draw.Width, draw.Height), new(draw.R, draw.G, draw.B, draw.A), binding.Texture) { Region = binding.Region };
+        return new(command, (draw.M11, draw.M12, draw.M21, draw.M22));
+    }
+
     public TextureRegion? Region { get; init; }
     public bool FlipX { get; init; }
     public bool FlipY { get; init; }
@@ -56,12 +76,17 @@ public readonly record struct SpriteCommand(Transform2D Transform, Vector2 Size,
         ulong texture = Texture.Resolve(engine, Region), material = Material.Resolve(engine);
         if (material == 0 && (Parameters.First != default || Parameters.Second != default))
             throw new ArgumentException("The built-in material requires zero parameters.", nameof(Parameters));
-        Transform.GetBasis(out float m11, out float m12, out float m21, out float m22);
+        GetBasis(out float m11, out float m12, out float m21, out float m22);
         var draw = new SpriteDraw { M11 = m11, M12 = m12, M21 = m21, M22 = m22,
             X = Transform.X, Y = Transform.Y, Width = Size.X, Height = Size.Y,
             R = Tint.X, G = Tint.Y, B = Tint.Z, A = Tint.W, Texture = texture };
         // Headless image leases validate their region above but intentionally have no native texture.
         return MaterialDraw.Create(SpriteDrawV2.Create(draw, texture == 0 ? null : Region, FlipX, FlipY), material, Parameters);
+    }
+    internal void GetBasis(out float m11, out float m12, out float m21, out float m22)
+    {
+        if (_exactBasis is { } basis) (m11, m12, m21, m22) = basis;
+        else Transform.GetBasis(out m11, out m12, out m21, out m22);
     }
     internal static void ValidateColor(Vector4 color)
     {
@@ -98,4 +123,16 @@ public readonly struct FramePass
         SpriteCommand.ValidateColor(ClearColor);
         return RenderPass.Create(window ? 0 : target.Resolve(engine), Camera, FirstDraw, DrawCount, ClearColor);
     }
+}
+
+/// <summary>A borrowed image/sample view and optional texel region for world extraction or debug geometry.</summary>
+public readonly record struct TextureBinding(TextureHandle Texture, TextureRegion? Region = null)
+{
+    private readonly ulong _nativeHandle;
+    private readonly bool _nativeOnly;
+    internal TextureBinding(ulong handle, TextureRegion? region = null) : this(default(TextureHandle), region)
+    { _nativeHandle = handle; _nativeOnly = true; }
+    internal bool NativeOnly => _nativeOnly;
+    internal ulong Handle => _nativeOnly ? _nativeHandle : Texture.ResolveForExtraction(Region);
+    internal void Validate(EngineHost engine) { if (!_nativeOnly) _ = Texture.Resolve(engine, Region); }
 }

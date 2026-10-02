@@ -23,9 +23,6 @@ internal static class UiModelPreflight
         catch (UiContractException error) { throw ToAuthoringException(error); }
     }
 
-    internal static UiAuthoringException ToAuthoringException(UiContractException error) =>
-        new(error.Code, error.FilePath, error.Line, error.Column, error.Field, error.Cause, error.InnerException)
-        {
-            Declaration = error.Declaration is { } declaration ? new UiDeclaration(declaration.FilePath, declaration.Line) : null
-        };
+    internal static UiAuthoringException ToAuthoringException(UiContractException error) => UiAuthoring.ToAuthoringException(error);
+
 }

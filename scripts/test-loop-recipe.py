@@ -59,9 +59,16 @@ internal sealed class Driver : IDisposable
         options = StarterOptions.Parse(headlessClock ? ["--headless"] : []);
     }
 
-    public TimingStep Frame(double elapsed, InputSnapshot input)
+    public TimingStep Frame(double elapsed, SyntheticInput input)
     {
-        var action = actions.Update(input);
+        InputAction[] Tokens(params PhysicalKey?[] keys) => keys.Where(key => key is not null).Select(key => key switch
+        {
+            PhysicalKey.D => controls.Right, PhysicalKey.Space => controls.Pulse,
+            PhysicalKey.Escape => controls.Pause, PhysicalKey.T => controls.Restart,
+            _ => throw new ArgumentException("Undeclared synthetic action")
+        }).ToArray();
+        var action = actions.CreateState(down: Tokens(input.Held), pressed: Tokens(input.Tap, input.Tap2),
+            released: Tokens(input.Tap, input.Tap2));
 ''' + textwrap.indent(policy, '        ') + '''
         // A recording stand-in for outer-frame menu/timer work, not a native UI test.
         MenuRealSeconds += frame.RealSeconds;
@@ -80,7 +87,14 @@ internal sealed class Driver : IDisposable
 using Dotnet2DStarter;
 using GameAuthoringLab;
 
-internal static unsafe class Program
+[Flags] internal enum WindowFlags { Focused = 1, Drawable = 2 }
+internal readonly record struct SyntheticInput(PhysicalKey? Held, PhysicalKey? Tap, PhysicalKey? Tap2, WindowFlags Flags)
+{
+    public bool Focused => (Flags & WindowFlags.Focused) != 0;
+    public bool Drawable => (Flags & WindowFlags.Drawable) != 0;
+}
+
+internal static class Program
 {
     private static int checks;
     private static void Check(bool value, string label)
@@ -89,28 +103,9 @@ internal static unsafe class Program
         checks++;
     }
     private static void Near(Vector2 a, Vector2 b, string label) => Check(Vector2.Distance(a, b) < .002f, label);
-    private static InputSnapshot Input(PhysicalKey? held = null, PhysicalKey? tap = null,
-        PhysicalKey? tap2 = null, InputFlags flags = InputFlags.Focused | InputFlags.Drawable)
-    {
-        var input = new InputSnapshot { Flags = flags, WindowWidth = 960, WindowHeight = 540,
-            PixelWidth = 960, PixelHeight = 540 };
-        if (held is PhysicalKey down)
-        {
-            int key = (int)down;
-            input.KeysDown[key / 64] |= 1ul << (key % 64);
-            input.GameKeysDown[key / 64] |= 1ul << (key % 64);
-        }
-        foreach (var candidate in new[] { tap, tap2 })
-        {
-            if (candidate is not PhysicalKey pressed) continue;
-            int key = (int)pressed;
-            input.KeysPressed[key / 64] |= 1ul << (key % 64);
-            input.GameKeysPressed[key / 64] |= 1ul << (key % 64);
-            input.KeysReleased[key / 64] |= 1ul << (key % 64);
-            input.GameKeysReleased[key / 64] |= 1ul << (key % 64);
-        }
-        return input;
-    }
+    private static SyntheticInput Input(PhysicalKey? held = null, PhysicalKey? tap = null,
+        PhysicalKey? tap2 = null, WindowFlags flags = WindowFlags.Focused | WindowFlags.Drawable)
+        => new(held, tap, tap2, flags);
     private static void Main()
     {
         double step = StarterGame.StepSeconds;
@@ -151,7 +146,7 @@ internal static unsafe class Program
                 driver.Frame(step, Input(tap: PhysicalKey.Escape, tap2: PhysicalKey.T));
                 Check(driver.Game.Paused && driver.Game.Steps == 0, "simultaneous pause/restart preserves pause choice");
             }
-            foreach (InputFlags flags in new[] { InputFlags.Focused, InputFlags.Drawable })
+            foreach (WindowFlags flags in new[] { WindowFlags.Focused, WindowFlags.Drawable })
             {
                 using var driver = new Driver(physics);
                 driver.Frame(step * 1.5, Input(held: PhysicalKey.D, tap: PhysicalKey.Space));
@@ -162,7 +157,7 @@ internal static unsafe class Program
                 Check(driver.Game.Steps == 1 && driver.Game.Pulses == 1 && driver.Alpha == 0,
                     "focus/no-draw suspension clears pending input and debt");
                 Near(driver.RenderPosition, current, "focus/no-draw suspension snaps history");
-                Check(driver.Draws == draws + (flags == InputFlags.Drawable ? 1ul : 0),
+                Check(driver.Draws == draws + (flags == WindowFlags.Drawable ? 1ul : 0),
                     "only nondrawable frames skip drawing");
                 driver.Frame(step / 4, Input());
                 Near(driver.RenderPosition, current, "focus/no-draw zero-step resume is stable");
@@ -175,13 +170,13 @@ internal static unsafe class Program
                 Check(driver.Game.Steps == 1 && driver.Draws == 1, "explicit headless test clock ignores absent window state");
             }
         }
-        Console.WriteLine($"LOOP POLICY PASS checks={checks}; extracted starter frame; plain + native physics; synthetic input, no physical-input/native-UI acceptance");
+        Console.WriteLine($"LOOP POLICY PASS checks={checks}; extracted starter frame; plain + native physics; synthetic typed actions/window state, no physical-input/native-UI acceptance");
     }
 }
 '''
     (output / 'Program.cs').write_text(tests + driver)
     project = output / 'LoopPolicy.csproj'
-    project.write_text(project.read_text().replace('<Nullable>enable</Nullable>', '<Nullable>enable</Nullable>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>'))
+    project.write_text(project.read_text().replace('<Nullable>enable</Nullable>', '<Nullable>enable</Nullable>\n    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>'))
     env = dict(os.environ, DOTNET_CLI_HOME=str(proof / 'dotnet-home'), NUGET_PACKAGES=str(proof / 'nuget-cache'),
                NUGET_HTTP_CACHE_PATH=str(proof / 'http-cache'), DOTNET_CLI_TELEMETRY_OPTOUT='1')
     for name in ('LD_LIBRARY_PATH', 'LD_PRELOAD', 'LD_AUDIT', 'GAL_ASSET_ROOT'):

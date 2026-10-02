@@ -24,7 +24,7 @@ public readonly struct MaterialParameters
 
 /// <summary>Advanced material draw ABI. Prefer SpriteCommand for managed authoring. Zero material requires zero parameters.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct MaterialDraw
+internal struct MaterialDraw
 {
     public uint Size,Version;
     public SpriteDrawV2 Sprite;
@@ -133,7 +133,7 @@ public sealed class MaterialLease : IDisposable
     private readonly MaterialInfo _info;
     private bool _disposed;
     internal MaterialLease(MaterialCache cache,string path,ulong handle,MaterialInfo info){_cache=cache;_path=path;_handle=handle;_info=info;}
-    public ulong Handle{get{ObjectDisposedException.ThrowIf(_disposed,this);_cache.CheckAccess();return _handle;}}
+    internal ulong Handle{get{ObjectDisposedException.ThrowIf(_disposed,this);_cache.CheckAccess();return _handle;}}
     /// <summary>Borrowed typed view; disposing this lease invalidates all its copies.</summary>
     public MaterialHandle Material { get { _ = Handle; return new(this); } }
     internal ulong ResolveMaterial(EngineHost engine)

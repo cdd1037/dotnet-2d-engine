@@ -52,6 +52,33 @@ internal static class DrawingChecks
             new[] { FramePass.Window(Camera, 1, 1) }, new[] { Solid, Solid }), "non-partitioning pass range");
         check.That(engine.GetStats().Frames == frames, "invalid managed commands and native pass validation commit no frame");
 
+        var borrowedWorld = new World();
+        borrowedWorld.Create("late").Sprite = new(4, 4, AssetKey: "image", Layer: 2);
+        borrowedWorld.Create("early").Sprite = new(4, 4, AssetKey: "target", Layer: 1);
+        var borrowedBatch = new SpriteBatch(2) { RegionResolver = key => key == "image"
+            ? new(texture.Texture, new(0, 0, 1, 1)) : target.Binding };
+        borrowedWorld.ExtractSprites(borrowedBatch);
+        var debug = new DebugDrawBuffer(4, new(texture.Texture, new(0, 0, 1, 1))) { Enabled = true };
+        check.That(debug.TryAddLine(0, 0, 10, 10, 1), "typed debug binding builds reusable geometry");
+        check.That(borrowedBatch.Commands.Length == 2 && borrowedBatch.Commands[0].Texture == target.Texture
+            && borrowedBatch.Commands[1].Texture == texture.Texture, "sorted extraction preserves typed resource order");
+        SpriteCommand[] extracted = new SpriteCommand[3]; borrowedBatch.Commands.CopyTo(extracted);
+        extracted[2] = Solid with { Material = material.Material };
+        using (var composite = engine.RenderTargets.Create(8, 8))
+        {
+            extracted[2] = extracted[2] with { Texture = composite.Texture };
+            engine.RenderFrame(new[] { FramePass.ToTarget(composite.Target, Camera, 0, 2), FramePass.Window(Camera, 2, 1) }, extracted);
+        }
+        engine.Draw(Camera, borrowedBatch, new[] { FramebufferClip.Disabled });
+        engine.DrawWithOverlay(Camera, borrowedBatch, debug);
+        engine.Draw(Camera, debug);
+        check.That(debug.Commands.Length == 1 && debug.Commands[0].Texture == texture.Texture,
+            "debug semantic view keeps its borrowed texture for explicit material/pass composition");
+        SpriteCommand[] debugCommands = [debug.Commands[0] with { Material = material.Material }];
+        using (var debugTarget = engine.RenderTargets.Create(8, 8))
+            engine.RenderFrame(new[] { FramePass.ToTarget(debugTarget.Target, Camera, 0, 1), FramePass.Window(Camera, 1, 0) }, debugCommands,
+                new[] { FramebufferClip.Disabled });
+
         // The sibling keeps the cache entry alive, but not the original borrowed view.
         using var textureSibling = engine.Textures.Acquire(assets, "palette.bmp");
         TextureHandle copiedTexture = texture.Texture;
@@ -59,6 +86,16 @@ internal static class DrawingChecks
         texture.Dispose();
         check.That(engine.Textures.Count == 1, "retained sibling keeps image resident");
         check.Reject<ObjectDisposedException>(() => engine.Draw(Camera, new[] { copiedTextureCommand }), "copied texture view after its lease is disposed");
+        frames = engine.GetStats().Frames;
+        check.Reject<ObjectDisposedException>(() => engine.Draw(Camera, borrowedBatch), "extracted typed texture is invalidated with the exact lease after sorting");
+        check.Reject<ObjectDisposedException>(() => engine.DrawWithOverlay(Camera, borrowedBatch, commands.AsSpan(0, 1)), "stale batch is rejected before overlay frame begin");
+        check.Reject<ObjectDisposedException>(() => engine.Draw(Camera, debug), "debug geometry cannot outlive its borrowed texture");
+        check.Reject<ObjectDisposedException>(() => engine.Draw(Camera, debug.Commands), "typed debug view retains exact borrowed lifetime");
+        check.That(engine.GetStats().Frames == frames, "invalid borrowed batch and debug resources commit no frame");
+        debug.Enabled = false;
+        engine.Draw(Camera, debug);
+        check.That(engine.GetStats().Frames == frames + 1 && debug.Commands.IsEmpty,
+            "disabled debug buffer submits no stale resource and exposes no prior geometry");
         engine.Draw(Camera, new[] { Solid with { Texture = textureSibling.Texture } });
         using var materialSibling = engine.Materials.Acquire(assets, "tint.material.json");
         MaterialHandle copiedMaterial = material.Material;
@@ -90,6 +127,9 @@ internal static class DrawingChecks
         TextureHandle engineTexture = endedTexture.Texture, engineSample = endedTarget.Texture;
         MaterialHandle engineMaterial = endedMaterial.Material;
         RenderTargetHandle engineTarget = endedTarget.Target;
+        var oldWorld = new World(); oldWorld.Create("old").Sprite = new(2, 2, AssetKey: "old");
+        var oldBatch = new SpriteBatch(1) { RegionResolver = _ => new(engineTexture) };
+        oldWorld.ExtractSprites(oldBatch);
         InputFrame copiedInput = ended.PollInputFrame();
         ended.Dispose();
         using var replacement = EngineHost.Create(headless: true, maxSprites: 4);
@@ -97,6 +137,7 @@ internal static class DrawingChecks
         check.Reject<ObjectDisposedException>(() => replacement.Draw(Camera, new[] { Solid with { Material = engineMaterial } }), "material from a previous engine");
         check.Reject<ObjectDisposedException>(() => replacement.Draw(Camera, new[] { Solid with { Texture = engineSample } }), "sampled target from a previous engine");
         check.Reject<ObjectDisposedException>(() => replacement.RenderFrame(new[] { FramePass.ToTarget(engineTarget, Camera, 0, 0), FramePass.Window(Camera, 0, 0) }, Array.Empty<SpriteCommand>()), "attachment from a previous engine");
+        check.Reject<ObjectDisposedException>(() => replacement.Draw(Camera, oldBatch), "extracted batch from a previous engine");
         check.That(replacement.GetStats().Frames == 0, "prior-engine resource rejection opens no frame in the replacement");
         replacement.Draw(Camera, new[] { Solid });
         check.That(replacement.GetStats().Frames == 1, "replacement remains usable after rejecting previous-engine views");
@@ -112,14 +153,21 @@ internal static class DrawingChecks
         SpriteCommand[] commands = [Solid with { Texture = texture.Texture, Region = new(0, 0, 1, 1), Material = material.Material }, Solid with { Texture = target.Texture }];
         FramePass[] passes = [FramePass.ToTarget(target.Target, Camera, 0, 1), FramePass.Window(Camera, 1, 1)];
         var world = new World();
-        world.Create("Warm caller sprite").Sprite = new(2, 2);
-        var batch = new SpriteBatch(1);
+        world.Create("Warm caller sprite").Sprite = new(2, 2, AssetKey: "warm");
+        var batch = new SpriteBatch(1) { RegionResolver = _ => new(texture.Texture, new(0, 0, 1, 1)) };
+        var debug = new DebugDrawBuffer(1, new(texture.Texture)) { Enabled = true };
+        debug.TryAddLine(0, 0, 1, 1, 1);
         world.ExtractSprites(batch);
+        FramePass[] batchPasses = [FramePass.Window(Camera, 0, 1)];
         void Frame()
         {
             engine.Draw(Camera, commands);
             engine.Draw(Camera, batch);
             engine.DrawWithOverlay(Camera, batch, commands);
+            engine.RenderFrame(batchPasses, batch.Commands);
+            engine.DrawWithOverlay(Camera, batch, debug);
+            engine.Draw(Camera, debug);
+            engine.Draw(Camera, debug.Commands);
             engine.RenderFrame(passes, commands);
         }
         for (int i = 0; i < 256; i++) Frame();

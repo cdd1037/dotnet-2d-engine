@@ -6,8 +6,8 @@ internal static class PhysicsChecks
     {
         var circle = PhysicsShapeDefinition.Circle(radius: .5f);
         var box = PhysicsShapeDefinition.Box(halfWidth: 2, halfHeight: .1f);
-        check.That(circle == new PhysicsShapeDefinition(PhysicsShapeType.Circle, .5f) &&
-            box == new PhysicsShapeDefinition(PhysicsShapeType.Box, 2, .1f),
+        check.That(circle.Type == PhysicsShapeType.Circle && circle.A == .5f && circle.B == 0 &&
+            box.Type == PhysicsShapeType.Box && box.A == 2 && box.B == .1f,
             "semantic factories preserve the original public descriptor and its defaults");
         var zeros = PhysicsShapeDefinition.Circle(.5f, density: 0, friction: 0, restitution: 0,
             category: 0, mask: 0, group: 0, sensor: true);
@@ -40,8 +40,8 @@ internal static class PhysicsChecks
             uint shapes = physics.State.Shapes;
             check.Reject<ArgumentOutOfRangeException>(() => body.AddShape(circle with { Angle = .1f }),
                 "with-edited circle angle is still validated by AddShape");
-            check.Reject<ArgumentOutOfRangeException>(() => body.AddShape(box with { B = float.PositiveInfinity }),
-                "with-edited box extent is still validated by AddShape");
+            check.Reject<ArgumentOutOfRangeException>(() => body.AddShape(box with { Friction = float.PositiveInfinity }),
+                "with-edited box material is still validated by AddShape");
             check.That(physics.State.Shapes == shapes, "invalid descriptors leave native shape count unchanged");
             body.Dispose();
             check.That(physics.State.Bodies == 0 && physics.State.Shapes == 0, "factory shapes retain body-owned lifetime");

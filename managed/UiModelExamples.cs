@@ -4,10 +4,8 @@ namespace GameAuthoringLab;
 /// Three unrelated C# models rendered by ordinary RML templates. The schemas only project
 /// application data; neither the bridge nor these models prescribe a widget hierarchy.
 /// </summary>
-public static class UiModelExamples
+public static partial class UiModelExamples
 {
-    public const uint Equip = 1, Drop = 2, Choose = 3, Rename = 4;
-    public const uint SetVolume = 5, SetHints = 6, SetOption = 7, Next = 90;
     public const string InventoryAsset = "ui/model-inventory.rml";
     public const string DialogueAsset = "ui/model-dialogue.rml";
     public const string SettingsAsset = "ui/model-settings.rml";
@@ -184,78 +182,48 @@ public static class UiModelExamples
             .Array("groups", static x => x.Groups, group, 8).Text("status", static x => x.Status);
     }
 
-    public static UiCommands InventoryCommands() => new UiCommands()
-        .Add("equip", Equip, UiValueKind.Key).Add("drop", Drop, UiValueKind.Key).Add("next", Next);
+    public static UiCommands InventoryCommands(InventoryModel model, Action? next = null) => new UiCommands()
+        .On("equip", UiArgs.Key, (ulong id) => EquipItem(model, id))
+        .On("drop", UiArgs.Key, (ulong id) => DropItem(model, id))
+        .On("next", () => next?.Invoke());
 
-    public static UiCommands DialogueCommands() => new UiCommands()
-        .Add("choose", Choose, UiValueKind.Key, UiValueKind.Text).Add("next", Next);
+    public static UiCommands DialogueCommands(DialogueModel model, Action? next = null) => new UiCommands()
+        .On("choose", UiArgs.Key, UiArgs.Text, (ulong id, string text) => ChooseDialogue(model, id, text))
+        .On("next", () => next?.Invoke());
 
-    public static UiCommands SettingsCommands() => new UiCommands()
-        .Add("rename", Rename, UiValueKind.Text).Add("volume", SetVolume, UiValueKind.Number)
-        .Add("hints", SetHints, UiValueKind.Boolean).Add("option", SetOption, UiValueKind.Key, UiValueKind.Boolean)
-        .Add("next", Next);
+    public static UiCommands SettingsCommands(SettingsModel model, Action? next = null) => new UiCommands()
+        .On("rename", UiArgs.Text, (string name) => { model.Profile.Name = name; model.Status = "Explorer name updated"; })
+        .On("volume", UiArgs.Number, (double value) => { model.Profile.Volume = Math.Clamp(value, 0, 100); model.Status = "Master volume updated"; })
+        .On("hints", UiArgs.Boolean, (bool value) => { model.Profile.Hints = value; model.Status = value ? "Journey hints enabled" : "Journey hints hidden"; })
+        .On("option", UiArgs.Key, UiArgs.Boolean, (ulong id, bool value) => SetOptionValue(model, id, value))
+        .On("next", () => next?.Invoke());
 
-    // Call these only after the owning session's IsCurrent check, as the demo below does.
-    public static bool Handle(InventoryModel model, UiCommandEvent command)
+    public static void EquipItem(InventoryModel model, ulong id)
     {
-        if (command.CommandId is not (Equip or Drop)) return false;
-        var item = model.Items.Find(x => x.Id == command[0].Key);
-        if (item is null) return false;
-        if (command.CommandId == Equip)
-        {
-            item.Equipped = !item.Equipped;
-            model.Status = item.Card.Title + (item.Equipped ? " is now in your kit" : " returned to your pack");
-        }
-        else
-        {
-            model.Items.Remove(item);
-            model.Status = "Left behind: " + item.Card.Title;
-        }
-        return true;
+        var item = model.Items.Find(x => x.Id == id); if (item is null) return;
+        item.Equipped = !item.Equipped;
+        model.Status = item.Card.Title + (item.Equipped ? " is now in your kit" : " returned to your pack");
     }
-
-    public static bool Handle(DialogueModel model, UiCommandEvent command)
+    public static void DropItem(InventoryModel model, ulong id)
     {
-        if (command.CommandId != Choose) return false;
-        var choice = model.Choices.Find(x => x.Id == command[0].Key);
-        if (choice is null || !choice.Available) return false;
-        // The command's second argument demonstrates copied text; application logic still
-        // resolves the current keyed choice instead of treating displayed text as identity.
-        model.Status = "You chose: " + command[1].Text;
+        var item = model.Items.Find(x => x.Id == id); if (item is null) return;
+        model.Items.Remove(item); model.Status = "Left behind: " + item.Card.Title;
+    }
+    public static void ChooseDialogue(DialogueModel model, ulong id, string text)
+    {
+        var choice = model.Choices.Find(x => x.Id == id); if (choice is null || !choice.Available) return;
+        model.Status = "You chose: " + text;
         model.Conversation.Message.Body = choice.Id == 9_007_199_254_741_101UL
             ? "The markers were painted by the first trail keepers. When the path forks, look for the small silver star."
             : "Then you are in good company. The caravan leaves when the last bell rings. Safe travels, explorer.";
         model.Conversation.Message.ShowAside = false;
-        return true;
     }
-
-    public static bool Handle(SettingsModel model, UiCommandEvent command)
+    public static void SetOptionValue(SettingsModel model, ulong id, bool value)
     {
-        switch (command.CommandId)
+        foreach (var group in model.Groups)
         {
-            case Rename:
-                model.Profile.Name = command[0].Text;
-                model.Status = "Explorer name updated";
-                return true;
-            case SetVolume:
-                model.Profile.Volume = Math.Clamp(command[0].Number, 0, 100);
-                model.Status = "Master volume updated";
-                return true;
-            case SetHints:
-                model.Profile.Hints = command[0].Boolean;
-                model.Status = model.Profile.Hints ? "Journey hints enabled" : "Journey hints hidden";
-                return true;
-            case SetOption:
-                foreach (var group in model.Groups)
-                {
-                    var option = group.Options.Find(x => x.Id == command[0].Key);
-                    if (option is null) continue;
-                    option.Enabled = command[1].Boolean;
-                    model.Status = option.Label + (option.Enabled ? " enabled" : " disabled");
-                    return true;
-                }
-                return false;
-            default: return false;
+            var option = group.Options.Find(x => x.Id == id); if (option is null) continue;
+            option.Enabled = value; model.Status = option.Label + (value ? " enabled" : " disabled"); return;
         }
     }
 
@@ -272,16 +240,17 @@ public static class UiModelExamples
         string? captures = Environment.GetEnvironmentVariable("GAL_MODEL_UI_CAPTURE_DIR");
         if (captures is not null) Directory.CreateDirectory(captures);
         int index = 0, rendered = 0, exampleFrames = 0;
+        bool advanceRequested = false;
         int cycleFrames = frames > 0 ? Math.Max(1, (int)(((long)frames + 2) / 3)) : int.MaxValue;
 
         IExample Open(int selected) => selected switch
         {
             0 => new Example<InventoryModel>(engine, assets, camera, InventoryAsset, inventory,
-                InventorySchema(), InventoryCommands(), Handle, InventoryImages),
+                InventorySchema(), InventoryCommands(inventory, () => advanceRequested = true), InventoryImages),
             1 => new Example<DialogueModel>(engine, assets, camera, DialogueAsset, dialogue,
-                DialogueSchema(), DialogueCommands(), Handle),
+                DialogueSchema(), DialogueCommands(dialogue, () => advanceRequested = true)),
             _ => new Example<SettingsModel>(engine, assets, camera, SettingsAsset, settings,
-                SettingsSchema(), SettingsCommands(), Handle)
+                SettingsSchema(), SettingsCommands(settings, () => advanceRequested = true))
         };
 
         IExample example = Open(index);
@@ -290,9 +259,11 @@ public static class UiModelExamples
         {
             while (frames == 0 || rendered < frames)
             {
-                var input = engine.PollInput();
-                if (input.Quit != 0 || input.KeyPressed(PhysicalKey.Escape)) break;
-                bool advance = example.Update() || input.KeyPressed(PhysicalKey.F5) || exampleFrames >= cycleFrames;
+                var input = engine.PollInputFrame();
+                if (input.Quit || input.Game.KeyPressed(PhysicalKey.Escape)) break;
+                example.Update();
+                bool advance = advanceRequested || input.Game.KeyPressed(PhysicalKey.F5) || exampleFrames >= cycleFrames;
+                advanceRequested = false;
                 if (advance)
                 {
                     example.Dispose();
@@ -303,7 +274,7 @@ public static class UiModelExamples
                 if (!input.Drawable) { Thread.Sleep(1); continue; }
                 if (captures is not null && exampleFrames == 0)
                     example.Capture(Path.Combine(captures, new[] { "inventory.bmp", "dialogue.bmp", "settings.bmp" }[index]));
-                engine.Draw(camera, ReadOnlySpan<SpriteDraw>.Empty);
+                engine.Draw(camera, ReadOnlySpan<SpriteCommand>.Empty);
                 rendered++;
                 exampleFrames++;
                 Thread.Sleep(1);
@@ -324,20 +295,17 @@ public static class UiModelExamples
     {
         private readonly UiModelSession<T> _session;
         private readonly T _model;
-        private readonly Func<T, UiCommandEvent, bool> _handle;
 
         public Example(EngineHost engine, AssetRoot assets, Camera camera, string path, T model,
-            UiRecord<T> schema, UiCommands commands, Func<T, UiCommandEvent, bool> handle,
+            UiRecord<T> schema, UiCommands commands,
             IReadOnlyList<string>? images = null)
         {
             _model = model;
-            _handle = handle;
             _session = new(engine, schema, commands);
             try
             {
-                _session.LoadAsset(assets, path, images);
-                engine.Draw(camera, ReadOnlySpan<SpriteDraw>.Empty);
-                _session.Apply(_model);
+                _session.StageAsset(assets, path, model, images);
+                engine.Draw(camera, ReadOnlySpan<SpriteCommand>.Empty);
             }
             catch { _session.Dispose(); throw; }
         }
@@ -347,9 +315,7 @@ public static class UiModelExamples
             bool changed = false;
             for (var command = _session.Poll(); !command.IsEmpty; command = _session.Poll())
             {
-                if (!_session.IsCurrent(command)) continue;
-                if (command.CommandId == Next) return true;
-                changed |= _handle(_model, command);
+                changed |= _session.Dispatch(command);
             }
             // Drain the revision's commands first. Applying after each character
             // would retire later text packets delivered in the same input frame.

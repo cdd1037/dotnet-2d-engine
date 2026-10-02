@@ -43,11 +43,11 @@ Check(physics.State.Shapes == shapeCount, "invalid capsule leaves owning body un
 
 // Far-away static geometry keeps the picking oracle separate from falling gameplay.
 var circleBody = bodies.CreateBody(new(PhysicsBodyType.Static, 20, 0));
-ulong circle = circleBody.AddShape(new(PhysicsShapeType.Circle, 1, Category: 8, Mask: 16, Group: 7)).Id;
+ulong circle = circleBody.AddShape(PhysicsShapeDefinition.Circle( 1, category: 8, mask: 16, group: 7)).Id;
 var sensorBody = bodies.CreateBody(new(PhysicsBodyType.Static, 20, 0, Angle: MathF.PI / 2));
 ulong sensor = sensorBody.AddCapsule(new(0, -.5f, 0, .5f, .3f, Category: 8, Mask: 16, Group: 7, Sensor: true)).Id;
 var diagonalBody = bodies.CreateBody(new(PhysicsBodyType.Static, 24, 0));
-ulong diagonal = diagonalBody.AddShape(new(PhysicsShapeType.Box, 1, .05f, Angle: MathF.PI / 4, Category: 8, Mask: 16)).Id;
+ulong diagonal = diagonalBody.AddShape(PhysicsShapeDefinition.Box( 1, .05f, angle: MathF.PI / 4, category: 8, mask: 16)).Id;
 Span<ulong> query = stackalloc ulong[16];
 int count = physics.QueryCircle(20, 0, 1.1f, query);
 Check(count == 2 && Sorted(query[..count]) && query[0] == circle && query[1] == sensor,
@@ -193,7 +193,7 @@ world.ExtractSprites(batch);
 map.AppendSprites(batch, new(0, 0, 192, 192));
 Check(batch.Count == 8 && engine.Textures.Count == 1, "marked animation and edited map share caller atlas residency");
 camera = CameraFollow.Snap(camera, new(actor.LocalTransform.X, actor.LocalTransform.Y), viewport, follow);
-for (int i = 0; i < 3; i++) engine.Draw(camera, batch.RegionDraws);
+for (int i = 0; i < 3; i++) engine.Draw(camera, batch);
 Check(engine.GetStats().Frames == 3, "combined public feature scene submits through packaged native library");
 
 if (authorSmoke)

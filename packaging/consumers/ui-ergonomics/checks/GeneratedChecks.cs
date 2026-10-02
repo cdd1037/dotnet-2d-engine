@@ -32,7 +32,7 @@ internal static class GeneratedChecks
     {
         int assertions = 0;
         void Check(bool valid, string message) { if (!valid) throw new Exception("GENERATED UI: " + message); assertions++; }
-        void Draw() => engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteDraw>.Empty);
+        void Draw() => engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
         UiCommandEvent previousPacket = default;
         var fixture = new GeneratedFixture(engine);
         using (var ui = fixture.Session)
@@ -41,11 +41,11 @@ internal static class GeneratedChecks
             Check(ui.Status is { Loaded: false, Pending: true, Revision: 0 }, "generated initial model waits for the normal draw");
             Draw();
             Check(ui.Status is { Loaded: true, Pending: false, Revision: 1 } && !ui.Apply(fixture.Model), "one frame publishes generated model and unchanged baseline");
-            SdlInput.Focus(); engine.PollInput();
-            SdlInput.Click(90, 40); engine.PollInput(); Draw();
+            SdlInput.Focus(); engine.PollInputFrame();
+            SdlInput.Click(90, 40); engine.PollInputFrame(); Draw();
             var choose = ui.Poll(); previousPacket = choose;
             Check(!choose.IsEmpty && ui.Dispatch(choose) && fixture.Selected == ulong.MaxValue, "generated PascalCase key command routes exact ulong");
-            SdlInput.Click(310, 40); engine.PollInput(); Draw();
+            SdlInput.Click(310, 40); engine.PollInputFrame(); Draw();
             var measure = ui.Poll();
             Check(!measure.IsEmpty && measure.CommandId != choose.CommandId && ui.Dispatch(measure) && fixture.LastNumber == 2, "generated Number command has distinct automatic ID");
             fixture.Model.Items[0].Title = "Updated"; ui.Apply(fixture.Model); Draw();

@@ -14,15 +14,15 @@ var assets = new AssetRoot(Path.Combine(AppContext.BaseDirectory, "assets"));
 using var engine = EngineHost.Create(maxSprites: 16);
 using var texture = engine.Textures.Acquire(assets, "white.png");
 var controls = new StarterInput();
+LoopUiHost? host = null;
 using (var game = new StarterGame(engine, usePhysics: true, controls))
 using (var ui = new UiModelSession<StarterGame>(engine,
     new UiRecord<StarterGame>().Boolean("paused", static game => game.Paused),
-    new UiCommands().Add("toggle", LoopUiHost.Toggle).Add("restart", LoopUiHost.Restart)))
+    new UiCommands().On("toggle", () => host!.Toggle()).On("restart", () => host!.Restart())))
 {
-    ui.LoadAsset(assets, "ui/pause.rml");
+    ui.StageAsset(assets, "ui/pause.rml", game);
     engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
-    ui.Apply(game); // Publish the loaded document, then its initial model.
-    var host = new LoopUiHost(engine, game, ui, texture.Texture, controls);
+    host = new LoopUiHost(engine, game, ui, texture.Texture, controls);
     host.Frame(0);
     if (args.Contains("--check")) ScriptedChecks.Run(engine, host, game, ui);
     else

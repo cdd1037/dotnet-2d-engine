@@ -7,7 +7,9 @@ using GameAuthoringLab;
 internal sealed class LoopUiHost(EngineHost engine, StarterGame game,
     UiModelSession<StarterGame> ui, TextureHandle texture, StarterInput controls)
 {
-    public const uint Toggle = 1, Restart = 2;
+    private bool restartRequested;
+    public void Toggle() => game.Paused = !game.Paused;
+    public void Restart() => restartRequested = true;
     private readonly FixedStepInput fixedInput = new(StarterGame.StepSeconds);
     private readonly InputActionMap actions = controls.Map;
     private readonly SpriteCommand[] draws = new SpriteCommand[1];
@@ -28,12 +30,11 @@ internal sealed class LoopUiHost(EngineHost engine, StarterGame game,
         // Drain the whole current revision before Apply. UI keeps working while paused.
         for (var command = ui.Poll(); !command.IsEmpty; command = ui.Poll())
         {
-            if (!ui.IsCurrent(command)) continue;
-            if (command.CommandId == Toggle) game.Paused = !game.Paused;
-            else if (command.CommandId == Restart) restart = true;
+            if (!ui.Dispatch(command)) continue;
             LastCommand = command;
             Commands++;
         }
+        restart |= restartRequested; restartRequested = false;
         if (restart) { game.Restart(); fixedInput.Reset(); Restarts++; }
         bool suspended = game.Paused || restart || !input.Focused || !input.Drawable;
         fixedInput.BeginFrame(elapsed, action, suspended);

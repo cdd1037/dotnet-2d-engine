@@ -5,7 +5,7 @@ namespace GameAuthoringLab;
 
 /// <summary>Advanced ABI pass. Prefer FramePass for managed authoring. Ranges partition the array; the final target is zero.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct RenderPass
+internal struct RenderPass
 {
     public uint Size,Version;
     public ulong Target;
@@ -61,16 +61,16 @@ public sealed class RenderTarget : IDisposable, ITextureSource
     private bool _disposed;
     internal RenderTarget(RenderTargetStore owner,ulong handle,int width,int height){_owner=owner;_handle=handle;_width=width;_height=height;}
     private void CheckAccess(){ObjectDisposedException.ThrowIf(_disposed,this);_owner.CheckAccess();}
-    public ulong Handle{get{CheckAccess();return _handle;}}
+    internal ulong Handle{get{CheckAccess();return _handle;}}
     public int Width{get{CheckAccess();return _width;}}
     public int Height{get{CheckAccess();return _height;}}
-    public TextureBinding Binding=>new(Handle);
+    public TextureBinding Binding=>new(Texture);
     public RenderTargetHandle Target { get { CheckAccess(); return new(this); } }
     /// <summary>Borrowed sampling view of this target; it does not own or retain the target.</summary>
     public TextureHandle Texture { get { CheckAccess(); return new(this); } }
     internal ulong ResolveTarget(EngineHost engine) { CheckAccess(); _owner.CheckOwner(engine); return _handle; }
-    ulong ITextureSource.ResolveTexture(EngineHost engine, TextureRegion? region)
-    { ulong handle = ResolveTarget(engine); region?.Validate(_width, _height); return handle; }
+    ulong ITextureSource.ResolveTexture(EngineHost? engine, TextureRegion? region)
+    { CheckAccess(); if (engine is not null) _owner.CheckOwner(engine); region?.Validate(_width, _height); return _handle; }
     public long StorageBytes=>8L*_width*_height;
     public void Dispose(){if(_disposed)return;_owner.Release(_handle);_disposed=true;}
 }

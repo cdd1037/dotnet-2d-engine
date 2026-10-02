@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-"""Copy two existing prototypes, adapt only their hosts, count, and optionally check.
+"""ARCHIVED reproduction for baseline a6a5a6e (2026-10-02), not a current API gate.
 
+Copy two existing prototypes, adapt only their hosts, count, and optionally check.
+
+Run from the a6a5a6e checkout with its original package feed and matching external
+fixtures; current packages intentionally removed the ABI-shaped APIs used here.
 Never edits the input prototypes. Requires the external authoring-comparison tree
 and already prepared SDK/feed. Logs and generated harness live under --output.
 """
@@ -354,6 +358,7 @@ def main():
     parser.add_argument('--dotnet', default=os.environ.get('DOTNET', 'dotnet'))
     parser.add_argument('--run', action='store_true', help='Build both snapshots and run focused tests')
     args = parser.parse_args()
+    print("ARCHIVED STUDY: requires checkout a6a5a6e, its original feed and external fixtures; not a current validation gate.")
     source, root, feed = (p.resolve() for p in (args.source, args.output, args.feed))
     if root.exists():
         parser.error('--output must not exist; use a new isolated directory')

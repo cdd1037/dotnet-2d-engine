@@ -3,5 +3,6 @@
     <TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks><NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
+  <ItemGroup><Compile Remove="NumericAttribute.cs" /></ItemGroup>
   <ItemGroup><PackageReference Include="Dotnet2D.Engine" Version="0.1.0-preview.1" /></ItemGroup>
 </Project>

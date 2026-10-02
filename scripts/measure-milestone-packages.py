@@ -24,9 +24,7 @@ PACKS = ("microsoft.net.illink.tasks", "microsoft.dotnet.ilcompiler",
          "microsoft.aspnetcore.app.runtime.linux-x64", "microsoft.netcore.app.runtime.nativeaot.linux-x64")
 UNUSED = ("AudioSession", "PhysicsWorld", "PhysicsBody", "FrameClip", "FramePlayer", "Tween",
           "TimingScope", "EngineTimer", "TileMap", "TileMapInstance", "TileMapCollision",
-          "FramebufferClip", "ClippingNative", "DiagnosticLog", "CpuTimings", "DebugDrawBuffer",
-          "MaterialCache", "MaterialLease", "MaterialAsset", "MaterialJsonContext", "MaterialDraw",
-          "MaterialParameters", "MaterialNative", "RenderTargetStore", "RenderTarget", "RenderPass", "TargetNative",
+          "DiagnosticLog", "CpuTimings", "DebugDrawBuffer", "MaterialAsset", "MaterialJsonContext", "RenderTargetStore", "RenderTarget", "TargetNative",
           "CameraFollow", "CameraFollowOptions", "CameraBounds")
 SAMPLE_ONLY = ("MissionGame", "RoomGame", "Program", "SelfTests", "TileMovementClock", "TileMovementLevel", "TileMovementDemo")
 BASELINE = {"sprite-trim": 34127881, "sprite-aot": 12515604,
@@ -175,15 +173,16 @@ def main():
     for sample, record in zip(("sprite", "ui"), records):
         for name in UNUSED + SAMPLE_ONLY:
             assert not any(t == "GameAuthoringLab." + name or t.startswith("GameAuthoringLab." + name + "`") for t in record["types"]), (sample, name)
-        expected = "AuthoredScene" if sample == "sprite" else "BoundUiSession"
+        expected = "AuthoredScene" if sample == "sprite" else "UiModelSession"
         assert any(t.startswith("GameAuthoringLab." + expected) for t in record["types"]), (sample, "missing managed root", expected)
         text = (proof / "logs" / f"{sample}-aot-map.xml").read_text()
-        aot_roots[sample] = {name: "GameAuthoringLab_" + name in text or "GameAuthoringLab." + name in text for name in UNUSED + SAMPLE_ONLY + ("BoundUiSession", "AuthoredScene")}
+        aot_roots[sample] = {name: "GameAuthoringLab_" + name in text or "GameAuthoringLab." + name in text for name in UNUSED + SAMPLE_ONLY + ("BoundUiSession", "UiModelSession", "AuthoredScene")}
         assert not any(aot_roots[sample][name] for name in UNUSED + SAMPLE_ONLY), sample
         assert aot_roots[sample][expected], (sample, "missing AOT root", expected)
         if sample == "sprite":
             assert not any("BoundUi" in t or "UiAuthoring" in t for t in record["types"])
-            assert not aot_roots[sample]["BoundUiSession"]
+            assert not aot_roots[sample]["UiModelSession"]
+        assert not aot_roots[sample]["BoundUiSession"], "Superseded UI binding root retained"
     rows = []
     for label in BASELINE:
         sample = label.split("-")[0]

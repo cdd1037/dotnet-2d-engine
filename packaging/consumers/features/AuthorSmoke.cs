@@ -17,11 +17,11 @@ internal static class AuthorSmoke
         }
         string captures = Path.GetFullPath(Environment.GetEnvironmentVariable("GAL_AUTHOR_CAPTURE_DIR") ?? "author-smoke-captures");
         Directory.CreateDirectory(captures);
-        using var ui = new BoundUiSession<string>(engine, new UiBindings<string>().Text("caption", state => state));
-        ui.LoadAsset(assets, "author.rml");
-        engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<Sprite>.Empty);
+        using var ui = new UiModelSession<string>(engine, new UiRecord<string>().Text("caption", state => state));
+        ui.StageAsset(assets, "author.rml", "Preparing marker-driven floor");
+        engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
         Check(ui.Status.Loaded && !ui.Status.Pending, "authored image/SVG overlay publishes");
-        var viewport = engine.PollInput().Viewport;
+        var viewport = engine.PollInputFrame().Viewport;
         Check(viewport.IsValid && viewport.PixelWidth == 960 && viewport.PixelHeight == 540,
             "software smoke uses the declared 960x540 framebuffer");
         using var player = new FramePlayer(new FrameClip(["red", "blue", "red"], .25,
@@ -60,13 +60,13 @@ internal static class AuthorSmoke
             Check(paused.Y == camera.Y && player.Events.IsEmpty,
                 "game pause leaves camera and frame-entry side effects unchanged");
             string label = phase switch { 0 => "10 / Floor closed", 1 => "20 / Gap opened", _ => "30 / Floor restored" };
-            Check(ui.Apply(label) && ui.Revision == (uint)(phase + 1), "UI model advances with the same marker transaction");
+            Check(ui.Apply(label) && ui.Revision == (uint)(phase + 2), "UI model advances with the same marker transaction");
             world.ExtractSprites(batch);
             map.AppendSprites(batch, TileView.FromCamera(camera, viewport));
             Check(batch.Count == (opened ? 7 : 8), "visible edited map and actor share one coherent batch");
             string path = Path.Combine(captures, $"{phase}-{(opened ? "open" : "closed")}.bmp");
             ui.Capture(path);
-            engine.Draw(camera, batch.RegionDraws);
+            engine.Draw(camera, batch);
             var bitmap = File.ReadAllBytes(path);
             Check(Near(Pixel(bitmap, 48, 80), (255, 0, 0), 4) && Near(Pixel(bitmap, 80, 80), (0, 0, 255), 4),
                 "authored raster image retains both caller-atlas colors");

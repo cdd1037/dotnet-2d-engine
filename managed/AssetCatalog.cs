@@ -87,13 +87,18 @@ public sealed class TextureBank : IDisposable
         _cache = engine.Textures; _catalog = catalog; _retainedKeys = retainedKeys.ToArray();
     }
 
-    public ulong Resolve(string key)
+    internal ulong Resolve(string key)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _loaded.TryGetValue(key, out var lease) ? lease.Handle : throw new InvalidOperationException($"Texture not synchronized: {key}");
     }
 
-    public TextureBinding ResolveRegion(string key) => new(Resolve(key), _catalog.TextureFor(key).Region);
+    public TextureBinding ResolveRegion(string key)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var lease = _loaded.TryGetValue(key, out var value) ? value : throw new InvalidOperationException($"Texture not synchronized: {key}");
+        return new(lease.Texture, _catalog.TextureFor(key).Region);
+    }
 
     public void Sync(World world)
     {

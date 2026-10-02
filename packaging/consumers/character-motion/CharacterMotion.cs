@@ -50,8 +50,8 @@ internal sealed class CharacterMotion : IDisposable
         PhysicsBodyType type = PhysicsBodyType.Static, float angle = 0)
     {
         var body = bodies.CreateBody(new(type, scale.ToMeters(center.X), scale.ToMeters(center.Y), Angle: angle));
-        body.AddShape(new(PhysicsShapeType.Box, scale.ToMeters(size.X / 2), scale.ToMeters(size.Y / 2),
-            Friction: 0, Category: 1, Mask: 2));
+        body.AddShape(PhysicsShapeDefinition.Box( scale.ToMeters(size.X / 2), scale.ToMeters(size.Y / 2),
+            friction: 0, category: 1, mask: 2));
         return body;
     }
 

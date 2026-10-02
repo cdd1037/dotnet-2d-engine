@@ -10,6 +10,7 @@ public sealed class DebugDrawBuffer
     // must still budget debug and scene draws against their EngineHost capacity.
     public const int MaximumCapacity = 65536;
     private readonly SpriteDrawV2[] _draws;
+    private readonly SpriteCommand[] _commands;
     private readonly TextureBinding _whiteTexture;
     private bool _enabled;
 
@@ -17,7 +18,7 @@ public sealed class DebugDrawBuffer
     /// <param name="whiteTexture">
     /// Borrowed solid white texture or region, valid for the submitting engine. Region bounds
     /// are checked structurally here and against the actual texture by the engine on submission.
-    /// Handle zero is suitable for headless validation only and omits region coordinates:
+    /// A default texture omits region coordinates:
     /// the graphics fallback is a soft round sprite.
     /// </param>
     public DebugDrawBuffer(int capacity, TextureBinding whiteTexture)
@@ -26,6 +27,7 @@ public sealed class DebugDrawBuffer
             throw new ArgumentOutOfRangeException(nameof(capacity));
         whiteTexture.Region?.Validate(int.MaxValue, int.MaxValue);
         _draws = new SpriteDrawV2[capacity];
+        _commands = new SpriteCommand[capacity];
         _whiteTexture = whiteTexture;
     }
 
@@ -47,7 +49,26 @@ public sealed class DebugDrawBuffer
     /// </summary>
     public int DroppedPrimitiveCount { get; private set; }
     /// <summary>Borrowed storage, valid until the next mutation; submit with EngineHost.Draw.</summary>
-    public ReadOnlySpan<SpriteDrawV2> RegionDraws => _draws.AsSpan(0, Count);
+    internal ReadOnlySpan<SpriteDrawV2> RegionDraws => _draws.AsSpan(0, Count);
+    /// <summary>Borrowed semantic descriptions for explicit pass/material composition.
+    /// Valid until the next geometry mutation; copy into reusable caller storage to customize.</summary>
+    public ReadOnlySpan<SpriteCommand> Commands
+    {
+        get
+        {
+            if (_whiteTexture.NativeOnly)
+                throw new InvalidOperationException("Internal ABI-only resource fixtures have no typed command view.");
+            for (int i = 0; i < Count; i++)
+            {
+                var draw = _draws[i].Draw;
+                _commands[i] = SpriteCommand.FromDebug(draw, _whiteTexture);
+            }
+            return _commands.AsSpan(0, Count);
+        }
+    }
+
+
+    internal void ValidateResources(EngineHost engine) { if (Count != 0) _whiteTexture.Validate(engine); }
 
     /// <summary>Starts a new frame by clearing geometry and dropped-primitive diagnostics.</summary>
     public void Clear() { Count = 0; DroppedPrimitiveCount = 0; }

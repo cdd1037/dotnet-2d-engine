@@ -5,6 +5,31 @@ namespace Relay;
 // queue public input events, never to obtain an engine context or call private probes.
 internal static class ScenarioChecks
 {
+    public static void InputRouting(EngineHost engine)
+    {
+        var controls = new RelayInput();
+        SdlInput.Focus(); controls.Update(engine.PollInputFrame());
+        int assertions = 0;
+        foreach (var (key, action) in new[] {
+            (PhysicalKey.Left, RelayInput.Left), (PhysicalKey.A, RelayInput.Left),
+            (PhysicalKey.Right, RelayInput.Right), (PhysicalKey.D, RelayInput.Right),
+            (PhysicalKey.Up, RelayInput.Up), (PhysicalKey.W, RelayInput.Up),
+            (PhysicalKey.Down, RelayInput.Down), (PhysicalKey.S, RelayInput.Down),
+            (PhysicalKey.Space, RelayInput.Space), (PhysicalKey.Escape, RelayInput.Escape),
+            (PhysicalKey.E, RelayInput.Interact), (PhysicalKey.F, RelayInput.Drop),
+            (PhysicalKey.T, RelayInput.Transition), (PhysicalKey.F5, RelayInput.Save), (PhysicalKey.F9, RelayInput.Load) })
+        {
+            SdlInput.Key(key, true);
+            if (controls.Update(engine.PollInputFrame()) != (action, action))
+                throw new InvalidOperationException("Typed application mapping failed for " + key);
+            SdlInput.Key(key, false);
+            if (controls.Update(engine.PollInputFrame()) != (0u, 0u))
+                throw new InvalidOperationException("Typed application release failed for " + key);
+            assertions += 2;
+        }
+        Console.WriteLine($"RELAY INPUT ROUTING PASS assertions={assertions} public_sdl=true typed_tokens=true");
+    }
+
     public static void Run(EngineHost engine, RelayHost host, MissionGame game, AssetCatalog catalog, string savePath)
     {
         int checks = 0;
@@ -30,7 +55,7 @@ internal static class ScenarioChecks
             int prior = host.Commands;
             SdlInput.Click(321 + (slot % 3) * 150, 388 + (slot / 3) * 49);
             host.Frame(0);
-            Check(host.Commands == prior + 1 && host.LastCommand.CommandId == (uint)command, "real " + command + " button");
+            Check(host.Commands == prior + 1 && host.LastAction == command, "real " + command + " button");
         }
         void Tap(PhysicalKey key, float elapsed = 0) { SdlInput.Tap(key); host.Frame(elapsed); }
         void Draw() { host.Refresh(); host.Render(); }
@@ -125,11 +150,11 @@ internal static class ScenarioChecks
         Check(engine.TextureCount == 0 && game.Room.World.EntityCount == 0, "final world and textures disposed");
         var commandsAfterClose = new UiCommands();
         foreach (var command in Enum.GetValues<RelayCommand>())
-            commandsAfterClose.Add(command.ToString().ToLowerInvariant(), (uint)command);
+            commandsAfterClose.On(command.ToString().ToLowerInvariant(), () => { });
         using (var reopened = new UiModelSession<RelayView>(engine, RelayView.Schema(), commandsAfterClose))
         {
-            reopened.LoadAsset(catalog.Assets, "ui/game.rml");
-            engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteDraw>.Empty);
+            reopened.StageAsset(catalog.Assets, "ui/game.rml", RelayView.From(game, false));
+            engine.Draw(new Camera { Zoom = 1 }, ReadOnlySpan<SpriteCommand>.Empty);
             Check(reopened.Status.Loaded, "native UI document opens under a fresh owner after disposal");
         }
         Console.WriteLine($"RELAY SCENARIO PASS assertions={checks}; full loop + real SDL/Rml commands + software readback; physical GPU/input/audio/IME not covered");

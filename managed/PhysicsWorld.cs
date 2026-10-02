@@ -17,8 +17,24 @@ public readonly record struct PhysicsBodyDefinition(PhysicsBodyType Type,float X
     }
 }
 /// <summary>Circle A is its radius, with B and Angle zero; box A/B are half extents. Lengths are meters, local angles radians and density kg/m².</summary>
-public readonly record struct PhysicsShapeDefinition(PhysicsShapeType Type,float A,float B=0,float OffsetX=0,float OffsetY=0,float Angle=0,float Density=1,float Friction=.6f,float Restitution=0,ulong Category=1,ulong Mask=ulong.MaxValue,int Group=0,bool Sensor=false)
+public readonly record struct PhysicsShapeDefinition
 {
+    public PhysicsShapeType Type { get; internal init; }
+    public float A { get; internal init; }
+    public float B { get; internal init; }
+    public float OffsetX { get; init; }
+    public float OffsetY { get; init; }
+    public float Angle { get; init; }
+    public float Density { get; init; }
+    public float Friction { get; init; }
+    public float Restitution { get; init; }
+    public ulong Category { get; init; }
+    public ulong Mask { get; init; }
+    public int Group { get; init; }
+    public bool Sensor { get; init; }
+    internal PhysicsShapeDefinition(PhysicsShapeType Type,float A,float B=0,float OffsetX=0,float OffsetY=0,float Angle=0,float Density=1,float Friction=.6f,float Restitution=0,ulong Category=1,ulong Mask=ulong.MaxValue,int Group=0,bool Sensor=false)
+    { this.Type = Type; this.A = A; this.B = B; this.OffsetX = OffsetX; this.OffsetY = OffsetY; this.Angle = Angle; this.Density = Density; this.Friction = Friction; this.Restitution = Restitution; this.Category = Category; this.Mask = Mask; this.Group = Group; this.Sensor = Sensor; }
+
     /// <summary>Creates a validated circle with radius and body-local offsets in meters. B and Angle are always zero. Density is kg/m²; explicit zero material/filter values are preserved.</summary>
     public static PhysicsShapeDefinition Circle(float radius, float offsetX = 0, float offsetY = 0,
         float density = 1, float friction = .6f, float restitution = 0,

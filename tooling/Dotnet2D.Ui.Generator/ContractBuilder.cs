@@ -51,7 +51,6 @@ internal sealed class ContractBuilder
 
         var registrations = new List<string>();
         var names = new HashSet<string>(StringComparer.Ordinal);
-        var ids = new HashSet<uint>();
         foreach (IMethodSymbol method in controller.GetMembers().OfType<IMethodSymbol>().OrderBy(m => m.Name, StringComparer.Ordinal).ThenBy(m => m.ToDisplayString(), StringComparer.Ordinal))
         {
             cancellation.ThrowIfCancellationRequested();
@@ -59,11 +58,9 @@ internal sealed class ContractBuilder
             if (command is null) continue;
             int before = issues.Count;
             string name = NamedString(command, "Name") ?? method.Name;
-            uint id = NamedUInt(command, "Id");
             if (!ValidName(name)) Error("DUI002", method, "UI command name '" + name + "' must match [A-Za-z][A-Za-z0-9_]{0,46}. Use [UiCommand(Name = \"...\")] to provide an explicit migration alias.");
             if (ReservedCommandName(name)) Error("DUI002", method, "UI command name '" + name + "' is reserved by RmlUi (case-insensitive). Rename the method or supply a nonreserved UiCommand.Name alias.");
             if (!names.Add(name)) Error("DUI002", method, "UI command name '" + name + "' is duplicated; command overloads need distinct explicit names.");
-            if (id != 0 && !ids.Add(id)) Error("DUI002", method, "UI command ID " + id + " is duplicated. Omit Id for automatic IDs or choose a unique explicit ID.");
             if (method.MethodKind != MethodKind.Ordinary || method.IsStatic || method.IsAbstract || method.IsExtern || method.IsAsync || !method.ReturnsVoid || method.IsGenericMethod || method.Parameters.Length > 4 || method.ExplicitInterfaceImplementations.Length != 0 || method.PartialDefinitionPart is not null || (method.IsPartialDefinition && method.PartialImplementationPart is null))
                 Error("DUI002", method, "A [UiCommand] must be an implemented, ordinary instance synchronous void method with zero to four string, bool, double, or ulong parameters; generic, async, static, abstract, extern, and explicit-interface methods are unsupported.");
             var codecs = new List<string>(); var kinds = new List<uint>();
@@ -77,7 +74,7 @@ internal sealed class ContractBuilder
             if (issues.Count != before) continue;
             SourceSite origin = Site(method);
             commands.Add(new CommandDescriptor(name, kinds.ToArray(), origin));
-            string arguments = Literal(name) + (id == 0 ? "" : ", " + id + "u");
+            string arguments = Literal(name);
             if (codecs.Count != 0) arguments += ", " + string.Join(", ", codecs);
             // A direct method group preserves ordinary overload/type checking and instance
             // ownership. There is no reflection, delegate-body inspection, or runtime lookup.
@@ -243,7 +240,6 @@ internal sealed class ContractBuilder
     private static string KindName(uint kind) => kind switch { 1 => "Text", 2 => "Boolean", 3 => "Number", 4 => "Key", _ => "Unsupported" };
     private static AttributeData? Attribute(ISymbol symbol, string name) => symbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == name);
     private static string? NamedString(AttributeData data, string name) => data.NamedArguments.FirstOrDefault(a => a.Key == name).Value.Value as string;
-    private static uint NamedUInt(AttributeData data, string name) => data.NamedArguments.FirstOrDefault(a => a.Key == name).Value.Value is uint value ? value : 0;
     private static int NamedInt(AttributeData data, string name, int fallback) => data.NamedArguments.FirstOrDefault(a => a.Key == name).Value.Value is int value ? value : fallback;
     private static SourceSite Site(ISymbol symbol) => SourceSite.From(symbol.Locations.FirstOrDefault(l => l.IsInSource));
     private void Error(string id, ISymbol symbol, string message, SourceSite? fallback = null)

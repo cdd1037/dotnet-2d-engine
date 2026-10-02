@@ -11,7 +11,7 @@ public sealed class TextureCache : IEngineOwned
     internal TextureCache(EngineHost engine)=>this.engine=engine;
     public const int MaximumTextures = 256;
     public const long MaximumDecodedBytes = 256L * 1024 * 1024;
-    private sealed class Entry(ulong handle, BitmapInfo info) { public ulong Handle { get; } = handle; public BitmapInfo Info { get; } = info; public int References = 1; }
+    private sealed class Entry(ulong handle, BitmapInfo info) { internal ulong Handle { get; } = handle; public BitmapInfo Info { get; } = info; public int References = 1; }
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private bool _destroyed;
     private long _decodedBytes;
@@ -102,15 +102,16 @@ public sealed class TextureLease : IDisposable, ITextureSource
     internal TextureLease(TextureCache cache,string path,ulong handle,BitmapInfo info){this.cache=cache;this.path=path;this.handle=handle;this.info=info;}
     private bool _disposed;
     public BitmapInfo Info { get { ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckAccess(); return info; } }
-    public ulong Handle
+    internal ulong Handle
     {
         get { ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckAccess(); return handle; }
     }
     /// <summary>Borrowed typed view; disposing this lease invalidates all its copies.</summary>
     public TextureHandle Texture { get { _ = Handle; return new(this); } }
-    ulong ITextureSource.ResolveTexture(EngineHost engine, TextureRegion? region)
+    ulong ITextureSource.ResolveTexture(EngineHost? engine, TextureRegion? region)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this); cache.CheckOwner(engine);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (engine is null) cache.CheckAccess(); else cache.CheckOwner(engine);
         region?.Validate(info.Width, info.Height); return handle;
     }
     public void Dispose()

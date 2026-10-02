@@ -4,6 +4,13 @@ using System.Xml;
 
 namespace GameAuthoringLab;
 
+/// <summary>A C# declaration site, not the origin of runtime data. Column is unavailable from caller info.</summary>
+public readonly record struct UiDeclaration(string FilePath, int Line)
+{
+    internal UiAuthoringException Error(string code, string field, string cause, Exception? inner = null) =>
+        new(code, string.IsNullOrEmpty(FilePath) ? "<schema>" : FilePath, Line, 1, field, cause, inner) { Declaration = this };
+}
+
 /// <summary>A stable engine diagnostic, independent of RmlUi's best-effort log text.</summary>
 public sealed class UiAuthoringException : Exception
 {
@@ -180,10 +187,16 @@ internal static class UiAuthoring
         return new(markup, style, rmlFile, rcssFile, name, volume, status, Array.AsReadOnly(items));
     }
 
+    internal static UiAuthoringException ToAuthoringException(UiContractException error) =>
+        new(error.Code, error.FilePath, error.Line, error.Column, error.Field, error.Cause, error.InnerException)
+        {
+            Declaration = error.Declaration is { } declaration ? new UiDeclaration(declaration.FilePath, declaration.Line) : null
+        };
+
     internal static UiXmlDocument ParseXml(string source, string file)
     {
         try { return UiXmlParser.Parse(source, file); }
-        catch (UiContractException error) { throw UiModelPreflight.ToAuthoringException(error); }
+        catch (UiContractException error) { throw ToAuthoringException(error); }
     }
 
     private static Dictionary<string, UiXmlElement> ValidateMarkup(UiXmlDocument document, string file)

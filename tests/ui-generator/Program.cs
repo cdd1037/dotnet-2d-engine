@@ -83,7 +83,7 @@ internal static class Program
             ("generated API, static getters and automatic typed registrations", GeneratedApi),
             ("all supported scalar and collection shapes compile", SupportedShapes),
             ("exact PascalCase names and explicit migration aliases", ExactNamesAndAliases),
-            ("explicit IDs use typed overloads", ExplicitIds),
+            ("explicit packet IDs are rejected", ExplicitIds),
             ("keyword identifiers and explicit aliases retain CLR identity", KeywordIdentifiers),
             ("ordinary unannotated types are ignored", UnannotatedTypes),
             ("field rename retains original RML and C# provenance", FieldRename),
@@ -226,12 +226,11 @@ internal static class Program
 
     private static void ExplicitIds()
     {
-        RunResult run = Run(Source.Replace("[UiCommand] private void Pick", "[UiCommand(Id = 41)] private void Pick"));
-        Success(run);
-        var pick = Calls(run, "On").Single(c => StringArgument(c, 0) == "Pick");
-        Equal((uint)41, (uint)((LiteralExpressionSyntax)pick.ArgumentList.Arguments[1].Expression).Token.Value!, "Explicit command ID");
-        var symbol = (IMethodSymbol)run.Output.GetSemanticModel(pick.SyntaxTree).GetSymbolInfo(pick).Symbol!;
-        Equal(SpecialType.System_UInt32, symbol.Parameters[1].Type.SpecialType, "Explicit ID overload");
+        Check(typeof(UiCommandAttribute).GetProperty("Id") is null, "Explicit packet IDs are outside the public generated contract.");
+        RunResult run = Run(); Success(run);
+        Check(Calls(run, "On").All(call => call.ArgumentList.Arguments[1].Expression is not LiteralExpressionSyntax literal
+            || !literal.IsKind(SyntaxKind.NumericLiteralExpression)),
+            "Generated registration never emits an explicit numeric wire ID.");
     }
 
     private static void FieldRename()
@@ -346,8 +345,6 @@ internal static class Program
     private static void Duplicates()
     {
         CsDiagnostic(Run(Source.Replace("[UiCommand] private void Pick", "[UiCommand(Name = \"Ping\")] private void Pick"), Document("<p/>")), "DUI002");
-        CsDiagnostic(Run(Source.Replace("[UiCommand] private void Pick", "[UiCommand(Id = 9)] private void Pick")
-            .Replace("[UiCommand] private void Ping", "[UiCommand(Id = 9)] private void Ping"), Document("<p/>")), "DUI002");
         CsDiagnostic(Run(Source.Replace("public int Count { get; set; }", "[UiField(Name = \"Title\")] public int Count { get; set; }"), Document("<p/>")), "DUI003");
     }
 
