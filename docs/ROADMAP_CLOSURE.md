@@ -4,13 +4,17 @@ Audit begun at the local package proof; current feature-wave closure, 2026-10-02
 This is a capability/acceptance inventory, not a completion percentage or an
 instruction to add every gap found in another engine.
 
+## 2026-10-03 评估补充
+
+引擎开发继续冻结；已有能力和验收缺口保留，不把路线评估当作解冻或放弃项目。[当前建议与证据边界](ROADMAP.md#evaluation-2026-10-03)优先考虑 Godot + 薄 C# 作者层满足近期低维护游戏生产，独立引擎的 .NET-first／AOT／trim／小包产品目标另行衡量。已验证的契约与诊断不能推出完整游戏效率优势。用户随后明确下一方向回到 Godot、归档当前阶段；本文后续缺口、比较建议和历史审批仍不是恢复本引擎开发或启动新实验的授权。
+
 ## Current authoring closure
 
 The later [RELAY experiment](RELAY_REFERENCE.md) runs the full existing game
 outside the checkout with generic typed UI and app-owned rules/save code.
 Older size tables below retain their measured revision scope.
-The [roadmap](ROADMAP.md) records the subsequent approved two-track strategy and
-bounded author-API work separately, after this migration closes.
+The [roadmap](ROADMAP.md) records the subsequently completed bounded author-API
+work and preserves the two-track strategy as a conditional future direction.
 
 ## Delivered foundations
 

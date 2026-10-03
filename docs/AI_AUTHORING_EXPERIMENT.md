@@ -2,6 +2,8 @@
 
 2026-10-02 UTC · .NET2D verified packages · official Godot 4.6.3 .NET
 
+**2026-10-03 补充：** 四次尝试是历史样本，早于当前[生成式 UI 契约](GENERATED_UI_CONTRACTS.md)和[公开 API 收敛](PUBLIC_API_CONSOLIDATION.md)。已验证的重复声明减少与精确错误位置，不能补写成这四次实验测得了当前版本速度、token 或完整游戏维护优势。[最新路线评估](ROADMAP.md#evaluation-2026-10-03)据此保留自研价值、维持开发冻结，并将一个真实复杂 UI 屏幕的配对比较列为待单独批准的候选，而非已启动实验。
+
 ## Finding
 
 Both engines passed both small maintenance tasks on the **first submitted

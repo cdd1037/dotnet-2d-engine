@@ -1,9 +1,69 @@
-# .NET 2D Engine — next stages
+# .NET 2D Engine — evaluation and frozen roadmap
 
 Planning document created after foundation checkpoint `cf3ebe6`. These are
 proposed delivery stages, not claims of implemented support or approval to install,
 publish or deploy anything. Use small playable examples to validate general-purpose engine capabilities;
 one sample is a starting point, not the engine feature ceiling.
+
+<a id="evaluation-2026-10-03"></a>
+
+## 2026-10-03 路线评估：近期游戏生产与独立引擎目标分开
+
+**当前建议：若近期目标是低维护成本地完成游戏，优先 Godot + 薄 C# 作者层；本仓库继续冻结开发，保留独立引擎方向。** 不为此深度重写 Godot，不把已交付的复刻游戏整体迁到自研引擎，也不把新发现的缺口变成自动开工清单。
+
+本节以[公开冻结基线 f8e334d](https://github.com/cdd1037/dotnet-2d-engine/commit/f8e334d65ae2a67ab8e5ab3819026ee5b4f11326)为准，记录代码审计和有限探针支持的评估与建议。用户随后要求归档阶段成果，并明确准备回到 Godot 魔改；这是下一工作方向，具体实现任务尚未指定，也不等于放弃自研、恢复本引擎开发或启动下面的比较实验。后文已交付阶段是历史记录，未完成阶段继续受冻结和单独审批约束。
+
+### 已证实与未证实的收益
+
+- **已证实：** [C# 生成式 UI 契约](GENERATED_UI_CONTRACTS.md)移除了手工字段 schema、数字命令 ID 和分派的重复声明；生成诊断能定位 RML 与 C# 声明。当前公开包的窄探针中，错误字段得到 `DUI005` 和行列位置；非法文本得到 `UI_MODEL_VALUE`、模型路径和声明位置。[类型化公开边界](PUBLIC_API_CONSOLIDATION.md)也减少了资源句柄和输入映射的误用面。
+- **尚未证实：** 完整游戏开发更快、AI 总 token／上下文更少、总维护成本更低。早先[三个代码切片](CODE_AUTHORING_COMPARISON.md)和[四次 AI 维护尝试](AI_AUTHORING_EXPERIMENT.md)都不足以推出普遍效率排名；旧实验早于当前生成式契约，不能用已移除的手工注册缺点描述当前版本，也不能把新增机制直接换算成生产效率收益。
+- **普通 C# 核心可移植，但收益已能在 Godot 中获得：** 已交付复刻游戏的 17 个 Core 文件、4,584 个物理行不依赖 Godot，已原样编译进普通 .NET 控制台并通过小范围规则断言。文件数和行数只说明依赖边界，**不是工作量比例或节省时间**；玩法语义、剧情时序与回归判断不会因换引擎消失。
+- **普通 C# 不自动等于 AOT 就绪：** 同一游戏的反射 JSON 序列化在关闭默认反射的窄 JIT 探针中失败。这不是完整 NativeAOT 发布失败实验，也未找齐全部问题；源生成 context、显式写入或已知类型方案仍需按真实数据审核。参见 [.NET JSON 源生成](https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation)和 [NativeAOT 限制](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)。
+
+本轮没有重做整款游戏、实现配对复杂界面、测量整游戏作者工时／token，或新增完整 AOT／目标设备发布验证。这里保留的是结论摘要，不随文发布私有 Flash 素材、剧情数据、游戏资源或探针输入。
+
+### 当前实现的取舍，不是 SDL／RmlUi 的先天弱点
+
+当前 [UI 模型边界](UI_MODELS.md#bounds-and-resource-boundary)把一个绑定文本值限制为 255 UTF-8 字节并拒绝换行等控制字符；[文档图片清单](UI_IMAGES.md)最多允许 32 个独立路径，隐藏、hover 和动态声明也计入。这些是本引擎的当前契约／预算策略，**不是 SDL 或 RmlUi 固有地不能处理长文本或更多图片**。
+
+真实内容已经触达边界：长中文段落和换行正文不能直接投影为单个文本值；一个界面的 14 个图标 × 3 个状态需要 42 张独立图片。可选择分块／分页、图集、预合成或未来修改契约，但这些都有适配和回归成本；本次仅记录，不批准扩展。
+
+生成器和绑定也没有消除以下长期责任：
+
+- 字体注册、字重、中文排版与合法分发；SVG／音频转换、图集和缓存；受限 SVG 支持不等于所有源图像可直接加载
+- 动态图像、遮罩、混合层级和 UI 合成；现有[材质](MATERIALS.md)与 [RenderTarget](RENDER_TARGETS.md)是真实能力，但不等于已具备同一游戏的全部图像处理工作流
+- 显式排空命令、`Dispatch`／`Apply` 顺序、owner 销毁、旧战斗身份和旧输入失效、模态焦点恢复与底层时钟；generation／revision 防护不能替代游戏规则
+- 窗口、用户路径、平台原生包、真实 IME、高 DPI、物理音频和目标硬件验收；这些仍由应用／引擎维护者承担，[现有验收门槛](ROADMAP_CLOSURE.md#acceptance-and-portability-gates)未被本次文档更新关闭
+
+### Godot 的薄作者层可以先解决什么
+
+这里的薄层是项目外置的 C# 库、构建检查和资源工具，不是 Godot 引擎 fork，也不是重新实现一套场景／UI 运行时。下列是后续可评估的方向，尚未承诺实现或证明净省工：
+
+1. 类型化 Node／Resource 引用、有限源生成和文件／字段／行列诊断，优先避免重复事实和易碎字符串；利用已有 [C# 导出引用](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_exports.html)
+2. 轻量 UI 状态投影／绑定，配合共享 [Theme](https://docs.godotengine.org/en/stable/tutorials/ui/gui_using_theme_editor.html) 和[场景实例复用](https://docs.godotengine.org/en/stable/tutorials/scripting/nodes_and_scene_instances.html)；不强制所有固定控件都由 C# 逐个创建，也不把场景数量当作效率指标
+3. 明确生命周期、订阅清理、模态、输入和时钟策略；Godot 的 [C# 信号](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_signals.html)有捕获变量 lambda／自定义信号等需显式清理的边界，不能承诺自动消除旧回调问题
+4. 资源校验、转换和缓存工具，结合已有 [CLI 导入与导出](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)，使构建失败可定位且可复现
+
+真正涉及运行时、底层渲染、原生平台或导出工具链的缺口应另列、另验收；不能声称薄层能解决全部底层问题，也不应因此默认深改 Godot。以上官方文档只说明可利用的能力，不是本项目效率提升的测量证据。
+
+### 什么目标仍可能值得做独立引擎
+
+若产品目标本身是 .NET-first 的宿主、可控 NativeAOT／trim 边界、窄原生 ABI、小型分发包与可检查的作者契约，自研依然有独立价值。[现有包证明](NUGET_PROOF.md)和[包大小记录](MILESTONE_PACKAGE_SIZES.md)支持各自限定环境下的技术结果；它们不证明同等完整游戏比 Godot 更省作者时间。包大小须含原生库、字体和资源，平台集成与长期维护也必须计入。
+
+因此，“保留自研作为产品方向”和“近期使用成熟引擎降低游戏生产维护负担”可以同时成立。是否恢复自研以及恢复哪一段，需要用户另行决定；本节不撤销项目，也不扩展当前范围。
+
+### 若以后验证，只比较一个真实复杂 UI 屏幕
+
+这是一项**待单独批准**的有界方案：选择同一个真实复杂界面，例如含长说明、14 个三态图标和保留底层状态的模态弹层的法术参考／修炼屏。先固定行为、素材范围和像素容差；Godot 侧允许合理的场景／Theme 复用，自研侧仅用当前公开包。不得为比较迁移整款游戏、继续追未确认的原作细节或把内部 API 当成作者能力。
+
+记录四类结果：
+
+- 修改面：完成同一状态／字段／交互修改要碰哪些独立文件、声明和规则，是否必须修改引擎
+- 资源适配：长文本、字体、图片状态、SVG／音频和图集需要哪些转换与特例；把管线及缓存维护算入总账
+- 生命周期与输入：关闭／重开、模态焦点恢复、底层时钟、过期输入与旧对象命令是否通过实际交互回归
+- 实际导出：在约定目标上真正导出、启动、加载资源并重走该屏交互；区分 JIT、trim、AOT、软件渲染和目标设备证据，不能用编译成功代替导出验收
+
+达到同一屏行为、文本可读、资源完整、旧输入无效和约定导出验收后即停止，报告结果；若关键能力要求解冻引擎或扩大平台范围，先记录阻塞并请求决定。之后如需判断作者成本，再对这一屏的同一小修改做配对试验，记录设置／调试／验证成本和可取得的 token／工时。一次屏幕实验仍不能推出整游戏或普遍维护优势。
 
 ## Current milestone closure (2026-10-02)
 
@@ -32,9 +92,9 @@ Advanced effects, async/hot-reload/prefab expansion, richer controllers, editor,
 mobile and Web remain deferred. The stages below retain the longer-term goals and
 acceptance criteria; they are not a new implementation queue.
 
-### Subsequently approved authoring iteration
+### Historical, completed authoring iteration
 
-The later authoring sequence reopens these bounded tasks, in order:
+The later approved authoring sequence covered these bounded tasks, in order:
 
 1. Close the [generic UI model/event bridge](UI_MODEL_VALIDATION.md)
 2. Prove [C# composition reuse](CSHARP_COMPOSITION.md) with parameterized typed
@@ -57,9 +117,10 @@ package identity/version-management work is deferred. None of
 these stages authorizes broader deferred capabilities or public package
 distribution, and the sequence does not revive prefab inheritance.
 
-## Two complementary development tracks
+## Two complementary development tracks (conditional on future approval)
 
-Future work alternates between two evidence-driven tracks:
+If development is separately reopened, retain these two evidence-driven tracks.
+Neither is an active work queue while the engine is frozen:
 
 1. **Real projects reveal necessary engine capabilities.** Build and maintain
    complete games against the public package boundary. Use actual ownership,
@@ -75,7 +136,7 @@ API/tooling work must then be checked in that project and independent consumers.
 Neither track automatically takes priority forever or licenses unrelated feature
 expansion. Preserve explicit timing, ownership, serialization and failure policy.
 
-### Approved next author-API phase, after RELAY closure
+### Completed author-API phase after RELAY closure
 
 The six individually verified author-API batches below are complete. A subsequent
 approved consolidation removes superseded public entry points, while retaining
@@ -105,9 +166,9 @@ internal ABI regression coverage; see [the current boundary](SAFE_AUTHORING_BOUN
 6. Add semantic Circle/Box shape factories. **Implemented:** public construction
    names dimensions; the generic geometry constructor is internal.
 
-Migrate maintained consumers, use targeted negative tests,
-and remeasure package/AOT boundaries when the affected contract demands it.
-This approval does not include a Vue-style component runtime, editor, automatic
+Maintained consumers were migrated and targeted negative tests were run;
+package/AOT evidence remains limited to the linked contract-specific proofs.
+That completed approval did not include a Vue-style component runtime, editor, automatic
 scene lifecycle or broader platform/distribution work.
 
 The numbered stages below preserve the original proposals and exit criteria.
@@ -181,8 +242,8 @@ editor adds a second authoring surface. A Godot fork is outside this project.
 
 The stages above describe integration, authoring and delivery. They do not replace
 building reusable 2D engine functionality. Phase 1 and the agreed focused resource/input/rendering
-feature wave are complete at the documented validation boundaries. The following remains a prioritized
-roadmap, not a dependency selection or instruction to implement everything immediately.
+feature wave are complete at the documented validation boundaries. The following remains a historical
+capability roadmap, not a dependency selection or permission to resume implementation.
 
 ### A. Resources, scenes, rendering and animation
 
@@ -270,6 +331,6 @@ for remaining functional work and named validation limits.
 
 ## Deferred comparison
 
-Near completion of the currently agreed roadmap, perform a comprehensive
-Godot/Unity 2D capability comparison. Newly discussed advanced gaps are deferred
-and are not added to this implementation scope now.
+The earlier comprehensive Godot/Unity 2D capability comparison remains a deferred
+proposal, not scheduled work. The 2026-10-03 evaluation above is the current
+decision input; it does not reopen implementation or approve a new experiment.

@@ -1,5 +1,18 @@
 # .NET 2D Engine — current milestone
 
+**2026-10-03：开发保持冻结。** [最新路线评估](ROADMAP.md#evaluation-2026-10-03)建议近期低维护成本游戏生产优先 Godot + 薄 C# 作者层，同时保留独立引擎方向。生成契约／诊断已有有限验证，整游戏速度、token 和维护优势没有测量结论。用户随后明确下一方向回到 Godot，并要求保留阶段成果；具体魔改任务尚未指定，本引擎没有恢复开发，也没有启动新的 UI 比较实验。下文保留历史里程碑。
+
+## 2026-10-03 阶段成果与归档边界
+
+- **已交付基础：** 独立 .NET 10 宿主、窄 C ABI／SDL3 GPU 层、显式 World／owner／资源寿命、输入视口、精灵与图集、材质／RenderTarget、动画／时钟、TileMap 和可选音频／Box2D。能力与验收门槛见[闭环清单](ROADMAP_CLOSURE.md)，不等于全平台或所有游戏能力完成
+- **作者入口已收敛：** [生成式 UI 契约](GENERATED_UI_CONTRACTS.md)、自动命令 ID、类型化绘图／资源句柄与输入 token、`StageAsset(initialModel)` 原子初始化和 Circle／Box 语义工厂；旧公开入口已移除或转为内部回归覆盖，见[当前公开 API](PUBLIC_API_CONSOLIDATION.md)
+- **已有工程验证：** RELAY 完整可玩流程使用外部普通 PackageReference；独立消费者有 JIT、trim、NativeAOT 证明，CPU 合同和部分软件 Vulkan／云端显示输入、像素验证均按对应报告保留。它们证明限定环境下的机制与集成，不证明 AI 更快、token 更少或完整游戏总成本更低
+- **尚未验收：** 真实中文 IME、目标硬件／高 DPI／物理音频、Windows／macOS 原生后端与包、干净机器分发、稳定 SDK／公开 NuGet 发布；当前字体、资源转换、合成、生命周期和平台集成仍有维护责任
+- **继续冻结／暂缓：** 不自动补齐新游戏暴露的缺口，不扩展异步／热重载／prefab、高级特效、编辑器、移动／Web，也不整体迁移已交付复刻游戏；一个真实复杂 UI 屏幕比较仍是[待批准方案](ROADMAP.md#evaluation-2026-10-03)
+- **后续方向：** 用户已明确准备回到 Godot。优先在 Godot 外围评估薄 C# 作者层；具体魔改／底层导出问题另行定义，归档不触发实现
+
+本次归档保留源码历史、文档和重建脚本；离线消费所需本地包、必要已生成 shader／样例资源单独说明来源。工具链、依赖源码缓存、重复验证副本不代表新增交付能力。本次没有重跑重型引擎测试或产生新的平台验收结论。
+
 Current full-game experiment: [RELAY with public PackageReferences](RELAY_REFERENCE.md).
 The historical milestones below retain their original validation and scope.
 

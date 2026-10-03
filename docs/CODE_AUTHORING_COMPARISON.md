@@ -2,6 +2,8 @@
 
 2026-10-02 · .NET2D `a49d2ff` · official Godot **4.6.3 .NET**
 
+**2026-10-03 补充：** 本文保留当时三个切片的测量边界；当前公开 API 已完成[生成契约](GENERATED_UI_CONTRACTS.md)与[接口收敛](PUBLIC_API_CONSOLIDATION.md)，不能把旧手工 schema／数字命令接线当作当前缺点。机制改进也不等于整游戏效率已获验证。[最新路线评估](ROADMAP.md#evaluation-2026-10-03)建议近期采用 Godot + 薄 C# 作者层、保持本引擎冻结并保留其独立产品价值；用户随后明确准备回到 Godot，但尚未指定具体魔改任务，也未批准恢复本引擎开发。
+
 ## Conclusion
 
 The generic UI bridge, entity cleanup/C# factories and explicit game-loop recipe

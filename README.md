@@ -2,7 +2,9 @@
 
 An independent, AI-authoring-first 2D engine prototype: .NET 10 main executable + narrow C ABI + C++ SDL3 GPU platform layer. This is not a Godot fork. Repository: `dotnet-2d-engine`; the existing `GameAuthoringLab` assembly, namespace and `gal` ABI names remain stable during this milestone.
 
-Start building a game with the [author guide](docs/AUTHOR_GUIDE.md): the starter, edit/run loop, public APIs and current authoring limits. The [RELAY development experiment](docs/RELAY_REFERENCE.md) exercises the full game through ordinary public PackageReferences.
+**2026-10-03 评估记录：继续冻结引擎开发，保留自研方向。** 以近期低维护成本制作游戏为目标，当前建议优先使用 Godot + 薄 C# 作者层，不深改 Godot，也不整体迁移已交付的复刻游戏。生成契约与精确诊断的收益已有证据，整游戏速度、token 和维护成本优势仍未验证。用户随后明确准备回到 Godot，具体魔改范围尚未指定；这不表示放弃自研或解冻本引擎实现。详见[路线评估与证据边界](docs/ROADMAP.md#evaluation-2026-10-03)。
+
+The [author guide](docs/AUTHOR_GUIDE.md) documents the existing starter, edit/run loop, public APIs and current authoring limits. The [RELAY development experiment](docs/RELAY_REFERENCE.md) exercises the full game through ordinary public PackageReferences.
 
 See the [milestone overview](docs/MILESTONE.md) for project structure, current decisions, verification and remaining work. The [closure audit](docs/ROADMAP_CLOSURE.md) distinguishes delivered foundations, remaining original work and deferred expansion.
 
